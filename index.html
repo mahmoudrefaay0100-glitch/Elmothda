@@ -370,6 +370,7 @@
 
         <i class="fa-solid fa-comments text-xl"></i>
         <span class="hidden sm:inline">تحدث مع المساعد الذكي</span>
+
     </button>
 
 </div>
@@ -441,7 +442,8 @@
                     </button>
                 </li>
 
-                <li>
+                <!-- دخول الإدارة مخفي عن العملاء -->
+                <li id="footerAdminButton" class="hidden">
                     <button onclick="openAdminAuth()" class="hover:text-amber-400">
                         دخول الادارة
                     </button>
@@ -497,10 +499,17 @@
     </div>
 
     <div class="max-w-7xl mx-auto px-4 mt-8 pt-6 border-t border-slate-900 text-center text-xs text-slate-500">
+
         &copy;
+
         <span id="currentYear"></span>
+
         جميع الحقوق محفوظة لـ
-        <strong class="text-amber-400">المتحدة للرتان والأثاث</strong>.
+
+        <strong class="text-amber-400">
+            المتحدة للرتان والأثاث
+        </strong>.
+
     </div>
 
 </footer>
@@ -509,6 +518,7 @@
 <script>
 
 const defaultState = {
+
     adminPassword: "172006",
 
     siteInfo: {
@@ -570,19 +580,51 @@ const defaultState = {
     ]
 };
 
-let appData = JSON.parse(localStorage.getItem('united_rattan_db')) || defaultState;
-let cart = JSON.parse(localStorage.getItem('united_rattan_cart')) || [];
+let appData =
+    JSON.parse(localStorage.getItem('united_rattan_db')) ||
+    defaultState;
+
+let cart =
+    JSON.parse(localStorage.getItem('united_rattan_cart')) ||
+    [];
+
 let isAdminLoggedIn = false;
+
 let activeCategory = 'الكل';
 
 document.addEventListener('DOMContentLoaded', () => {
 
     saveData();
+
     updateHeaderAndFooter();
+
     navigateTo('home');
 
     document.getElementById('currentYear').innerText =
         new Date().getFullYear();
+
+    /*
+       الدخول السري للإدارة:
+       افتح الموقع ثم أضف في آخر الرابط:
+       #united-admin
+    */
+
+    if (window.location.hash === '#united-admin') {
+
+        setTimeout(() => {
+            openAdminAuth();
+        }, 300);
+
+    }
+});
+
+/* لو تغير الرابط إلى #united-admin بدون إعادة تحميل */
+window.addEventListener('hashchange', () => {
+
+    if (window.location.hash === '#united-admin') {
+        openAdminAuth();
+    }
+
 });
 
 function saveData() {
@@ -719,6 +761,7 @@ function renderHomePage() {
 
                             <i class="fa-solid fa-store"></i>
                             استعراض الكتالوج
+
                         </button>
 
                         <a href="https://wa.me/${appData.siteInfo.whatsapp.replace(/[^0-9]/g,'')}"
@@ -727,6 +770,7 @@ function renderHomePage() {
 
                             <i class="fa-brands fa-whatsapp text-xl"></i>
                             تواصل مباشر
+
                         </a>
 
                     </div>
@@ -1591,6 +1635,7 @@ function handleLogoChange(event) {
                 e.target.result;
 
             saveData();
+
             updateHeaderAndFooter();
 
             alert('تم تغيير لوجو الموقع بنجاح!');
@@ -2193,6 +2238,18 @@ function openAdminAuth() {
 
         document.getElementById('adminAuthModal')
             .classList.remove('hidden');
+
+        setTimeout(() => {
+
+            const passwordInput =
+                document.getElementById('adminPasswordInput');
+
+            if (passwordInput) {
+                passwordInput.focus();
+            }
+
+        }, 100);
+
     }
 }
 
@@ -2213,14 +2270,22 @@ function handleAdminLogin(e) {
 
         isAdminLoggedIn = true;
 
-        /* إظهار لوحة التحكم بعد نجاح تسجيل الدخول */
-        document.getElementById('adminButton')
-            .classList.remove('hidden');
-
         closeAdminAuth();
 
         document.getElementById('adminPasswordInput')
             .value = '';
+
+        /*
+           بعد تسجيل الدخول نحذف الرابط السري
+           حتى لا يظل ظاهرًا في شريط العنوان.
+        */
+        if (window.location.hash === '#united-admin') {
+            history.replaceState(
+                null,
+                document.title,
+                window.location.pathname + window.location.search
+            );
+        }
 
         navigateTo('admin');
 
@@ -2233,10 +2298,6 @@ function handleAdminLogin(e) {
 function logoutAdmin() {
 
     isAdminLoggedIn = false;
-
-    /* إخفاء لوحة التحكم مرة أخرى */
-    document.getElementById('adminButton')
-        .classList.add('hidden');
 
     navigateTo('home');
 }
@@ -2354,3 +2415,4 @@ function sendChatMessage() {
 
 </body>
 </html>
+united-
