@@ -1,817 +1,1177 @@
-<!-- Tailwind CSS CDN -->
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-    tailwind.config = {
-        theme: {
-            extend: {
-                colors: {
-                    gold: {
-                        400: '#facc15',
-                        500: '#d97706',
-                        600: '#b45309',
-                        700: '#92400e',
-                        800: '#78350f',
-                    },
-                    dark: {
-                        900: '#0f172a',
-                        800: '#1e293b',
-                        700: '#334155'
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المتحدة للرتان والأثاث | المصنع والتوريد</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gold: {
+                            400: '#facc15',
+                            500: '#d97706',
+                            600: '#b45309',
+                            700: '#92400e',
+                            800: '#78350f',
+                        },
+                        dark: {
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            700: '#334155'
+                        }
                     }
                 }
             }
         }
-    }
-</script>
+    </script>
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #0b0f17;
+            color: #f1f5f9;
+        }
+        .gold-gradient-text {
+            background: linear-gradient(135deg, #fef08a 0%, #d97706 50%, #92400e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .gold-bg-gradient {
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(217, 119, 6, 0.2);
+        }
+        .glass-nav {
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(217, 119, 6, 0.2);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d97706;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between overflow-x-hidden">
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
-
-<style>
-    body {
-        font-family: 'Cairo', sans-serif;
-        background-color: #0b0f17;
-        color: #f1f5f9;
-    }
-
-    .gold-gradient-text {
-        background: linear-gradient(135deg, #fef08a 0%, #d97706 50%, #92400e 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    .gold-bg-gradient {
-        background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-    }
-
-    .glass-card {
-        background: rgba(30, 41, 59, 0.7);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(217, 119, 6, 0.2);
-    }
-
-    .glass-nav {
-        background: rgba(15, 23, 42, 0.9);
-        backdrop-filter: blur(16px);
-        border-bottom: 1px solid rgba(217, 119, 6, 0.2);
-    }
-
-    ::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-        background: #0f172a;
-    }
-
-    ::-webkit-scrollbar-thumb {
-        background: #d97706;
-        border-radius: 4px;
-    }
-</style>
-
-<!-- Header / Navbar -->
-<header class="glass-nav sticky top-0 z-50 transition-all duration-300">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-
-        <!-- Logo -->
-        <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('home')">
-            <img id="siteLogo"
-                 src="749343355_122101492599399595_32072906961096562_n.jpg"
-                 alt="المتحدة للرتان والأثاث"
-                 class="h-14 w-14 object-contain rounded-full border-2 border-amber-500/50 shadow-lg shadow-amber-500/20">
-
-            <div>
-                <h1 id="siteTitle" class="text-xl font-bold gold-gradient-text tracking-wide">
-                    المتحدة للرتان والأثاث
-                </h1>
-
-                <p id="siteSubtitle" class="text-xs text-amber-200/70">
-                    جمال يدوم .. وراحة تدوم
-                </p>
-            </div>
-        </div>
-
-        <!-- Nav Links -->
-        <nav class="hidden md:flex items-center gap-8 text-sm font-semibold">
-            <button onclick="navigateTo('home')" class="hover:text-amber-400 transition-colors flex items-center gap-2">
-                <i class="fa-solid fa-house text-amber-500"></i>
-                الرئيسية
-            </button>
-
-            <button onclick="navigateTo('products')" class="hover:text-amber-400 transition-colors flex items-center gap-2">
-                <i class="fa-solid fa-couch text-amber-500"></i>
-                المنتجات والأقسام
-            </button>
-
-            <button onclick="navigateTo('about')" class="hover:text-amber-400 transition-colors flex items-center gap-2">
-                <i class="fa-solid fa-award text-amber-500"></i>
-                عن المصنع
-            </button>
-
-            <button onclick="navigateTo('contact')" class="hover:text-amber-400 transition-colors flex items-center gap-2">
-                <i class="fa-solid fa-headset text-amber-500"></i>
-                اتصل بنا
-            </button>
-        </nav>
-
-        <!-- Actions - Cart Only -->
-        <div class="flex items-center gap-4">
-            <button onclick="toggleCartModal()"
-                    class="relative p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-amber-400 transition border border-amber-500/30">
-
-                <i class="fa-solid fa-cart-shopping text-lg"></i>
-
-                <span id="cartBadge"
-                      class="absolute -top-1 -right-1 bg-amber-600 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full hidden">
-                    0
-                </span>
-            </button>
-        </div>
-    </div>
-</header>
-
-<!-- Main -->
-<main id="mainContainer" class="flex-grow"></main>
-
-<!-- Shopping Cart Modal -->
-<div id="cartModal"
-     class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-
-    <div class="glass-card max-w-lg w-full rounded-2xl overflow-hidden border border-amber-500/40 shadow-2xl flex flex-col max-h-[90vh]">
-
-        <div class="p-4 bg-slate-900 flex justify-between items-center border-b border-slate-800">
-            <h3 class="font-bold text-lg text-amber-400 flex items-center gap-2">
-                <i class="fa-solid fa-basket-shopping"></i>
-                سلة المشتريات
-            </h3>
-
-            <button onclick="toggleCartModal()" class="text-slate-400 hover:text-white">
-                <i class="fa-solid fa-xmark text-xl"></i>
-            </button>
-        </div>
-
-        <div id="cartItemsList" class="p-4 overflow-y-auto flex-grow space-y-3"></div>
-
-        <div class="p-4 bg-slate-900/90 border-t border-slate-800 space-y-3">
-
-            <div class="flex justify-between items-center font-bold text-lg">
-                <span>الإجمالي:</span>
-                <span id="cartTotalPrice" class="text-amber-400">0 ج.م</span>
-            </div>
-
-            <button onclick="startCardPayment()"
-                    class="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 font-bold text-white transition flex items-center justify-center gap-2">
-
-                <i class="fa-solid fa-credit-card text-xl"></i>
-                الدفع بالفيزا / Mastercard
-            </button>
-
-            <button onclick="checkoutWhatsApp()"
-                    class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-white transition flex items-center justify-center gap-2">
-
-                <i class="fa-brands fa-whatsapp text-xl"></i>
-                إرسال الطلب عبر الواتساب
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- Payment Modal -->
-<div id="paymentModal"
-     class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-
-    <div class="glass-card max-w-md w-full rounded-2xl p-6 border border-amber-500/40 shadow-2xl">
-
-        <div class="text-center mb-5">
-
-            <div class="w-16 h-16 mx-auto rounded-full bg-amber-600/20 flex items-center justify-center mb-3">
-                <i class="fa-solid fa-lock text-amber-400 text-2xl"></i>
-            </div>
-
-            <h3 class="text-xl font-bold text-amber-400">
-                الدفع الإلكتروني الآمن
-            </h3>
-
-            <p class="text-xs text-slate-400 mt-2">
-                سيتم تحويلك إلى بوابة دفع معتمدة لإتمام الدفع بالبطاقة.
-                الموقع لا يخزن بيانات بطاقتك.
-            </p>
-        </div>
-
-        <div class="bg-slate-900 rounded-xl p-4 mb-4">
-            <div class="flex justify-between font-bold">
-                <span>إجمالي الطلب</span>
-                <span id="paymentTotal" class="text-amber-400">0 ج.م</span>
-            </div>
-        </div>
-
-        <button onclick="continueToCardGateway()"
-                class="w-full py-3 rounded-xl gold-bg-gradient text-slate-950 font-bold">
-
-            <i class="fa-solid fa-lock ml-1"></i>
-            متابعة إلى الدفع
-        </button>
-
-        <button onclick="closePaymentModal()"
-                class="w-full py-2 mt-2 text-slate-400 hover:text-white text-sm">
-            إلغاء
-        </button>
-
-        <p id="paymentSetupNotice"
-           class="text-[11px] text-amber-300/80 text-center mt-3"></p>
-    </div>
-</div>
-
-<!-- Admin Authentication Modal -->
-<div id="adminAuthModal"
-     class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-
-    <div class="glass-card max-w-md w-full rounded-2xl p-6 border border-amber-500/40 shadow-2xl">
-
-        <div class="text-center mb-6">
-
-            <img src="749343355_122101492599399595_32072906961096562_n.jpg"
-                 alt="Logo"
-                 class="w-20 h-20 mx-auto rounded-full border-2 border-amber-500 mb-2">
-
-            <h3 class="text-xl font-bold text-amber-400">
-                تسجيل الدخول للوحة التحكم
-            </h3>
-
-            <p class="text-xs text-slate-400">
-                أدخل كلمة المرور لإدارة الموقع بالكامل
-            </p>
-        </div>
-
-        <form onsubmit="handleAdminLogin(event)" class="space-y-4">
-
-            <div>
-                <label class="block text-xs font-semibold mb-1 text-slate-300">
-                    كلمة السر
-                </label>
-
-                <input type="password"
-                       id="adminPasswordInput"
-                       required
-                       placeholder="أدخل كلمة المرور"
-                       class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500">
-            </div>
-
-            <button type="submit"
-                    class="w-full py-3 rounded-xl gold-bg-gradient text-slate-950 font-bold hover:brightness-110 transition">
-                دخول
-            </button>
-
-            <button type="button"
-                    onclick="closeAdminAuth()"
-                    class="w-full py-2 text-slate-400 hover:text-white text-sm">
-                إلغاء
-            </button>
-        </form>
-    </div>
-</div>
-
-<!-- Product Detail Modal -->
-<div id="productDetailModal"
-     class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-
-    <div id="productDetailContent"
-         class="glass-card max-w-2xl w-full rounded-2xl overflow-hidden border border-amber-500/40 shadow-2xl relative">
-    </div>
-</div>
-
-<!-- AI Chatbot -->
-<div id="chatbotContainer"
-     class="fixed bottom-6 left-6 z-40 flex flex-col items-start">
-
-    <div id="chatBox"
-         class="glass-card w-80 sm:w-96 rounded-2xl border border-amber-500/40 shadow-2xl mb-4 hidden flex-col overflow-hidden h-96 transition-all duration-300">
-
-        <div class="p-3 bg-slate-900 border-b border-slate-800 flex justify-between items-center">
-
-            <div class="flex items-center gap-2">
-
-                <img src="749343355_122101492599399595_32072906961096562_n.jpg"
-                     class="w-8 h-8 rounded-full border border-amber-500">
-
+    <!-- Header / Navbar -->
+    <header class="glass-nav sticky top-0 z-50 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            
+            <!-- Logo & Brand Name -->
+            <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('home')">
+                <img id="siteLogo" src="749343355_122101492599399595_32072906961096562_n.jpg" alt="المتحدة للرتان والأثاث" class="h-14 w-14 object-contain rounded-full border-2 border-amber-500/50 shadow-lg shadow-amber-500/20">
                 <div>
-                    <h4 class="font-bold text-sm text-amber-400">
-                        مساعد المتحدة الذكي
-                    </h4>
-
-                    <span class="text-[10px] text-emerald-400 flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                        متصل الآن
-                    </span>
+                    <h1 id="siteTitle" class="text-xl font-bold gold-gradient-text tracking-wide">المتحدة للرتان والأثاث</h1>
+                    <p id="siteSubtitle" class="text-xs text-amber-200/70">جمال يدوم .. وراحة تدوم</p>
                 </div>
             </div>
 
-            <button onclick="toggleChatbot()" class="text-slate-400 hover:text-white">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-        </div>
+            <!-- Nav Links Desktop -->
+            <nav class="hidden md:flex items-center gap-8 text-sm font-semibold">
+                <button onclick="navigateTo('home')" class="hover:text-amber-400 transition-colors flex items-center gap-2"><i class="fa-solid fa-house text-amber-500"></i> الرئيسية</button>
+                <button onclick="navigateTo('products')" class="hover:text-amber-400 transition-colors flex items-center gap-2"><i class="fa-solid fa-couch text-amber-500"></i> المنتجات والأقسام</button>
+                <button onclick="navigateTo('about')" class="hover:text-amber-400 transition-colors flex items-center gap-2"><i class="fa-solid fa-award text-amber-500"></i> عن المصنع</button>
+                <button onclick="navigateTo('contact')" class="hover:text-amber-400 transition-colors flex items-center gap-2"><i class="fa-solid fa-headset text-amber-500"></i> اتصل بنا</button>
+            </nav>
 
-        <div id="chatMessages"
-             class="p-3 overflow-y-auto flex-grow space-y-3 text-sm">
+            <!-- Actions (Cart & Admin Login) -->
+            <div class="flex items-center gap-4">
+                <button onclick="toggleCartModal()" class="relative p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-amber-400 transition border border-amber-500/30">
+                    <i class="fa-solid fa-cart-shopping text-lg"></i>
+                    <span id="cartBadge" class="absolute -top-1 -right-1 bg-amber-600 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full hidden">0</span>
+                </button>
 
-            <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700/50 max-w-[85%] text-slate-200">
-                أهلاً بك في <strong>المتحدة للرتان والأثاث</strong>!
-                كيف يمكنني مساعدتك اليوم؟
-                يمكنك الاستفسار عن المنتجات، المواعيد، أو أسعار الجملة!
+                <button onclick="openAdminAuth()" class="px-4 py-2 rounded-xl gold-bg-gradient text-slate-950 font-bold hover:brightness-110 transition shadow-md flex items-center gap-2 text-sm">
+                    <i class="fa-solid fa-user-gear"></i>
+                    <span>لوحة التحكم</span>
+                </button>
             </div>
         </div>
+    </header>
 
-        <div class="p-2 bg-slate-900 border-t border-slate-800 flex gap-2">
+    <!-- Main Dynamic Content Container -->
+    <main id="mainContainer" class="flex-grow">
+        <!-- Content will be rendered dynamically via JS -->
+    </main>
 
-            <input type="text"
-                   id="chatInput"
-                   onkeypress="handleChatKeyPress(event)"
-                   placeholder="اكتب سؤالك هنا..."
-                   class="flex-grow bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
-
-            <button onclick="sendChatMessage()"
-                    class="px-3 py-2 gold-bg-gradient rounded-lg text-slate-950 font-bold text-xs">
-                <i class="fa-solid fa-paper-plane"></i>
-            </button>
+    <!-- Shopping Cart Modal -->
+    <div id="cartModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-card max-w-lg w-full rounded-2xl overflow-hidden border border-amber-500/40 shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="p-4 bg-slate-900 flex justify-between items-center border-b border-slate-800">
+                <h3 class="font-bold text-lg text-amber-400 flex items-center gap-2"><i class="fa-solid fa-basket-shopping"></i> سلة المشتريات</h3>
+                <button onclick="toggleCartModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div id="cartItemsList" class="p-4 overflow-y-auto flex-grow space-y-3">
+                <!-- Cart items list -->
+            </div>
+            <div class="p-4 bg-slate-900/90 border-t border-slate-800 space-y-3">
+                <div class="flex justify-between items-center font-bold text-lg">
+                    <span>الإجمالي:</span>
+                    <span id="cartTotalPrice" class="text-amber-400">0 ج.م</span>
+                </div>
+                <button onclick="startCardPayment()" class="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 font-bold text-white transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-credit-card text-xl"></i> الدفع بالفيزا / Mastercard
+                </button>
+                <button onclick="checkoutWhatsApp()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-white transition flex items-center justify-center gap-2">
+                    <i class="fa-brands fa-whatsapp text-xl"></i> إرسال الطلب عبر الواتساب
+                </button>
+            </div>
         </div>
     </div>
 
-    <button onclick="toggleChatbot()"
-            class="p-4 gold-bg-gradient text-slate-950 rounded-full shadow-lg hover:scale-110 transition flex items-center justify-center gap-2 font-bold">
+    <!-- Secure Card Payment Modal -->
+    <div id="paymentModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-card max-w-md w-full rounded-2xl p-6 border border-amber-500/40 shadow-2xl">
+            <div class="text-center mb-5">
+                <div class="w-16 h-16 mx-auto rounded-full bg-amber-600/20 flex items-center justify-center mb-3"><i class="fa-solid fa-lock text-amber-400 text-2xl"></i></div>
+                <h3 class="text-xl font-bold text-amber-400">الدفع الإلكتروني الآمن</h3>
+                <p class="text-xs text-slate-400 mt-2">سيتم تحويلك إلى بوابة دفع معتمدة لإتمام الدفع بالبطاقة. الموقع لا يخزن بيانات بطاقتك.</p>
+            </div>
+            <div class="bg-slate-900 rounded-xl p-4 mb-4">
+                <div class="flex justify-between font-bold"><span>إجمالي الطلب</span><span id="paymentTotal" class="text-amber-400">0 ج.م</span></div>
+            </div>
+            <button onclick="continueToCardGateway()" class="w-full py-3 rounded-xl gold-bg-gradient text-slate-950 font-bold">
+                <i class="fa-solid fa-lock ml-1"></i> متابعة إلى الدفع
+            </button>
+            <button onclick="closePaymentModal()" class="w-full py-2 mt-2 text-slate-400 hover:text-white text-sm">إلغاء</button>
+            <p id="paymentSetupNotice" class="text-[11px] text-amber-300/80 text-center mt-3"></p>
+        </div>
+    </div>
 
-        <i class="fa-solid fa-comments text-xl"></i>
+    <!-- Admin Authentication Modal -->
+    <div id="adminAuthModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-card max-w-md w-full rounded-2xl p-6 border border-amber-500/40 shadow-2xl">
+            <div class="text-center mb-6">
+                <img src="749343355_122101492599399595_32072906961096562_n.jpg" alt="Logo" class="w-20 h-20 mx-auto rounded-full border-2 border-amber-500 mb-2">
+                <h3 class="text-xl font-bold text-amber-400">تسجيل الدخول للوحة التحكم</h3>
+                <p class="text-xs text-slate-400">أدخل كلمة المرور لإدارة الموقع بالكامل</p>
+            </div>
+            <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold mb-1 text-slate-300">كلمة السر</label>
+                    <input type="password" id="adminPasswordInput" required placeholder="أدخل كلمة المرور" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500">
+                </div>
+                <button type="submit" class="w-full py-3 rounded-xl gold-bg-gradient text-slate-950 font-bold hover:brightness-110 transition">دخول</button>
+                <button type="button" onclick="closeAdminAuth()" class="w-full py-2 text-slate-400 hover:text-white text-sm">إلغاء</button>
+            </form>
+        </div>
+    </div>
 
-        <span class="hidden sm:inline">
-            تحدث مع المساعد الذكي
-        </span>
-    </button>
-</div>
+    <!-- Product Detail Modal -->
+    <div id="productDetailModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div id="productDetailContent" class="glass-card max-w-2xl w-full rounded-2xl overflow-hidden border border-amber-500/40 shadow-2xl relative">
+            <!-- Modal details injected dynamically -->
+        </div>
+    </div>
 
-<!-- Footer -->
-<footer class="bg-slate-950 border-t border-slate-800/80 mt-16 py-12">
+    <!-- AI Chatbot Floating Window -->
+    <div id="chatbotContainer" class="fixed bottom-6 left-6 z-40 flex flex-col items-start">
+        <div id="chatBox" class="glass-card w-80 sm:w-96 rounded-2xl border border-amber-500/40 shadow-2xl mb-4 hidden flex-col overflow-hidden h-96 transition-all duration-300">
+            <div class="p-3 bg-slate-900 border-b border-slate-800 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <img src="749343355_122101492599399595_32072906961096562_n.jpg" class="w-8 h-8 rounded-full border border-amber-500">
+                    <div>
+                        <h4 class="font-bold text-sm text-amber-400">مساعد المتحدة الذكي</h4>
+                        <span class="text-[10px] text-emerald-400 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> متصل الآن</span>
+                    </div>
+                </div>
+                <button onclick="toggleChatbot()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="chatMessages" class="p-3 overflow-y-auto flex-grow space-y-3 text-sm">
+                <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700/50 max-w-[85%] text-slate-200">
+                    أهلاً بك في **المتحدة للرتان والأثاث**! كيف يمكنني مساعدتك اليوم؟ يمكنك الاستفسار عن المنتجات، المواعيد، أو أسعار الجملة!
+                </div>
+            </div>
+            <div class="p-2 bg-slate-900 border-t border-slate-800 flex gap-2">
+                <input type="text" id="chatInput" onkeypress="handleChatKeyPress(event)" placeholder="اكتب سؤالك هنا..." class="flex-grow bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                <button onclick="sendChatMessage()" class="px-3 py-2 gold-bg-gradient rounded-lg text-slate-950 font-bold text-xs"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+        <button onclick="toggleChatbot()" class="p-4 gold-bg-gradient text-slate-950 rounded-full shadow-lg hover:scale-110 transition flex items-center justify-center gap-2 font-bold">
+            <i class="fa-solid fa-comments text-xl"></i>
+            <span class="hidden sm:inline">تحدث مع المساعد الذكي</span>
+        </button>
+    </div>
 
-        <div class="space-y-4">
-
-            <div class="flex items-center gap-3">
-
-                <img id="footerLogo"
-                     src="749343355_122101492599399595_32072906961096562_n.jpg"
-                     alt="Logo"
-                     class="w-12 h-12 rounded-full border border-amber-500">
-
-                <h3 id="footerTitle"
-                    class="font-bold text-lg gold-gradient-text">
-                    المتحدة للرتان والأثاث
-                </h3>
+    <!-- Footer -->
+    <footer class="bg-slate-950 border-t border-slate-800/80 mt-16 py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div class="space-y-4">
+                <div class="flex items-center gap-3">
+                    <img id="footerLogo" src="749343355_122101492599399595_32072906961096562_n.jpg" alt="Logo" class="w-12 h-12 rounded-full border border-amber-500">
+                    <h3 id="footerTitle" class="font-bold text-lg gold-gradient-text">المتحدة للرتان والأثاث</h3>
+                </div>
+                <p id="footerBio" class="text-xs text-slate-400 leading-relaxed">المصنع الرائد في تصنيع وتوريد أثاث الرتان الطبيعي والصناعي، الشماسي، البرجولات، وأثاث الكافيهات والحدائق بأعلى معايير الجودة والصلابة.</p>
             </div>
 
-            <p id="footerBio"
-               class="text-xs text-slate-400 leading-relaxed">
-                المصنع الرائد في تصنيع وتوريد أثاث الرتان الطبيعي والصناعي،
-                الشماسي، البرجولات، وأثاث الكافيهات والحدائق بأعلى معايير الجودة والصلابة.
-            </p>
-        </div>
+            <div>
+                <h4 class="font-bold text-amber-400 mb-4 border-b border-amber-500/30 pb-2 inline-block">أقسامنا المعتمدة</h4>
+                <ul id="footerCategoriesList" class="space-y-2 text-xs text-slate-300">
+                    <!-- Populated dynamically -->
+                </ul>
+            </div>
 
-        <div>
+            <div>
+                <h4 class="font-bold text-amber-400 mb-4 border-b border-amber-500/30 pb-2 inline-block">روابط سريعة</h4>
+                <ul class="space-y-2 text-xs text-slate-300">
+                    <li><button onclick="navigateTo('home')" class="hover:text-amber-400">الرئيسية</button></li>
+                    <li><button onclick="navigateTo('products')" class="hover:text-amber-400">كتالوج المنتجات</button></li>
+                    <li><button onclick="navigateTo('about')" class="hover:text-amber-400">عن المصنع والضمان</button></li>
+                    <li><button onclick="openAdminAuth()" class="hover:text-amber-400">دخول الادارة</button></li>
+                </ul>
+            </div>
 
-            <h4 class="font-bold text-amber-400 mb-4 border-b border-amber-500/30 pb-2 inline-block">
-                أقسامنا المعتمدة
-            </h4>
-
-            <ul id="footerCategoriesList"
-                class="space-y-2 text-xs text-slate-300">
-            </ul>
-        </div>
-
-        <div>
-
-            <h4 class="font-bold text-amber-400 mb-4 border-b border-amber-500/30 pb-2 inline-block">
-                روابط سريعة
-            </h4>
-
-            <ul class="space-y-2 text-xs text-slate-300">
-
-                <li>
-                    <button onclick="navigateTo('home')"
-                            class="hover:text-amber-400">
-                        الرئيسية
-                    </button>
-                </li>
-
-                <li>
-                    <button onclick="navigateTo('products')"
-                            class="hover:text-amber-400">
-                        كتالوج المنتجات
-                    </button>
-                </li>
-
-                <li>
-                    <button onclick="navigateTo('about')"
-                            class="hover:text-amber-400">
-                        عن المصنع والضمان
-                    </button>
-                </li>
-
-                <!-- تم حذف دخول الإدارة من هنا -->
-            </ul>
-        </div>
-
-        <div>
-
-            <h4 class="font-bold text-amber-400 mb-4 border-b border-amber-500/30 pb-2 inline-block">
-                معلومات التواصل
-            </h4>
-
-            <div class="space-y-3 text-xs text-slate-300">
-
-                <p class="flex items-center gap-2">
-                    <i class="fa-solid fa-phone text-amber-500"></i>
-                    <span id="footerPhone">01000000000</span>
-                </p>
-
-                <p class="flex items-center gap-2">
-                    <i class="fa-brands fa-whatsapp text-emerald-500"></i>
-                    <span id="footerWhatsapp">01000000000</span>
-                </p>
-
-                <p class="flex items-center gap-2">
-                    <i class="fa-solid fa-location-dot text-amber-500"></i>
-                    <span id="footerAddress">محافظة المنوفية - مركز أشمون</span>
-                </p>
-
-                <div class="flex gap-3 pt-2 text-base">
-
-                    <a id="footerFbLink"
-                       href="#"
-                       target="_blank"
-                       class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-amber-400 hover:bg-amber-600 hover:text-white transition">
-                        <i class="fa-brands fa-facebook-f"></i>
-                    </a>
-
-                    <a id="footerInstaLink"
-                       href="#"
-                       target="_blank"
-                       class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-amber-400 hover:bg-amber-600 hover:text-white transition">
-                        <i class="fa-brands fa-instagram"></i>
-                    </a>
+            <div>
+                <h4 class="font-bold text-amber-400 mb-4 border-b border-amber-500/30 pb-2 inline-block">معلومات التواصل</h4>
+                <div class="space-y-3 text-xs text-slate-300">
+                    <p class="flex items-center gap-2"><i class="fa-solid fa-phone text-amber-500"></i> <span id="footerPhone">01000000000</span></p>
+                    <p class="flex items-center gap-2"><i class="fa-brands fa-whatsapp text-emerald-500"></i> <span id="footerWhatsapp">01000000000</span></p>
+                    <p class="flex items-center gap-2"><i class="fa-solid fa-location-dot text-amber-500"></i> <span id="footerAddress">الجمهورية - مصر</span></p>
+                    <div class="flex gap-3 pt-2 text-base">
+                        <a id="footerFbLink" href="#" target="_blank" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-amber-400 hover:bg-amber-600 hover:text-white transition"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a id="footerInstaLink" href="#" target="_blank" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-amber-400 hover:bg-amber-600 hover:text-white transition"><i class="fa-brands fa-instagram"></i></a>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+        <div class="max-w-7xl mx-auto px-4 mt-8 pt-6 border-t border-slate-900 text-center text-xs text-slate-500">
+            &copy; <span id="currentYear"></span> جميع الحقوق محفوظة لـ <strong class="text-amber-400">المتحدة للرتان والأثاث</strong>.
+        </div>
+    </footer>
 
-    <div class="max-w-7xl mx-auto px-4 mt-8 pt-6 border-t border-slate-900 text-center text-xs text-slate-500">
-
-        &copy;
-        <span id="currentYear"></span>
-        جميع الحقوق محفوظة لـ
-
-        <strong class="text-amber-400">
-            المتحدة للرتان والأثاث
-        </strong>.
-    </div>
-</footer>
-
-<!-- JavaScript -->
-<script>
-
-const defaultState = {
-
-    adminPassword: "172006",
-
-    siteInfo: {
-        title: "المتحدة للرتان والأثاث",
-        subtitle: "جمال يدوم .. وراحة تدوم",
-
-        heroHeadline:
-            "تصميمات فاخرة وجودة تدوم لجميع مساحاتك الخارجة والداخلية",
-
-        heroSubtext:
-            "أكبر مصنع وتوريد لأثاث الرتان، الكافيهات، القرى السياحية، البرجولات والشماسي بضمان حقيقي وأعلى جودة متوفرة في السوق.",
-
-        logo:
-            "749343355_122101492599399595_32072906961096562_n.jpg",
-
-        phone: "+201000000000",
-
-        whatsapp: "+201000000000",
-
-        address:
-            "محافظة المنوفية - مركز أشمون",
-
-        facebook:
-            "https://facebook.com",
-
-        instagram:
-            "https://instagram.com",
-
-        vodafoneCash:
-            "01000000000",
-
-        bankAccount:
-            "EG12345678901234567890123"
-    },
-
-    categories: [
-        "أثاث كافيهات ومطاعم",
-        "روف جاردن وحدائق",
-        "قرى سياحية وفنادق",
-        "مراجيح وبرجولات",
-        "شماسي وتندات"
-    ],
-
-    products: [
-
-        {
-            id: 1,
-
-            title:
-                "طقم كافيه رتان فاخر 4 كراسي + ترابيزة",
-
-            category:
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Default System Initial State
+        const defaultState = {
+            adminPassword: "172006",
+            siteInfo: {
+                title: "المتحدة للرتان والأثاث",
+                subtitle: "جمال يدوم .. وراحة تدوم",
+                heroHeadline: "تصميمات فاخرة وجودة تدوم لجميع مساحاتك الخارجة والداخلية",
+                heroSubtext: "أكبر مصنع وتوريد لأثاث الرتان، الكافيهات، القرى السياحية، البرجولات والشماسي بضمان حقيقي وأعلى جودة متوفرة في السوق.",
+                logo: "749343355_122101492599399595_32072906961096562_n.jpg",
+                phone: "+201000000000",
+                whatsapp: "+201000000000",
+                address: "محافظة المنوفية - مركز أشمون",
+                facebook: "https://facebook.com",
+                instagram: "https://instagram.com",
+                vodafoneCash: "01000000000",
+                bankAccount: "EG12345678901234567890123"
+            },
+            categories: [
                 "أثاث كافيهات ومطاعم",
-
-            price:
-                8500,
-
-            oldPrice:
-                10200,
-
-            image:
-                "749343355_122101492599399595_32072906961096562_n.jpg",
-
-            description:
-                "طقم رتان بيور مجدول يدوياً مقاوم لمياه الأمطار والأشعة الفوق بنفسجية. هيكل ألومنيوم غير قابل للصدأ، مناسب جداً للكافيهات والمطاعم ذات الاستخدام الشاق.",
-
-            inStock:
-                true
-        },
-
-        {
-            id: 2,
-
-            title:
-                "مرجيحة رتان عش العصفور لشخصين",
-
-            category:
+                "روف جاردن وحدائق",
+                "قرى سياحية وفنادق",
                 "مراجيح وبرجولات",
+                "شماسي وتندات"
+            ],
+            products: [
+                {
+                    id: 1,
+                    title: "طقم كافيه رتان فاخر 4 كراسي + ترابيزة",
+                    category: "أثاث كافيهات ومطاعم",
+                    price: 8500,
+                    oldPrice: 10200,
+                    image: "749343355_122101492599399595_32072906961096562_n.jpg",
+                    description: "طقم رتان بيور مجدول يدوياً مقاوم لمياه الأمطار والأشعة الفوق بنفسجية. هيكل ألومنيوم غير قابل للصدأ، مناسب جداً للكافيهات والمطاعم ذات الاستخدام الشاق.",
+                    inStock: true
+                },
+                {
+                    id: 2,
+                    title: "مرجيحة رتان عش العصفور لشخصين",
+                    category: "مراجيح وبرجولات",
+                    price: 6200,
+                    oldPrice: 7500,
+                    image: "749343355_122101492599399595_32072906961096562_n.jpg",
+                    description: "مرجيحة حدائق وروف رتان مع شاليموه محمل وشلتة قماش معالج ضد المياه والأتربة. تتحمل وزن حتى 250 كجم.",
+                    inStock: true
+                },
+                {
+                    id: 3,
+                    title: "شمسية حدائق ومطاعم متحركة 3 متر",
+                    category: "شماسي وتندات",
+                    price: 4300,
+                    oldPrice: 5000,
+                    image: "749343355_122101492599399595_32072906961096562_n.jpg",
+                    description: "شمسية جانبية مقاس 3*3 متر بقاعدة خرسانية مسلحة وقماش أكريليك مستورد مقاوم للشمس والحرارة العالية.",
+                    inStock: true
+                }
+            ]
+        };
 
-            price:
-                6200,
+        // Application State Management
+        let appData = JSON.parse(localStorage.getItem('united_rattan_db')) || defaultState;
+        let cart = JSON.parse(localStorage.getItem('united_rattan_cart')) || [];
+        let isAdminLoggedIn = false;
+        let activeCategory = 'الكل';
 
-            oldPrice:
-                7500,
+        // Initialize Application
+        document.addEventListener('DOMContentLoaded', () => {
+            saveData();
+            updateHeaderAndFooter();
+            navigateTo('home');
+            document.getElementById('currentYear').innerText = new Date().getFullYear();
+        });
 
-            image:
-                "749343355_122101492599399595_32072906961096562_n.jpg",
-
-            description:
-                "مرجيحة حدائق وروف رتان مع شاليموه محمل وشلتة قماش معالج ضد المياه والأتربة. تتحمل وزن حتى 250 كجم.",
-
-            inStock:
-                true
-        },
-
-        {
-            id: 3,
-
-            title:
-                "شمسية حدائق ومطاعم متحركة 3 متر",
-
-            category:
-                "شماسي وتندات",
-
-            price:
-                4300,
-
-            oldPrice:
-                5000,
-
-            image:
-                "749343355_122101492599399595_32072906961096562_n.jpg",
-
-            description:
-                "شمسية جانبية مقاس 3*3 متر بقاعدة خرسانية مسلحة وقماش أكريليك مستورد مقاوم للشمس والحرارة العالية.",
-
-            inStock:
-                true
-        }
-    ]
-};
-
-
-let appData =
-    JSON.parse(localStorage.getItem('united_rattan_db'))
-    || defaultState;
-
-let cart =
-    JSON.parse(localStorage.getItem('united_rattan_cart'))
-    || [];
-
-let isAdminLoggedIn = false;
-
-let activeCategory = 'الكل';
-
-
-document.addEventListener('DOMContentLoaded', () => {
-
-    saveData();
-
-    updateHeaderAndFooter();
-
-    navigateTo('home');
-
-    document.getElementById('currentYear').innerText =
-        new Date().getFullYear();
-
-});
-
-
-function saveData() {
-
-    localStorage.setItem(
-        'united_rattan_db',
-        JSON.stringify(appData)
-    );
-
-    localStorage.setItem(
-        'united_rattan_cart',
-        JSON.stringify(cart)
-    );
-
-    updateCartBadge();
-}
-
-
-function navigateTo(page, param = null) {
-
-    const container =
-        document.getElementById('mainContainer');
-
-    window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-    });
-
-
-    if (page === 'home') {
-
-        container.innerHTML =
-            renderHomePage();
-
-    }
-
-    else if (page === 'products') {
-
-        container.innerHTML =
-            renderProductsPage(param);
-
-    }
-
-    else if (page === 'about') {
-
-        container.innerHTML =
-            renderAboutPage();
-
-    }
-
-    else if (page === 'contact') {
-
-        container.innerHTML =
-            renderContactPage();
-
-    }
-
-    else if (page === 'admin') {
-
-        if (!isAdminLoggedIn) {
-
-            openAdminAuth();
-
-            return;
+        function saveData() {
+            localStorage.setItem('united_rattan_db', JSON.stringify(appData));
+            localStorage.setItem('united_rattan_cart', JSON.stringify(cart));
+            updateCartBadge();
         }
 
-        container.innerHTML =
-            renderAdminDashboard();
-    }
-}
+        // Navigation Controller
+        function navigateTo(page, param = null) {
+            const container = document.getElementById('mainContainer');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
 
+            if (page === 'home') {
+                container.innerHTML = renderHomePage();
+            } else if (page === 'products') {
+                container.innerHTML = renderProductsPage(param);
+            } else if (page === 'about') {
+                container.innerHTML = renderAboutPage();
+            } else if (page === 'contact') {
+                container.innerHTML = renderContactPage();
+            } else if (page === 'admin') {
+                if (!isAdminLoggedIn) {
+                    openAdminAuth();
+                    return;
+                }
+                container.innerHTML = renderAdminDashboard();
+            }
+        }
 
-function updateHeaderAndFooter() {
+        // Header & Footer Sync
+        function updateHeaderAndFooter() {
+            document.getElementById('siteLogo').src = appData.siteInfo.logo;
+            document.getElementById('siteTitle').innerText = appData.siteInfo.title;
+            document.getElementById('siteSubtitle').innerText = appData.siteInfo.subtitle;
 
-    document.getElementById('siteLogo').src =
-        appData.siteInfo.logo;
+            document.getElementById('footerLogo').src = appData.siteInfo.logo;
+            document.getElementById('footerTitle').innerText = appData.siteInfo.title;
+            document.getElementById('footerBio').innerText = appData.siteInfo.heroSubtext;
+            document.getElementById('footerPhone').innerText = appData.siteInfo.phone;
+            document.getElementById('footerWhatsapp').innerText = appData.siteInfo.whatsapp;
+            document.getElementById('footerAddress').innerText = appData.siteInfo.address;
+            document.getElementById('footerFbLink').href = appData.siteInfo.facebook;
+            document.getElementById('footerInstaLink').href = appData.siteInfo.instagram;
 
-    document.getElementById('siteTitle').innerText =
-        appData.siteInfo.title;
+            const footerCatList = document.getElementById('footerCategoriesList');
+            footerCatList.innerHTML = appData.categories.map(c => `<li><button onclick="navigateTo('products', '${c}')" class="hover:text-amber-400">${c}</button></li>`).join('');
+        }
 
-    document.getElementById('siteSubtitle').innerText =
-        appData.siteInfo.subtitle;
+        // RENDER: Home Page
+        function renderHomePage() {
+            return `
+                <!-- Hero Section -->
+                <section class="relative py-20 overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 border-b border-slate-800">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center gap-12">
+                        <div class="md:w-1/2 space-y-6 text-center md:text-right">
+                            <span class="px-4 py-1.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-bold inline-block">
+                                ✨ المصنع الأول في مصر والشرق الأوسط
+                            </span>
+                            <h2 class="text-3xl sm:text-5xl font-extrabold leading-tight gold-gradient-text">
+                                ${appData.siteInfo.heroHeadline}
+                            </h2>
+                            <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+                                ${appData.siteInfo.heroSubtext}
+                            </p>
+                            <div class="flex flex-wrap gap-4 justify-center md:justify-start pt-4">
+                                <button onclick="navigateTo('products')" class="px-8 py-4 rounded-xl gold-bg-gradient text-slate-950 font-extrabold shadow-lg hover:scale-105 transition flex items-center gap-2">
+                                    <i class="fa-solid fa-store"></i> استعراض الكتالوج
+                                </button>
+                                <a href="https://wa.me/${appData.siteInfo.whatsapp.replace(/[^0-9]/g,'')}" target="_blank" class="px-8 py-4 rounded-xl border border-emerald-500/50 text-emerald-400 font-bold hover:bg-emerald-500/10 transition flex items-center gap-2">
+                                    <i class="fa-brands fa-whatsapp text-xl"></i> تواصل مباشر
+                                </a>
+                            </div>
+                        </div>
 
+                        <div class="md:w-1/2 relative flex justify-center">
+                            <div class="relative w-72 h-72 sm:w-96 sm:h-96 rounded-full p-2 gold-bg-gradient shadow-2xl shadow-amber-500/20">
+                                <img src="${appData.siteInfo.logo}" alt="المتحدة للرتان" class="w-full h-full object-cover rounded-full border-4 border-slate-950">
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
-    document.getElementById('footerLogo').src =
-        appData.siteInfo.logo;
+                <!-- Features Badges -->
+                <section class="py-10 bg-slate-900/50 border-b border-slate-800">
+                    <div class="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+                        <div class="p-4 glass-card rounded-xl">
+                            <i class="fa-solid fa-shield-halved text-3xl text-amber-400 mb-2"></i>
+                            <h4 class="font-bold text-sm">جودة وتصنيع يدوية</h4>
+                            <p class="text-xs text-slate-400 mt-1">خامات رتان معالجة ضد الشمس والماء</p>
+                        </div>
+                        <div class="p-4 glass-card rounded-xl">
+                            <i class="fa-solid fa-truck-fast text-3xl text-amber-400 mb-2"></i>
+                            <h4 class="font-bold text-sm">توصيل لكافة المحافظات</h4>
+                            <p class="text-xs text-slate-400 mt-1">شحن سريع وآمن حتى باب الموقع</p>
+                        </div>
+                        <div class="p-4 glass-card rounded-xl">
+                            <i class="fa-solid fa-industry text-3xl text-amber-400 mb-2"></i>
+                            <h4 class="font-bold text-sm">أسعار من المصنع</h4>
+                            <p class="text-xs text-slate-400 mt-1">خصومات حصرية للجملة والمشاريع</p>
+                        </div>
+                        <div class="p-4 glass-card rounded-xl">
+                            <i class="fa-solid fa-headset text-3xl text-amber-400 mb-2"></i>
+                            <h4 class="font-bold text-sm">خدمة ما بعد البيع</h4>
+                            <p class="text-xs text-slate-400 mt-1">ضمان وصيانة شاملة لمنتجاتنا</p>
+                        </div>
+                    </div>
+                </section>
 
-    document.getElementById('footerTitle').innerText =
-        appData.siteInfo.title;
+                <!-- Featured Categories Section -->
+                <section class="py-16 max-w-7xl mx-auto px-4">
+                    <div class="text-center mb-12">
+                        <h3 class="text-2xl sm:text-4xl font-bold gold-gradient-text">الأقسام المعتمدة</h3>
+                        <p class="text-slate-400 text-sm mt-2">اختر القسم لمشاهدة كافة الموديلات المتاحة</p>
+                    </div>
 
-    document.getElementById('footerBio').innerText =
-        appData.siteInfo.heroSubtext;
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        ${appData.categories.map(cat => `
+                            <div onclick="navigateTo('products', '${cat}')" class="glass-card rounded-2xl p-6 text-center cursor-pointer hover:border-amber-500 transition group hover:-translate-y-1">
+                                <div class="w-16 h-16 mx-auto rounded-full gold-bg-gradient flex items-center justify-center text-slate-950 text-2xl font-bold mb-4 group-hover:scale-110 transition">
+                                    <i class="fa-solid fa-couch"></i>
+                                </div>
+                                <h4 class="font-bold text-lg text-white group-hover:text-amber-400 transition">${cat}</h4>
+                                <p class="text-xs text-slate-400 mt-2">عرض جميع موديلات ${cat}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </section>
 
-    document.getElementById('footerPhone').innerText =
-        appData.siteInfo.phone;
+                <!-- Featured Products -->
+                <section class="py-16 bg-slate-900/40 border-t border-slate-800">
+                    <div class="max-w-7xl mx-auto px-4">
+                        <div class="flex justify-between items-center mb-10">
+                            <div>
+                                <h3 class="text-2xl font-bold text-amber-400">أحدث المنتجات والتصاميم</h3>
+                                <p class="text-xs text-slate-400 mt-1">منتجات الرتان الأكثر طلبًا هذا الشهر</p>
+                            </div>
+                            <button onclick="navigateTo('products')" class="text-amber-400 hover:underline text-sm font-bold flex items-center gap-1">
+                                عرض الكل <i class="fa-solid fa-arrow-left"></i>
+                            </button>
+                        </div>
 
-    document.getElementById('footerWhatsapp').innerText =
-        appData.siteInfo.whatsapp;
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            ${appData.products.slice(0, 6).map(p => renderProductCard(p)).join('')}
+                        </div>
+                    </div>
+                </section>
+            `;
+        }
 
-    document.getElementById('footerAddress').innerText =
-        appData.siteInfo.address;
+        // RENDER: Products Page
+        function renderProductsPage(filterCategory = null) {
+            if (filterCategory) activeCategory = filterCategory;
 
-    document.getElementById('footerFbLink').href =
-        appData.siteInfo.facebook;
+            const filteredProducts = activeCategory === 'الكل' 
+                ? appData.products 
+                : appData.products.filter(p => p.category === activeCategory);
 
-    document.getElementById('footerInstaLink').href =
-        appData.siteInfo.instagram;
+            return `
+                <section class="py-12 max-w-7xl mx-auto px-4">
+                    <div class="text-center mb-10">
+                        <h2 class="text-3xl font-extrabold gold-gradient-text">كتالوج المنتجات</h2>
+                        <p class="text-xs text-slate-400 mt-2">تصفح تشكيلتنا الشاملة من أثاث الرتان والشماسي</p>
+                    </div>
 
-
-    const footerCatList =
-        document.getElementById('footerCategoriesList');
-
-    footerCatList.innerHTML =
-        appData.categories
-            .map(c =>
-                `<li>
-                    <button onclick="navigateTo('products', '${c}')"
-                            class="hover:text-amber-400">
-                        ${c}
-                    </button>
-                </li>`
-            )
-            .join('');
-}
-
-
-function renderHomePage() {
-
-    return `
-
-        <section class="relative py-20 overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 border-b border-slate-800">
-
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center gap-12">
-
-                <div class="md:w-1/2 space-y-6 text-center md:text-right">
-
-                    <span class="px-4 py-1.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-bold inline-block">
-                        ✨ المصنع الأول في مصر والشرق الأوسط
-                    </span>
-
-                    <h2 class="text-3xl sm:text-5xl font-extrabold leading-tight gold-gradient-text">
-                        ${appData.siteInfo.heroHeadline}
-                    </h2>
-
-                    <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
-                        ${appData.siteInfo.heroSubtext}
-                    </p>
-
-                    <div class="flex flex-wrap gap-4 justify-center md:justify-start pt-4">
-
-                        <button onclick="navigateTo('products')"
-                                class="px-8 py-4 rounded-xl gold-bg-gradient text-slate-950 font-extrabold shadow-lg hover:scale-105 transition flex items-center gap-2">
-
-                            <i class="fa-solid fa-store"></i>
-                            استعراض الكتالوج
+                    <!-- Filter Categories Bar -->
+                    <div class="flex flex-wrap gap-2 justify-center mb-10">
+                        <button onclick="filterProducts('الكل')" class="px-5 py-2.5 rounded-xl font-bold text-sm transition ${activeCategory === 'الكل' ? 'gold-bg-gradient text-slate-950 shadow-lg' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+                            الكل (${appData.products.length})
                         </button>
+                        ${appData.categories.map(cat => `
+                            <button onclick="filterProducts('${cat}')" class="px-5 py-2.5 rounded-xl font-bold text-sm transition ${activeCategory === cat ? 'gold-bg-gradient text-slate-950 shadow-lg' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+                                ${cat}
+                            </button>
+                        `).join('')}
+                    </div>
 
-                        <a href="https://wa.me/${appData.siteInfo.whatsapp.replace(/[^0-9]/g,'')}"
-                           target="_blank"
-                           class="px-8 py-4 rounded-xl border border-emerald-500/50 text-emerald-400 font-bold hover:bg-emerald-500/10 transition flex items-center gap-2">
+                    <!-- Products Grid -->
+                    ${filteredProducts.length === 0 ? `
+                        <div class="text-center py-16 glass-card rounded-2xl">
+                            <i class="fa-solid fa-box-open text-5xl text-slate-600 mb-3"></i>
+                            <p class="text-slate-400 font-bold">لا توجد منتجات مضافة في هذا القسم حالياً.</p>
+                        </div>
+                    ` : `
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            ${filteredProducts.map(p => renderProductCard(p)).join('')}
+                        </div>
+                    `}
+                </section>
+            `;
+        }
 
-                            <i class="fa-brands fa-whatsapp text-xl"></i>
-                            تواصل مباشر
-                        </a>
+        function filterProducts(cat) {
+            activeCategory = cat;
+            document.getElementById('mainContainer').innerHTML = renderProductsPage();
+        }
+
+        // Product Card HTML Generator
+        function renderProductCard(p) {
+            return `
+                <div class="glass-card rounded-2xl overflow-hidden border border-slate-800 hover:border-amber-500/50 transition duration-300 flex flex-col justify-between group">
+                    <div>
+                        <!-- Product Image -->
+                        <div class="relative h-60 overflow-hidden bg-slate-950 cursor-pointer" onclick="openProductDetail(${p.id})">
+                            <img src="${p.image}" alt="${p.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                            <span class="absolute top-3 right-3 px-3 py-1 rounded-full bg-slate-950/80 text-amber-400 border border-amber-500/30 text-xs font-bold">
+                                ${p.category}
+                            </span>
+                        </div>
+
+                        <!-- Product Content -->
+                        <div class="p-5">
+                            <h4 onclick="openProductDetail(${p.id})" class="font-bold text-base text-white hover:text-amber-400 transition cursor-pointer mb-2 line-clamp-1">${p.title}</h4>
+                            
+                            <!-- Product Description Display -->
+                            <p class="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-4">
+                                ${p.description || 'لا يوجد وصف مضاف لهذا المنتج.'}
+                            </p>
+
+                            <div class="flex justify-between items-baseline mb-4">
+                                <div>
+                                    <span class="text-lg font-extrabold text-amber-400">${p.price.toLocaleString()} ج.م</span>
+                                    ${p.oldPrice ? `<span class="text-xs text-slate-500 line-through mr-2">${p.oldPrice.toLocaleString()} ج.م</span>` : ''}
+                                </div>
+                                <span class="text-[10px] px-2 py-0.5 rounded ${p.inStock ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/30' : 'bg-rose-950 text-rose-400 border border-rose-500/30'}">
+                                    ${p.inStock ? 'متوفر بالمخزن' : 'غير متوفر'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-5 pt-0 flex gap-2">
+                        <button onclick="addToCart(${p.id})" class="flex-grow py-2.5 rounded-xl gold-bg-gradient text-slate-950 font-bold hover:brightness-110 transition flex items-center justify-center gap-2 text-sm">
+                            <i class="fa-solid fa-cart-plus"></i> إضافة للسلة
+                        </button>
+                        <button onclick="openProductDetail(${p.id})" class="p-2.5 rounded-xl bg-slate-800 text-amber-400 hover:bg-slate-700 transition">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
                     </div>
                 </div>
+            `;
+        }
 
+        // RENDER: About Page
+        function renderAboutPage() {
+            return `
+                <section class="py-16 max-w-5xl mx-auto px-4">
+                    <div class="glass-card rounded-2xl p-8 border border-amber-500/30 space-y-8">
+                        <div class="text-center">
+                            <img src="${appData.siteInfo.logo}" class="w-24 h-24 mx-auto rounded-full border-2 border-amber-500 mb-4 shadow-xl">
+                            <h2 class="text-3xl font-extrabold gold-gradient-text">${appData.siteInfo.title}</h2>
+                            <p class="text-amber-200/80 text-sm mt-1">${appData.siteInfo.subtitle}</p>
+                        </div>
 
-                <div class="md:w-1/2 relative flex justify-center">
+                        <div class="space-y-4 text-sm leading-relaxed text-slate-300 border-t border-slate-800 pt-6">
+                            <h3 class="font-bold text-lg text-amber-400">من نحن؟</h3>
+                            <p>تعتبر <strong>المتحدة للرتان والأثاث</strong> من أقدم وأرقى المصانع المتخصصة في إنتاج وتوريد كافة أنواع أثاث الرتان الطبيعي والصناعي المقاوم للظروف الجوية المختلفة. نقدم خدماتنا للأفراد، الكافيهات، القرى السياحية، الفنادق، والمطاعم بضمان الجودة والمتانة.</p>
+                        </div>
 
-                    <div class="relative w-72 h-72 sm:w-96 sm:h-96 rounded-full p-2 gold-bg-gradient shadow-2xl shadow-amber-500/20">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-slate-800 pt-6">
+                            <div class="p-4 bg-slate-900 rounded-xl border border-slate-800 text-center">
+                                <i class="fa-solid fa-award text-2xl text-amber-400 mb-2"></i>
+                                <h4 class="font-bold">ضمان حقيقي</h4>
+                                <p class="text-xs text-slate-400 mt-1">ضمان على الخامات والجدل ضد عيوب التصنيع</p>
+                            </div>
+                            <div class="p-4 bg-slate-900 rounded-xl border border-slate-800 text-center">
+                                <i class="fa-solid fa-palette text-2xl text-amber-400 mb-2"></i>
+                                <h4 class="font-bold">تصميمات حسب الطلب</h4>
+                                <p class="text-xs text-slate-400 mt-1">إمكانية تنفيذ المقاسات والألوان الخاصة بالمشاريع</p>
+                            </div>
+                            <div class="p-4 bg-slate-900 rounded-xl border border-slate-800 text-center">
+                                <i class="fa-solid fa-truck-ramp-box text-2xl text-amber-400 mb-2"></i>
+                                <h4 class="font-bold">توريد للمشاريع</h4>
+                                <p class="text-xs text-slate-400 mt-1">جاهزون لتجهيز أرقى الكافيهات والقرى السياحية</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            `;
+        }
 
-                        <img src="${appData.siteInfo.logo}"
-                             alt="المتحدة للرتان"
-                             class="w-full h-full object-cover rounded-full border-4 border-slate-950">
+        // RENDER: Contact Page
+        function renderContactPage() {
+            return `
+                <section class="py-16 max-w-4xl mx-auto px-4">
+                    <div class="glass-card rounded-2xl p-8 border border-amber-500/30 space-y-8">
+                        <div class="text-center">
+                            <h2 class="text-3xl font-extrabold gold-gradient-text">تواصل معنا</h2>
+                            <p class="text-xs text-slate-400 mt-2">فريق خدمة العملاء جاهز للرد على جميع استفساراتكم وطلبات الأسعار</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-4 bg-slate-900/80 p-6 rounded-xl border border-slate-800">
+                                <h3 class="font-bold text-amber-400 border-b border-slate-800 pb-2">بيانات الاتصال المباشر</h3>
+                                <p class="text-sm flex items-center gap-3"><i class="fa-solid fa-phone text-amber-400 text-lg"></i> <span>الهاتف: ${appData.siteInfo.phone}</span></p>
+                                <p class="text-sm flex items-center gap-3"><i class="fa-brands fa-whatsapp text-emerald-400 text-lg"></i> <span>الواتساب: ${appData.siteInfo.whatsapp}</span></p>
+                                <p class="text-sm flex items-center gap-3"><i class="fa-solid fa-location-dot text-amber-400 text-lg"></i> <span>العنوان: ${appData.siteInfo.address}</span></p>
+                            </div>
+
+                            <div class="space-y-4 bg-slate-900/80 p-6 rounded-xl border border-slate-800">
+                                <h3 class="font-bold text-amber-400 border-b border-slate-800 pb-2">طرق الدفع والتحويل</h3>
+                                <p class="text-sm flex items-center gap-3"><i class="fa-solid fa-mobile-retro text-amber-400 text-lg"></i> <span>فودافون كاش: <strong class="text-white">${appData.siteInfo.vodafoneCash}</strong></span></p>
+                                <p class="text-sm flex items-center gap-3"><i class="fa-solid fa-building-columns text-amber-400 text-lg"></i> <span>الحساب البنكي / IBAN: <strong class="text-white">${appData.siteInfo.bankAccount}</strong></span></p>
+                            </div>
+                        </div>
+
+                        <div class="text-center pt-4">
+                            <a href="https://wa.me/${appData.siteInfo.whatsapp.replace(/[^0-9]/g,'')}" target="_blank" class="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-white transition">
+                                <i class="fa-brands fa-whatsapp text-xl"></i> المراسلة الفورية عبر الواتساب
+                            </a>
+                        </div>
+                    </div>
+                </section>
+            `;
+        }
+
+        // RENDER: Admin Dashboard (Full Control Over Everything)
+        function renderAdminDashboard() {
+            return `
+                <section class="py-12 max-w-7xl mx-auto px-4">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 bg-slate-900 p-6 rounded-2xl border border-amber-500/30">
+                        <div>
+                            <h2 class="text-2xl font-extrabold gold-gradient-text flex items-center gap-2">
+                                <i class="fa-solid fa-sliders"></i> لوحة التحكم الشاملة
+                            </h2>
+                            <p class="text-xs text-slate-400 mt-1">يمكنك التحكم وتعديل كافة بيانات المنتجات، الصور من الجهاز، الوصف، والمعلومات العامة</p>
+                        </div>
+                        <button onclick="logoutAdmin()" class="px-4 py-2 rounded-xl bg-rose-900/50 border border-rose-500/40 text-rose-300 font-bold hover:bg-rose-800 transition text-xs">
+                            <i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج
+                        </button>
+                    </div>
+
+                    <!-- Admin Tabs Navigation -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        
+                        <!-- Form 1: Add or Edit Product -->
+                        <div class="glass-card p-6 rounded-2xl border border-amber-500/30 space-y-4">
+                            <h3 id="adminProductFormTitle" class="font-bold text-lg text-amber-400 border-b border-slate-800 pb-2">إضافة منتج جديد</h3>
+                            <form onsubmit="handleSaveProduct(event)" class="space-y-4">
+                                <input type="hidden" id="editProductId" value="">
+                                
+                                <div>
+                                    <label class="block text-xs text-slate-300 font-bold mb-1">اسم المنتج</label>
+                                    <input type="text" id="prodTitleInput" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500" placeholder="مثال: طقم رتان حدائق 4 كراسي">
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs text-slate-300 font-bold mb-1">القسم المعتمد</label>
+                                    <select id="prodCategoryInput" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                                        ${appData.categories.map(c => `<option value="${c}">${c}</option>`).join('')}
+                                    </select>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-xs text-slate-300 font-bold mb-1">السعر (ج.م)</label>
+                                        <input type="number" id="prodPriceInput" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500" placeholder="5000">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-slate-300 font-bold mb-1">السعر القديم (اختياري)</label>
+                                        <input type="number" id="prodOldPriceInput" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500" placeholder="6000">
+                                    </div>
+                                </div>
+
+                                <!-- Image Upload directly from device -->
+                                <div>
+                                    <label class="block text-xs text-slate-300 font-bold mb-1"><i class="fa-solid fa-image"></i> اختر صورة المنتج من الجهاز</label>
+                                    <input type="file" id="prodImageFileInput" accept="image/*" onchange="previewImageUpload(event)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-amber-500">
+                                    <input type="hidden" id="prodImageBase64">
+                                    <div id="imagePreviewContainer" class="mt-2 hidden">
+                                        <img id="imagePreview" src="" class="w-20 h-20 object-cover rounded-lg border border-amber-500">
+                                    </div>
+                                </div>
+
+                                <!-- Description Input -->
+                                <div>
+                                    <label class="block text-xs text-slate-300 font-bold mb-1"><i class="fa-solid fa-align-right"></i> وصف المنتج التفصيلي</label>
+                                    <textarea id="prodDescriptionInput" rows="3" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500" placeholder="اكتب الخامات، المقاسات، التفاصيل، الضمان..."></textarea>
+                                </div>
+
+                                <div>
+                                    <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                                        <input type="checkbox" id="prodInStockInput" checked class="rounded accent-amber-500">
+                                        <span>متوفر حالياً بالمخزن</span>
+                                    </label>
+                                </div>
+
+                                <div class="flex gap-2 pt-2">
+                                    <button type="submit" class="flex-grow py-3 rounded-xl gold-bg-gradient text-slate-950 font-bold text-xs hover:brightness-110 transition">
+                                        <i class="fa-solid fa-floppy-disk"></i> حفظ المنتج
+                                    </button>
+                                    <button type="button" onclick="resetProductForm()" class="px-3 py-3 bg-slate-800 text-slate-400 rounded-xl text-xs hover:text-white">إلغاء</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Form 2: Edit General Site Details -->
+                        <div class="glass-card p-6 rounded-2xl border border-amber-500/30 space-y-4">
+                            <h3 class="font-bold text-lg text-amber-400 border-b border-slate-800 pb-2">تعديل بيانات الموقع والتواصل</h3>
+                            <form onsubmit="handleSaveSiteSettings(event)" class="space-y-3">
+                                <div>
+                                    <label class="block text-xs text-slate-300 font-bold mb-1">اسم الموقع / المصنع</label>
+                                    <input type="text" id="setSiteTitle" value="${appData.siteInfo.title}" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-300 font-bold mb-1">الشعار اللفظي (Slogan)</label>
+                                    <input type="text" id="setSiteSubtitle" value="${appData.siteInfo.subtitle}" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-300 font-bold mb-1">رقم الهاتف الرئيسي</label>
+                                    <input type="text" id="setSitePhone" value="${appData.siteInfo.phone}" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-300 font-bold mb-1">رقم الواتساب للطلبات</label>
+                                    <input type="text" id="setSiteWhatsapp" value="${appData.siteInfo.whatsapp}" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-300 font-bold mb-1">رقم فودافون كاش</label>
+                                    <input type="text" id="setSiteVodafone" value="${appData.siteInfo.vodafoneCash}" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-300 font-bold mb-1">رقم الحساب البنكي / IBAN</label>
+                                    <input type="text" id="setSiteBank" value="${appData.siteInfo.bankAccount}" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-300 font-bold mb-1">تغيير اللوجو من الجهاز</label>
+                                    <input type="file" accept="image/*" onchange="handleLogoChange(event)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300">
+                                </div>
+                                <button type="submit" class="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 font-bold text-slate-950 text-xs transition">
+                                    تحديث بيانات الموقع
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Products List Management -->
+                        <div class="glass-card p-6 rounded-2xl border border-amber-500/30 space-y-4">
+                            <h3 class="font-bold text-lg text-amber-400 border-b border-slate-800 pb-2">إدارة المنتجات المضافة (${appData.products.length})</h3>
+                            <div class="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                                ${appData.products.map(p => `
+                                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+                                        <img src="${p.image}" class="w-12 h-12 rounded-lg object-cover border border-slate-700">
+                                        <div class="flex-grow overflow-hidden">
+                                            <h4 class="font-bold text-xs text-white truncate">${p.title}</h4>
+                                            <p class="text-[10px] text-amber-400">${p.price.toLocaleString()} ج.م | ${p.category}</p>
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            <button onclick="editProduct(${p.id})" class="p-2 bg-slate-800 text-amber-400 hover:bg-amber-600 hover:text-slate-950 rounded-lg text-xs transition"><i class="fa-solid fa-pen"></i></button>
+                                            <button onclick="deleteProduct(${p.id})" class="p-2 bg-slate-800 text-rose-400 hover:bg-rose-600 hover:text-white rounded-lg text-xs transition"><i class="fa-solid fa-trash"></i></button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
 
                     </div>
+                </section>
+            `;
+        }
+
+        // Image Handling (Base64 Reader for direct device upload)
+        function previewImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('prodImageBase64').value = e.target.result;
+                    document.getElementById('imagePreview').src = e.target.result;
+                    document.getElementById('imagePreviewContainer').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function handleLogoChange(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    appData.siteInfo.logo = e.target.result;
+                    saveData();
+                    updateHeaderAndFooter();
+                    alert('تم تغيير لوجو الموقع بنجاح!');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Save / Edit Product Handle
+        function handleSaveProduct(e) {
+            e.preventDefault();
+            const id = document.getElementById('editProductId').value;
+            const title = document.getElementById('prodTitleInput').value;
+            const category = document.getElementById('prodCategoryInput').value;
+            const price = parseFloat(document.getElementById('prodPriceInput').value);
+            const oldPrice = document.getElementById('prodOldPriceInput').value ? parseFloat(document.getElementById('prodOldPriceInput').value) : null;
+            const description = document.getElementById('prodDescriptionInput').value;
+            const inStock = document.getElementById('prodInStockInput').checked;
+            
+            let image = document.getElementById('prodImageBase64').value;
+            
+            if (!image) {
+                if (id) {
+                    const existing = appData.products.find(p => p.id == id);
+                    image = existing ? existing.image : appData.siteInfo.logo;
+                } else {
+                    image = appData.siteInfo.logo;
+                }
+            }
+
+            if (id) {
+                // Edit existing product
+                const idx = appData.products.findIndex(p => p.id == id);
+                if (idx !== -1) {
+                    appData.products[idx] = { id: parseInt(id), title, category, price, oldPrice, image, description, inStock };
+                }
+            } else {
+                // Add new product
+                const newId = Date.now();
+                appData.products.unshift({ id: newId, title, category, price, oldPrice, image, description, inStock });
+            }
+
+            saveData();
+            alert('تم حفظ المنتج بنجاح!');
+            navigateTo('admin');
+        }
+
+        function editProduct(id) {
+            const p = appData.products.find(prod => prod.id === id);
+            if (!p) return;
+
+            document.getElementById('editProductId').value = p.id;
+            document.getElementById('prodTitleInput').value = p.title;
+            document.getElementById('prodCategoryInput').value = p.category;
+            document.getElementById('prodPriceInput').value = p.price;
+            document.getElementById('prodOldPriceInput').value = p.oldPrice || '';
+            document.getElementById('prodDescriptionInput').value = p.description || '';
+            document.getElementById('prodInStockInput').checked = p.inStock;
+            document.getElementById('prodImageBase64').value = p.image;
+            document.getElementById('imagePreview').src = p.image;
+            document.getElementById('imagePreviewContainer').classList.remove('hidden');
+            document.getElementById('adminProductFormTitle').innerText = 'تعديل بيانات المنتج';
+        }
+
+        function resetProductForm() {
+            document.getElementById('editProductId').value = '';
+            document.getElementById('prodTitleInput').value = '';
+            document.getElementById('prodPriceInput').value = '';
+            document.getElementById('prodOldPriceInput').value = '';
+            document.getElementById('prodDescriptionInput').value = '';
+            document.getElementById('prodImageBase64').value = '';
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
+            document.getElementById('adminProductFormTitle').innerText = 'إضافة منتج جديد';
+        }
+
+        function deleteProduct(id) {
+            if (confirm('هل أنت تأكد من إزالة هذا المنتج نهائياً؟')) {
+                appData.products = appData.products.filter(p => p.id !== id);
+                saveData();
+                navigateTo('admin');
+            }
+        }
+
+        // Save General Settings
+        function handleSaveSiteSettings(e) {
+            e.preventDefault();
+            appData.siteInfo.title = document.getElementById('setSiteTitle').value;
+            appData.siteInfo.subtitle = document.getElementById('setSiteSubtitle').value;
+            appData.siteInfo.phone = document.getElementById('setSitePhone').value;
+            appData.siteInfo.whatsapp = document.getElementById('setSiteWhatsapp').value;
+            appData.siteInfo.vodafoneCash = document.getElementById('setSiteVodafone').value;
+            appData.siteInfo.bankAccount = document.getElementById('setSiteBank').value;
+
+            saveData();
+            updateHeaderAndFooter();
+            alert('تم حفظ التغييرات بنجاح!');
+            navigateTo('admin');
+        }
+
+        // Product Quick View Detail
+        function openProductDetail(id) {
+            const p = appData.products.find(item => item.id === id);
+            if (!p) return;
+
+            const modal = document.getElementById('productDetailModal');
+            const content = document.getElementById('productDetailContent');
+
+            content.innerHTML = `
+                <button onclick="closeProductDetail()" class="absolute top-3 left-3 w-8 h-8 rounded-full bg-slate-900/80 text-white flex items-center justify-center z-10 hover:bg-slate-800"><i class="fa-solid fa-xmark"></i></button>
+                <div class="grid grid-cols-1 md:grid-cols-2">
+                    <div class="h-64 md:h-full bg-slate-950">
+                        <img src="${p.image}" class="w-full h-full object-cover">
+                    </div>
+                    <div class="p-6 space-y-4 flex flex-col justify-between">
+                        <div>
+                            <span class="text-xs text-amber-400 font-bold">${p.category}</span>
+                            <h3 class="text-xl font-bold text-white mt-1">${p.title}</h3>
+                            <div class="my-3">
+                                <span class="text-2xl font-extrabold text-amber-400">${p.price.toLocaleString()} ج.م</span>
+                                ${p.oldPrice ? `<span class="text-xs text-slate-500 line-through mr-2">${p.oldPrice.toLocaleString()} ج.م</span>` : ''}
+                            </div>
+                            <div class="border-t border-slate-800 pt-3">
+                                <h4 class="text-xs font-bold text-slate-300 mb-1">وصف ومواصفات المنتج:</h4>
+                                <p class="text-xs text-slate-400 leading-relaxed">${p.description || 'لا يوجد وصف متاح.'}</p>
+                            </div>
+                        </div>
+                        <button onclick="addToCart(${p.id}); closeProductDetail();" class="w-full py-3 rounded-xl gold-bg-gradient text-slate-950 font-bold transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-cart-plus"></i> إضافة إلى سلة المشتريات
+                        </button>
+                    </div>
                 </div>
-            </div>
-        </section>
+            `;
+            modal.classList.remove('hidden');
+        }
 
+        function closeProductDetail() {
+            document.getElementById('productDetailModal').classList.add('hidden');
+        }
 
-        <section class="py-10 bg-slate-900/50 border-b border-slate-800">
+        // Cart Actions
+        function addToCart(id) {
+            const product = appData.products.find(p => p.id === id);
+            if (!product) return;
 
-            <div class="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            const existingItem = cart.find(item => item.id === id);
+            if (existingItem) {
+                existingItem.qty += 1;
+            } else {
+                cart.push({ id: product.id, title: product.title, price: product.price, image: product.image, qty: 1 });
+            }
 
-                <div class="p-4 glass-card rounded-xl">
-                    <i class="fa-solid fa-shield-halved text-3xl text-amber-400 mb-2"></i>
-                    <h4 class="font-bold text-sm">جودة وتصنيع يدوية</h4>
+            saveData();
+            renderCartModal();
+            alert(`تمت إضافة "${product.title}" إلى السلة بنجاح!`);
+        }
+
+        function updateCartBadge() {
+            const badge = document.getElementById('cartBadge');
+            const totalItems = cart.reduce((acc, item) => acc + item.qty, 0);
+            if (totalItems > 0) {
+                badge.innerText = totalItems;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function toggleCartModal() {
+            const modal = document.getElementById('cartModal');
+            if (modal.classList.contains('hidden')) {
+                renderCartModal();
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function renderCartModal() {
+            const list = document.getElementById('cartItemsList');
+            const totalEl = document.getElementById('cartTotalPrice');
+
+            if (cart.length === 0) {
+                list.innerHTML = `<p class="text-center text-slate-400 py-8 text-sm">سلة المشتريات فارغة حالياً.</p>`;
+                totalEl.innerText = `0 ج.م`;
+                return;
+            }
+
+            let total = 0;
+            list.innerHTML = cart.map((item, index) => {
+                const subtotal = item.price * item.qty;
+                total += subtotal;
+                return `
+                    <div class="flex items-center justify-between gap-3 bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                        <img src="${item.image}" class="w-12 h-12 rounded-lg object-cover">
+                        <div class="flex-grow">
+                            <h5 class="text-xs font-bold text-white truncate">${item.title}</h5>
+                            <span class="text-xs text-amber-400">${item.price.toLocaleString()} ج.م</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="changeQty(${index}, -1)" class="w-6 h-6 bg-slate-800 rounded flex items-center justify-center text-xs text-white hover:bg-slate-700">-</button>
+                            <span class="text-xs font-bold">${item.qty}</span>
+                            <button onclick="changeQty(${index}, 1)" class="w-6 h-6 bg-slate-800 rounded flex items-center justify-center text-xs text-white hover:bg-slate-700">+</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            totalEl.innerText = `${total.toLocaleString()} ج.م`;
+        }
+
+        function changeQty(index, delta) {
+            cart[index].qty += delta;
+            if (cart[index].qty <= 0) {
+                cart.splice(index, 1);
+            }
+            saveData();
+            renderCartModal();
+        }
+
+        // Online card payment - secure gateway handoff.
+        // For production, set PAYMENT_API_URL to your own server endpoint that creates
+        // a Paymob/Fawry checkout session. Never put secret API keys in this HTML file.
+        const PAYMENT_API_URL = "";
+
+        function startCardPayment() {
+            if (cart.length === 0) return alert('السلة فارغة!');
+            const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            document.getElementById('paymentTotal').textContent = total.toLocaleString() + ' ج.م';
+            document.getElementById('paymentSetupNotice').textContent = PAYMENT_API_URL ? '' : 'الدفع جاهز من ناحية الواجهة، ويتبقى ربط حساب بوابة الدفع الخاصة بك من خلال الخادم الآمن.';
+            document.getElementById('paymentModal').classList.remove('hidden');
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.add('hidden');
+        }
+
+        async function continueToCardGateway() {
+            if (!PAYMENT_API_URL) {
+                alert('تم تجهيز زر الدفع، لكن يلزم ربط حساب Paymob أو Fawry Accept بخادم آمن قبل استقبال مدفوعات حقيقية. لا تضع مفتاح API السري داخل الموقع.');
+                return;
+            }
+            const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const payload = {
+                amount: total,
+                currency: 'EGP',
+                items: cart.map(item => ({id: item.id, title: item.title, price: item.price, quantity: item.qty}))
+            };
+            try {
+                const response = await fetch(PAYMENT_API_URL, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) throw new Error('Payment session failed');
+                const data = await response.json();
+                if (data.checkout_url) window.location.href = data.checkout_url;
+                else throw new Error('Missing checkout_url');
+            } catch (error) {
+                alert('تعذر بدء عملية الدفع حالياً. حاول مرة أخرى أو تواصل معنا عبر الواتساب.');
+            }
+        }
+
+        function checkoutWhatsApp() {
+            if (cart.length === 0) return alert('السلة فارغة!');
+
+            let text = `مرحباً مصنع المتحدة للرتان بالأثاث، أود طلب الأغراض التالية:\n\n`;
+            let total = 0;
+
+            cart.forEach((item, i) => {
+                const sub = item.price * item.qty;
+                total += sub;
+                text += `${i + 1}. ${item.title} - الكمية: ${item.qty} - السعر: ${sub.toLocaleString()} ج.م\n`;
+            });
+
+            text += `\nالإجمالي العام: ${total.toLocaleString()} ج.م\nرجاء التواصل لإتمام الحجز والتوصيل.`;
+
+            const phone = appData.siteInfo.whatsapp.replace(/[^0-9]/g, '');
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
+        }
+
+        // Admin Auth Flow
+        function openAdminAuth() {
+            if (isAdminLoggedIn) {
+                navigateTo('admin');
+            } else {
+                document.getElementById('adminAuthModal').classList.remove('hidden');
+            }
+        }
+
+        function closeAdminAuth() {
+            document.getElementById('adminAuthModal').classList.add('hidden');
+        }
+
+        function handleAdminLogin(e) {
+            e.preventDefault();
+            const pass = document.getElementById('adminPasswordInput').value;
+            if (pass === appData.adminPassword) {
+                isAdminLoggedIn = true;
+                closeAdminAuth();
+                document.getElementById('adminPasswordInput').value = '';
+                navigateTo('admin');
+            } else {
+                alert('كلمة المرور غير صحيحة!');
+            }
+        }
+
+        function logoutAdmin() {
+            isAdminLoggedIn = false;
+            navigateTo('home');
+        }
+
+        // AI Chatbot Logic
+        function toggleChatbot() {
+            const chatBox = document.getElementById('chatBox');
+            chatBox.classList.toggle('hidden');
+            chatBox.classList.toggle('flex');
+        }
+
+        function handleChatKeyPress(e) {
+            if (e.key === 'Enter') sendChatMessage();
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            const chatMessages = document.getElementById('chatMessages');
+
+            // User Message
+            const userBubble = document.createElement('div');
+            userBubble.className = 'bg-amber-600/20 text-amber-200 border border-amber-500/30 p-3 rounded-xl max-w-[85%] mr-auto text-xs';
+            userBubble.innerText = msg;
+            chatMessages.appendChild(userBubble);
+
+            input.value = '';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // AI Reply Generator
+            setTimeout(() => {
+                let reply = "أهلاً بك! يمكنك تصفح كافة منتجاتنا أو التواصل معنا فوراً عبر الرقم المباشر أو الواتساب لحجز طلبك.";
+                const lower = msg.toLowerCase();
+
+                if (lower.includes('سعر') || lower.includes('بكم') || lower.includes('تكلفة')) {
+                    reply = "تختلف الأسعار حسب الموديل والمقاسات! أسعار أطقم الكافيهات تبدأ من 8,500 ج.م والمراجيح تبدأ من 6,200 ج.م. يمكنك مشاهدة السعر المباشر لكل منتج في الكتالوج.";
+                } else if (lower.includes('عنوان') || lower.includes('مكان') || lower.includes('فرع')) {
+                    reply = `مقرنا ورابط العنوان: ${appData.siteInfo.address}. كما نوفر خدمة الشحن لجميع المحافظات!`;
+                } else if (lower.includes('رقم') || lower.includes('تواصل') || lower.includes('واتس')) {
+                    reply = `يمكنك التواصل معنا عبر الهاتف أو الواتساب على الرقم: ${appData.siteInfo.whatsapp}`;
+                } else if (lower.includes('ضمان') || lower.includes('جودة')) {
+                    reply = "جميع منتجات مصنع المتحدة للرتان مصنوعة من خامات بيور مجدولة يدوياً ومعالجة ضد العوامل الجوية ومقاومة للشمس والماء بضمان حقيقي!";
+                }
+
+                const botBubble = document.createElement('div');
+                botBubble.className = 'bg-slate-800/80 p-3 rounded-xl border border-slate-700/50 max-w-[85%] text-slate-200 text-xs';
+                botBubble.innerText = reply;
+                chatMessages.appendChild(botBubble);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 600);
+        }
+    </script>
+</body>
+</html>
