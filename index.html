@@ -1,308 +1,507 @@
-<!-- Checkout / Customer Information Modal -->
-<div id="paymentModal"
-     class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <div class="glass-card max-w-2xl w-full rounded-2xl overflow-hidden border border-amber-500/40 shadow-2xl flex flex-col max-h-[92vh]">
+    <title>المتحدة للرتان والأثاث | المصنع والتوريد</title>
 
-        <!-- Header -->
-        <div class="p-4 bg-slate-900 flex justify-between items-center border-b border-slate-800">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Cairo", sans-serif;
+            background:
+                radial-gradient(circle at top right, rgba(212,175,55,.08), transparent 30%),
+                #0b0b0b;
+            color: #f5f5f5;
+        }
+
+        ::selection {
+            background: #d4af37;
+            color: #111;
+        }
+
+        .gold {
+            color: #d4af37;
+        }
+
+        .gold-bg {
+            background: #d4af37;
+            color: #111;
+        }
+
+        .glass {
+            background: rgba(20,20,20,.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(212,175,55,.18);
+        }
+
+        .gold-border {
+            border-color: rgba(212,175,55,.35);
+        }
+
+        .hero-overlay {
+            background:
+                linear-gradient(
+                    90deg,
+                    rgba(0,0,0,.92),
+                    rgba(0,0,0,.65),
+                    rgba(0,0,0,.88)
+                );
+        }
+
+        .product-card {
+            transition: .25s ease;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(212,175,55,.65);
+            box-shadow: 0 15px 40px rgba(0,0,0,.4);
+        }
+
+        .modal-bg {
+            background: rgba(0,0,0,.82);
+            backdrop-filter: blur(7px);
+        }
+
+        .nav-link {
+            transition: .2s;
+        }
+
+        .nav-link:hover {
+            color: #d4af37;
+        }
+
+        input,
+        textarea,
+        select {
+            outline: none;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            border-color: #d4af37 !important;
+            box-shadow: 0 0 0 2px rgba(212,175,55,.1);
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scrollbar {
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- ================= HEADER ================= -->
+
+<header class="sticky top-0 z-50 glass border-b border-yellow-700/20">
+
+    <div class="max-w-7xl mx-auto px-4 py-3">
+
+        <div class="flex items-center justify-between gap-4">
+
+            <button
+                onclick="navigateTo('home')"
+                class="flex items-center gap-3 text-right">
+
+                <img
+                    id="headerLogo"
+                    src="749343355_122101492599399595_32072906961096562_n.jpg"
+                    alt="المتحدة للرتان والأثاث"
+                    class="w-14 h-14 rounded-full object-cover border-2 border-yellow-600">
+
+                <div>
+                    <h1
+                        id="headerTitle"
+                        class="font-black text-lg md:text-xl gold">
+                        المتحدة للرتان والأثاث
+                    </h1>
+
+                    <p
+                        id="headerSubtitle"
+                        class="text-xs md:text-sm text-gray-400">
+                        جمال يدوم .. وراحة تدوم
+                    </p>
+                </div>
+            </button>
+
+            <nav class="hidden lg:flex items-center gap-7 text-sm font-bold">
+
+                <button onclick="navigateTo('home')" class="nav-link">
+                    الرئيسية
+                </button>
+
+                <button onclick="navigateTo('products')" class="nav-link">
+                    المنتجات والأقسام
+                </button>
+
+                <button onclick="navigateTo('about')" class="nav-link">
+                    عن المصنع
+                </button>
+
+                <button onclick="navigateTo('contact')" class="nav-link">
+                    اتصل بنا
+                </button>
+
+            </nav>
+
+            <div class="flex items-center gap-2">
+
+                <button
+                    onclick="toggleCartModal()"
+                    class="relative w-11 h-11 rounded-full bg-white/5 hover:bg-white/10 border border-white/10">
+
+                    <i class="fa-solid fa-cart-shopping gold"></i>
+
+                    <span
+                        id="cartBadge"
+                        class="absolute -top-1 -left-1 min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-xs flex items-center justify-center">
+                        0
+                    </span>
+                </button>
+
+                <button
+                    onclick="toggleMobileMenu()"
+                    class="lg:hidden w-11 h-11 rounded-full bg-white/5 border border-white/10">
+
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+
+            </div>
+
+        </div>
+
+        <div
+            id="mobileMenu"
+            class="hidden lg:hidden mt-4 border-t border-white/10 pt-4">
+
+            <div class="grid gap-2">
+
+                <button
+                    onclick="navigateTo('home'); toggleMobileMenu()"
+                    class="text-right py-3 px-3 rounded-lg hover:bg-white/5">
+                    الرئيسية
+                </button>
+
+                <button
+                    onclick="navigateTo('products'); toggleMobileMenu()"
+                    class="text-right py-3 px-3 rounded-lg hover:bg-white/5">
+                    المنتجات والأقسام
+                </button>
+
+                <button
+                    onclick="navigateTo('about'); toggleMobileMenu()"
+                    class="text-right py-3 px-3 rounded-lg hover:bg-white/5">
+                    عن المصنع
+                </button>
+
+                <button
+                    onclick="navigateTo('contact'); toggleMobileMenu()"
+                    class="text-right py-3 px-3 rounded-lg hover:bg-white/5">
+                    اتصل بنا
+                </button>
+
+            </div>
+        </div>
+
+    </div>
+</header>
+
+
+<!-- ================= MAIN ================= -->
+
+<main id="mainContainer"></main>
+
+
+<!-- ================= CART MODAL ================= -->
+
+<div
+    id="cartModal"
+    class="hidden fixed inset-0 z-[100] modal-bg p-4">
+
+    <div class="max-w-3xl mx-auto mt-10 bg-[#111] border border-yellow-700/30 rounded-2xl overflow-hidden shadow-2xl">
+
+        <div class="p-5 border-b border-white/10 flex items-center justify-between">
 
             <div>
-                <h3 class="font-bold text-lg text-amber-400 flex items-center gap-2">
-                    <i class="fa-solid fa-file-invoice"></i>
-                    إتمام الطلب والدفع
-                </h3>
+                <h2 class="text-xl font-black gold">
+                    سلة المشتريات
+                </h2>
 
-                <p class="text-[10px] text-slate-400 mt-1">
-                    أدخل بيانات الاستلام ثم تابع للدفع بالفيزا / Mastercard
+                <p class="text-xs text-gray-400 mt-1">
+                    راجعي المنتجات قبل إتمام الطلب
                 </p>
             </div>
 
-            <button onclick="closePaymentModal()"
-                    class="text-slate-400 hover:text-white">
-                <i class="fa-solid fa-xmark text-xl"></i>
+            <button
+                onclick="toggleCartModal()"
+                class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10">
+                <i class="fa-solid fa-xmark"></i>
             </button>
 
         </div>
 
-        <!-- Body -->
-        <div class="p-5 overflow-y-auto">
+        <div
+            id="cartItemsList"
+            class="p-5 max-h-[55vh] overflow-y-auto">
+        </div>
 
-            <form id="checkoutForm"
-                  onsubmit="submitCheckoutForm(event)"
-                  class="space-y-4">
+        <div class="p-5 border-t border-white/10">
 
-                <!-- Customer Name -->
-                <div>
-                    <label class="block text-xs text-slate-300 font-bold mb-1">
-                        الاسم بالكامل *
-                    </label>
+            <div class="flex items-center justify-between mb-5">
 
-                    <input type="text"
-                           id="customerName"
-                           required
-                           autocomplete="name"
-                           placeholder="اكتب اسم العميل بالكامل"
-                           class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500">
-                </div>
+                <span class="text-gray-400">
+                    الإجمالي
+                </span>
 
-                <!-- Phone -->
-                <div>
-                    <label class="block text-xs text-slate-300 font-bold mb-1">
-                        رقم الموبايل *
-                    </label>
+                <strong
+                    id="cartTotalPrice"
+                    class="text-2xl gold">
+                    0 جنيه
+                </strong>
 
-                    <input type="tel"
-                           id="customerPhone"
-                           required
-                           autocomplete="tel"
-                           inputmode="tel"
-                           placeholder="01xxxxxxxxx"
-                           class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500">
-                </div>
+            </div>
 
-                <!-- Governorate + City -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="grid md:grid-cols-2 gap-3">
+
+                <button
+                    onclick="startCardPayment()"
+                    class="gold-bg rounded-xl py-3 font-black">
+
+                    <i class="fa-solid fa-credit-card ml-2"></i>
+
+                    الدفع بالفيزا / Mastercard
+
+                </button>
+
+                <button
+                    onclick="checkoutWhatsApp()"
+                    class="bg-green-600 hover:bg-green-700 rounded-xl py-3 font-black">
+
+                    <i class="fa-brands fa-whatsapp ml-2"></i>
+
+                    الطلب عبر WhatsApp
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+
+<!-- ================= PAYMENT / CUSTOMER MODAL ================= -->
+
+<div
+    id="paymentModal"
+    class="hidden fixed inset-0 z-[110] modal-bg p-4 overflow-y-auto">
+
+    <div class="max-w-3xl mx-auto my-8 bg-[#111] border border-yellow-700/30 rounded-2xl overflow-hidden shadow-2xl">
+
+        <div class="p-5 border-b border-white/10 flex justify-between items-center">
+
+            <div>
+                <h2 class="text-xl font-black gold">
+                    بيانات العميل والطلب
+                </h2>
+
+                <p class="text-xs text-gray-400 mt-1">
+                    املئي البيانات التالية لإتمام الطلب
+                </p>
+            </div>
+
+            <button
+                onclick="closePaymentModal()"
+                class="w-10 h-10 rounded-full bg-white/5">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+        </div>
+
+        <div class="p-5">
+
+            <form
+                id="customerForm"
+                onsubmit="submitCustomerData(event)">
+
+                <div class="grid md:grid-cols-2 gap-4">
 
                     <div>
-                        <label class="block text-xs text-slate-300 font-bold mb-1">
+                        <label class="block text-sm text-gray-300 mb-2">
+                            الاسم بالكامل *
+                        </label>
+
+                        <input
+                            id="customerFullName"
+                            required
+                            type="text"
+                            class="w-full bg-black border border-white/10 rounded-xl px-4 py-3"
+                            placeholder="اكتب الاسم بالكامل">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm text-gray-300 mb-2">
+                            رقم الموبايل *
+                        </label>
+
+                        <input
+                            id="customerPhone"
+                            required
+                            type="tel"
+                            class="w-full bg-black border border-white/10 rounded-xl px-4 py-3"
+                            placeholder="01xxxxxxxxx">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm text-gray-300 mb-2">
                             المحافظة *
                         </label>
 
-                        <select id="customerGovernorate"
-                                required
-                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500">
-
-                            <option value="">اختر المحافظة</option>
-                            <option>القاهرة</option>
-                            <option>الجيزة</option>
-                            <option>الإسكندرية</option>
-                            <option>القليوبية</option>
-                            <option>المنوفية</option>
-                            <option>الغربية</option>
-                            <option>الدقهلية</option>
-                            <option>البحيرة</option>
-                            <option>كفر الشيخ</option>
-                            <option>دمياط</option>
-                            <option>الشرقية</option>
-                            <option>بورسعيد</option>
-                            <option>الإسماعيلية</option>
-                            <option>السويس</option>
-                            <option>شمال سيناء</option>
-                            <option>جنوب سيناء</option>
-                            <option>البحر الأحمر</option>
-                            <option>مطروح</option>
-                            <option>الفيوم</option>
-                            <option>بني سويف</option>
-                            <option>المنيا</option>
-                            <option>أسيوط</option>
-                            <option>سوهاج</option>
-                            <option>قنا</option>
-                            <option>الأقصر</option>
-                            <option>أسوان</option>
-                            <option>الوادي الجديد</option>
-
-                        </select>
+                        <input
+                            id="customerGovernorate"
+                            required
+                            type="text"
+                            class="w-full bg-black border border-white/10 rounded-xl px-4 py-3"
+                            placeholder="مثال: المنوفية">
                     </div>
 
                     <div>
-                        <label class="block text-xs text-slate-300 font-bold mb-1">
+                        <label class="block text-sm text-gray-300 mb-2">
                             المركز / المدينة *
                         </label>
 
-                        <input type="text"
-                               id="customerCity"
-                               required
-                               autocomplete="address-level2"
-                               placeholder="مثال: أشمون"
-                               class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500">
+                        <input
+                            id="customerCity"
+                            required
+                            type="text"
+                            class="w-full bg-black border border-white/10 rounded-xl px-4 py-3"
+                            placeholder="المركز أو المدينة">
                     </div>
 
                 </div>
 
-                <!-- Address -->
-                <div>
-                    <label class="block text-xs text-slate-300 font-bold mb-1">
+                <div class="mt-4">
+
+                    <label class="block text-sm text-gray-300 mb-2">
                         العنوان بالتفصيل *
                     </label>
 
-                    <textarea id="customerAddress"
-                              required
-                              rows="3"
-                              autocomplete="street-address"
-                              placeholder="اسم الشارع، رقم العقار، الدور، العلامة المميزة..."
-                              class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500"></textarea>
+                    <textarea
+                        id="customerAddress"
+                        required
+                        rows="3"
+                        class="w-full bg-black border border-white/10 rounded-xl px-4 py-3"
+                        placeholder="الشارع، رقم المنزل، العلامة المميزة..."></textarea>
+
                 </div>
 
-                <!-- Delivery Method -->
-                <div>
-                    <label class="block text-xs text-slate-300 font-bold mb-2">
-                        طريقة الاستلام *
+                <div class="mt-4">
+
+                    <label class="block text-sm text-gray-300 mb-2">
+                        طريقة الاستلام
                     </label>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <select
+                        id="customerDelivery"
+                        class="w-full bg-black border border-white/10 rounded-xl px-4 py-3">
 
-                        <label class="cursor-pointer">
+                        <option value="توصيل للعنوان">
+                            توصيل للعنوان
+                        </option>
 
-                            <input type="radio"
-                                   name="deliveryMethod"
-                                   value="توصيل للعنوان"
-                                   checked
-                                   class="hidden peer">
-
-                            <div class="p-4 rounded-xl bg-slate-900 border border-slate-700 peer-checked:border-amber-500 peer-checked:bg-amber-500/10 transition">
-
-                                <div class="flex items-center gap-3">
-
-                                    <i class="fa-solid fa-truck text-amber-400 text-xl"></i>
-
-                                    <div>
-                                        <div class="font-bold text-sm">
-                                            توصيل للعنوان
-                                        </div>
-
-                                        <div class="text-[10px] text-slate-400">
-                                            التوصيل حتى باب العميل
-                                        </div>
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                        </label>
-
-                        <label class="cursor-pointer">
-
-                            <input type="radio"
-                                   name="deliveryMethod"
-                                   value="استلام من المصنع"
-                                   class="hidden peer">
-
-                            <div class="p-4 rounded-xl bg-slate-900 border border-slate-700 peer-checked:border-amber-500 peer-checked:bg-amber-500/10 transition">
-
-                                <div class="flex items-center gap-3">
-
-                                    <i class="fa-solid fa-industry text-amber-400 text-xl"></i>
-
-                                    <div>
-                                        <div class="font-bold text-sm">
-                                            استلام من المصنع
-                                        </div>
-
-                                        <div class="text-[10px] text-slate-400">
-                                            من مقر المتحدة للرتان والأثاث
-                                        </div>
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                        </label>
-
-                    </div>
-                </div>
-
-                <!-- Delivery Time -->
-                <div>
-                    <label class="block text-xs text-slate-300 font-bold mb-1">
-                        الاستلام خلال كام يوم؟ *
-                    </label>
-
-                    <select id="deliveryTime"
-                            required
-                            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500">
-
-                        <option value="">اختر المدة</option>
-                        <option value="1 - 3 أيام">1 - 3 أيام</option>
-                        <option value="3 - 5 أيام">3 - 5 أيام</option>
-                        <option value="5 - 7 أيام">5 - 7 أيام</option>
-                        <option value="أكثر من 7 أيام">أكثر من 7 أيام</option>
-                        <option value="حسب موعد الاتفاق مع المصنع">حسب موعد الاتفاق مع المصنع</option>
+                        <option value="استلام من المصنع">
+                            استلام من المصنع
+                        </option>
 
                     </select>
+
                 </div>
 
-                <!-- Notes -->
-                <div>
-                    <label class="block text-xs text-slate-300 font-bold mb-1">
+                <div class="mt-4">
+
+                    <label class="block text-sm text-gray-300 mb-2">
+                        الاستلام خلال كام يوم؟
+                    </label>
+
+                    <select
+                        id="customerDays"
+                        class="w-full bg-black border border-white/10 rounded-xl px-4 py-3">
+
+                        <option value="1 - 3 أيام">1 - 3 أيام</option>
+                        <option value="3 - 7 أيام">3 - 7 أيام</option>
+                        <option value="7 - 14 يوم">7 - 14 يوم</option>
+                        <option value="يتم الاتفاق مع المصنع">يتم الاتفاق مع المصنع</option>
+
+                    </select>
+
+                </div>
+
+                <div class="mt-4">
+
+                    <label class="block text-sm text-gray-300 mb-2">
                         ملاحظات إضافية
                     </label>
 
-                    <textarea id="customerNotes"
-                              rows="2"
-                              placeholder="أي ملاحظات خاصة بالطلب أو التوصيل..."
-                              class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500"></textarea>
+                    <textarea
+                        id="customerNotes"
+                        rows="3"
+                        class="w-full bg-black border border-white/10 rounded-xl px-4 py-3"
+                        placeholder="أي ملاحظات خاصة بالطلب..."></textarea>
+
                 </div>
 
-                <!-- Order Summary -->
-                <div class="bg-slate-950 rounded-xl p-4 border border-slate-800">
+                <div class="mt-6 p-4 rounded-xl bg-yellow-500/5 border border-yellow-500/20">
 
-                    <div class="flex justify-between items-center mb-3">
+                    <div class="flex justify-between">
 
-                        <span class="text-sm text-slate-300">
-                            عدد المنتجات
-                        </span>
-
-                        <span id="checkoutItemsCount"
-                              class="font-bold text-white">
-                            0
-                        </span>
-
-                    </div>
-
-                    <div class="flex justify-between items-center border-t border-slate-800 pt-3">
-
-                        <span class="font-bold">
+                        <span class="text-gray-400">
                             إجمالي الطلب
                         </span>
 
-                        <span id="paymentTotal"
-                              class="text-xl font-extrabold text-amber-400">
-                            0 ج.م
-                        </span>
+                        <strong
+                            id="customerOrderTotal"
+                            class="gold text-xl">
+                            0 جنيه
+                        </strong>
 
                     </div>
 
                 </div>
 
-                <!-- Security Notice -->
-                <div class="rounded-xl bg-emerald-950/30 border border-emerald-500/20 p-3">
+                <button
+                    type="submit"
+                    class="w-full gold-bg rounded-xl py-4 mt-5 font-black text-lg">
 
-                    <div class="flex gap-2">
+                    متابعة ومراجعة الطلب
 
-                        <i class="fa-solid fa-shield-halved text-emerald-400 mt-0.5"></i>
-
-                        <p class="text-[10px] text-emerald-200 leading-relaxed">
-                            بيانات البطاقة البنكية لا يتم تخزينها على موقع المتحدة.
-                            سيتم تحويلك إلى بوابة الدفع الآمنة لإتمام عملية الدفع.
-                        </p>
-
-                    </div>
-
-                </div>
-
-                <!-- Submit -->
-                <button type="submit"
-                        id="checkoutSubmitButton"
-                        class="w-full py-3.5 rounded-xl gold-bg-gradient text-slate-950 font-extrabold transition flex items-center justify-center gap-2">
-
-                    <i class="fa-solid fa-lock"></i>
-                    متابعة إلى الدفع بالفيزا / Mastercard
+                    <i class="fa-solid fa-arrow-left mr-2"></i>
 
                 </button>
-
-                <button type="button"
-                        onclick="closePaymentModal()"
-                        class="w-full py-2 text-slate-400 hover:text-white text-sm">
-
-                    إلغاء
-
-                </button>
-
-                <p id="paymentSetupNotice"
-                   class="text-[11px] text-amber-300/80 text-center"></p>
 
             </form>
 
@@ -310,3 +509,2199 @@
 
     </div>
 </div>
+
+
+<!-- ================= ORDER CONFIRMATION ================= -->
+
+<div
+    id="confirmationModal"
+    class="hidden fixed inset-0 z-[120] modal-bg p-4 overflow-y-auto">
+
+    <div class="max-w-3xl mx-auto my-8 bg-[#111] border border-yellow-700/30 rounded-2xl overflow-hidden">
+
+        <div class="p-5 border-b border-white/10 flex justify-between">
+
+            <div>
+                <h2 class="text-xl font-black gold">
+                    مراجعة وتأكيد الطلب
+                </h2>
+
+                <p class="text-xs text-gray-400 mt-1">
+                    راجعي البيانات قبل الانتقال للدفع
+                </p>
+            </div>
+
+            <button
+                onclick="closeConfirmationModal()"
+                class="w-10 h-10 rounded-full bg-white/5">
+
+                <i class="fa-solid fa-xmark"></i>
+
+            </button>
+
+        </div>
+
+        <div
+            id="confirmationContent"
+            class="p-5">
+        </div>
+
+    </div>
+</div>
+
+
+<!-- ================= PRODUCT DETAIL ================= -->
+
+<div
+    id="productDetailModal"
+    class="hidden fixed inset-0 z-[130] modal-bg p-4 overflow-y-auto">
+
+    <div class="max-w-4xl mx-auto my-8 bg-[#111] rounded-2xl overflow-hidden border border-yellow-700/30">
+
+        <div
+            id="productDetailContent"
+            class="p-5">
+        </div>
+
+    </div>
+</div>
+
+
+<!-- ================= ADMIN LOGIN ================= -->
+
+<div
+    id="adminAuthModal"
+    class="hidden fixed inset-0 z-[150] modal-bg p-4">
+
+    <div class="max-w-md mx-auto mt-20 bg-[#111] border border-yellow-700/30 rounded-2xl p-6">
+
+        <div class="flex justify-between items-center mb-6">
+
+            <h2 class="text-xl font-black gold">
+                دخول الإدارة
+            </h2>
+
+            <button onclick="closeAdminAuth()">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+        </div>
+
+        <input
+            id="adminPasswordInput"
+            type="password"
+            class="w-full bg-black border border-white/10 rounded-xl px-4 py-3"
+            placeholder="كلمة المرور">
+
+        <button
+            onclick="loginAdmin()"
+            class="w-full gold-bg rounded-xl py-3 mt-4 font-black">
+
+            دخول لوحة الإدارة
+
+        </button>
+
+    </div>
+</div>
+
+
+<!-- ================= CHATBOT ================= -->
+
+<div
+    id="chatWindow"
+    class="hidden fixed bottom-24 right-4 z-[90] w-[min(380px,calc(100vw-32px))] bg-[#111] border border-yellow-700/30 rounded-2xl overflow-hidden shadow-2xl">
+
+    <div class="p-4 gold-bg font-black">
+        مساعد المتحدة للرتان
+    </div>
+
+    <div
+        id="chatMessages"
+        class="h-72 overflow-y-auto p-4 space-y-3">
+
+        <div class="bg-white/5 rounded-xl p-3 text-sm">
+            أهلاً بيك 👋
+            <br>
+            أقدر أساعدك في المنتجات والطلب والتواصل مع المصنع.
+        </div>
+
+    </div>
+
+    <div class="p-3 border-t border-white/10 flex gap-2">
+
+        <input
+            id="chatInput"
+            onkeydown="if(event.key==='Enter') sendChatMessage()"
+            class="flex-1 bg-black border border-white/10 rounded-xl px-3 py-2"
+            placeholder="اكتب رسالتك...">
+
+        <button
+            onclick="sendChatMessage()"
+            class="gold-bg w-11 rounded-xl">
+
+            <i class="fa-solid fa-paper-plane"></i>
+
+        </button>
+
+    </div>
+</div>
+
+<button
+    onclick="toggleChat()"
+    class="fixed bottom-5 right-5 z-[91] w-14 h-14 rounded-full gold-bg shadow-2xl">
+
+    <i class="fa-solid fa-comments text-xl"></i>
+
+</button>
+
+
+<!-- ================= FOOTER ================= -->
+
+<footer class="mt-20 border-t border-yellow-700/20 bg-black">
+
+    <div class="max-w-7xl mx-auto px-4 py-12">
+
+        <div class="grid md:grid-cols-3 gap-8">
+
+            <div>
+
+                <h3
+                    id="footerTitle"
+                    class="text-xl font-black gold mb-3">
+                    المتحدة للرتان والأثاث
+                </h3>
+
+                <p
+                    id="footerSubtitle"
+                    class="text-gray-400 leading-8">
+                    جمال يدوم .. وراحة تدوم
+                </p>
+
+            </div>
+
+            <div>
+
+                <h3 class="font-black mb-4">
+                    تواصل معنا
+                </h3>
+
+                <div class="space-y-3 text-gray-400">
+
+                    <a
+                        id="footerPhone"
+                        href="#"
+                        class="block hover:text-yellow-500">
+                        <i class="fa-solid fa-phone ml-2"></i>
+                        <span></span>
+                    </a>
+
+                    <a
+                        id="footerWhatsapp"
+                        href="#"
+                        target="_blank"
+                        class="block hover:text-green-500">
+
+                        <i class="fa-brands fa-whatsapp ml-2"></i>
+                        WhatsApp
+
+                    </a>
+
+                    <div>
+
+                        <i class="fa-solid fa-location-dot ml-2"></i>
+
+                        <span id="footerAddress">
+                            محافظة المنوفية - مركز أشمون
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div>
+
+                <h3 class="font-black mb-4">
+                    روابط
+                </h3>
+
+                <div class="space-y-2">
+
+                    <button
+                        onclick="navigateTo('products')"
+                        class="block text-gray-400 hover:text-yellow-500">
+                        المنتجات
+                    </button>
+
+                    <button
+                        onclick="navigateTo('about')"
+                        class="block text-gray-400 hover:text-yellow-500">
+                        عن المصنع
+                    </button>
+
+                    <button
+                        onclick="navigateTo('contact')"
+                        class="block text-gray-400 hover:text-yellow-500">
+                        اتصل بنا
+                    </button>
+
+                    <button
+                        onclick="openAdminAuth()"
+                        class="block text-gray-700 hover:text-yellow-500 text-xs mt-5">
+                        إدارة الموقع
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="border-t border-white/10 mt-10 pt-5 text-center text-gray-600 text-sm">
+
+            © <span id="currentYear"></span>
+            المتحدة للرتان والأثاث — جميع الحقوق محفوظة
+
+        </div>
+
+    </div>
+</footer>
+
+
+<script>
+
+/* =========================================================
+   DATA
+========================================================= */
+
+const defaultState = {
+
+    adminPassword: "172006",
+
+    siteInfo: {
+
+        title: "المتحدة للرتان والأثاث",
+
+        subtitle: "جمال يدوم .. وراحة تدوم",
+
+        heroHeadline:
+            "تصميمات فاخرة وجودة تدوم لجميع مساحاتك الخارجية والداخلية",
+
+        heroSubtext:
+            "مصنع متخصص في أثاث الرتان والكافيهات والقرى السياحية والبرجولات والشماسي بجودة عالية.",
+
+        logo:
+            "749343355_122101492599399595_32072906961096562_n.jpg",
+
+        phone:
+            "+201000000000",
+
+        whatsapp:
+            "+201000000000",
+
+        address:
+            "محافظة المنوفية - مركز أشمون",
+
+        facebook:
+            "https://facebook.com",
+
+        instagram:
+            "https://instagram.com",
+
+        vodafoneCash:
+            "01000000000",
+
+        bankAccount:
+            "EG12345678901234567890123"
+
+    },
+
+    categories: [
+
+        "أثاث كافيهات ومطاعم",
+
+        "روف جاردن وحدائق",
+
+        "قرى سياحية وفنادق",
+
+        "مراجيح وبرجولات",
+
+        "شماسي وتندات"
+
+    ],
+
+    products: [
+
+        {
+
+            id: 1,
+
+            title:
+                "طقم كافيه رتان فاخر 4 كراسي + ترابيزة",
+
+            category:
+                "أثاث كافيهات ومطاعم",
+
+            price:
+                8500,
+
+            oldPrice:
+                10200,
+
+            image:
+                "749343355_122101492599399595_32072906961096562_n.jpg",
+
+            description:
+                "طقم رتان بيور مجدول يدوياً مناسب للكافيهات والمطاعم والحدائق.",
+
+            inStock:
+                true
+
+        },
+
+        {
+
+            id: 2,
+
+            title:
+                "مرجيحة رتان عش العصفور لشخصين",
+
+            category:
+                "مراجيح وبرجولات",
+
+            price:
+                6200,
+
+            oldPrice:
+                7500,
+
+            image:
+                "749343355_122101492599399595_32072906961096562_n.jpg",
+
+            description:
+                "مرجيحة رتان قوية ومناسبة للحدائق والروف والمساحات الخارجية.",
+
+            inStock:
+                true
+
+        },
+
+        {
+
+            id: 3,
+
+            title:
+                "شمسية حدائق ومطاعم متحركة 3 متر",
+
+            category:
+                "شماسي وتندات",
+
+            price:
+                4300,
+
+            oldPrice:
+                5000,
+
+            image:
+                "749343355_122101492599399595_32072906961096562_n.jpg",
+
+            description:
+                "شمسية كبيرة مناسبة للمطاعم والكافيهات والحدائق.",
+
+            inStock:
+                true
+
+        },
+
+        {
+
+            id: 4,
+
+            title:
+                "طقم رتان روف جاردن فاخر",
+
+            category:
+                "روف جاردن وحدائق",
+
+            price:
+                12500,
+
+            oldPrice:
+                14500,
+
+            image:
+                "749343355_122101492599399595_32072906961096562_n.jpg",
+
+            description:
+                "طقم أثاث خارجي فاخر للروف والجاردن.",
+
+            inStock:
+                true
+
+        },
+
+        {
+
+            id: 5,
+
+            title:
+                "طقم رتان للقرى السياحية والفنادق",
+
+            category:
+                "قرى سياحية وفنادق",
+
+            price:
+                18500,
+
+            oldPrice:
+                22000,
+
+            image:
+                "749343355_122101492599399595_32072906961096562_n.jpg",
+
+            description:
+                "حل عملي للمشروعات والفنادق والقرى السياحية.",
+
+            inStock:
+                true
+
+        },
+
+        {
+
+            id: 6,
+
+            title:
+                "برجولة رتان للمساحات الخارجية",
+
+            category:
+                "مراجيح وبرجولات",
+
+            price:
+                16000,
+
+            oldPrice:
+                19000,
+
+            image:
+                "749343355_122101492599399595_32072906961096562_n.jpg",
+
+            description:
+                "برجولة مناسبة للحدائق والروف والمطاعم والكافيهات.",
+
+            inStock:
+                true
+
+        }
+
+    ]
+
+};
+
+
+let appData =
+    JSON.parse(localStorage.getItem("united_rattan_db"))
+    || defaultState;
+
+
+let cart =
+    JSON.parse(localStorage.getItem("united_rattan_cart"))
+    || [];
+
+
+let activeCategory = "الكل";
+
+let isAdminLoggedIn = false;
+
+let currentCustomerOrder = null;
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function saveData() {
+
+    localStorage.setItem(
+        "united_rattan_db",
+        JSON.stringify(appData)
+    );
+
+}
+
+
+function saveCart() {
+
+    localStorage.setItem(
+        "united_rattan_cart",
+        JSON.stringify(cart)
+    );
+
+}
+
+
+function formatPrice(value) {
+
+    return Number(value || 0).toLocaleString("ar-EG");
+
+}
+
+
+function escapeHtml(value) {
+
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+function updateHeaderAndFooter() {
+
+    document.getElementById("headerTitle").textContent =
+        appData.siteInfo.title;
+
+    document.getElementById("headerSubtitle").textContent =
+        appData.siteInfo.subtitle;
+
+    document.getElementById("headerLogo").src =
+        appData.siteInfo.logo;
+
+    document.getElementById("footerTitle").textContent =
+        appData.siteInfo.title;
+
+    document.getElementById("footerSubtitle").textContent =
+        appData.siteInfo.subtitle;
+
+    document.getElementById("footerAddress").textContent =
+        appData.siteInfo.address;
+
+    const phone =
+        document.getElementById("footerPhone");
+
+    phone.href =
+        "tel:" + appData.siteInfo.phone;
+
+    phone.querySelector("span").textContent =
+        appData.siteInfo.phone;
+
+    const whatsapp =
+        document.getElementById("footerWhatsapp");
+
+    whatsapp.href =
+        "https://wa.me/" +
+        normalizeWhatsApp(appData.siteInfo.whatsapp);
+
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+function navigateTo(page) {
+
+    const main =
+        document.getElementById("mainContainer");
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+
+    if (page === "home") {
+
+        renderHomePage();
+
+    } else if (page === "products") {
+
+        renderProductsPage();
+
+    } else if (page === "about") {
+
+        renderAboutPage();
+
+    } else if (page === "contact") {
+
+        renderContactPage();
+
+    } else if (page === "admin") {
+
+        renderAdminDashboard();
+
+    }
+
+}
+
+
+/* =========================================================
+   HOME
+========================================================= */
+
+function renderHomePage() {
+
+    const main =
+        document.getElementById("mainContainer");
+
+    main.innerHTML = `
+
+        <section
+            class="relative min-h-[620px] flex items-center overflow-hidden">
+
+            <img
+                src="${escapeHtml(appData.siteInfo.logo)}"
+                class="absolute inset-0 w-full h-full object-cover opacity-35"
+                alt="المتحدة للرتان والأثاث">
+
+            <div class="absolute inset-0 hero-overlay"></div>
+
+            <div class="relative z-10 max-w-7xl mx-auto px-4 w-full">
+
+                <div class="max-w-3xl">
+
+                    <span
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-yellow-500/30 bg-yellow-500/5 text-yellow-400 text-sm mb-5">
+
+                        <i class="fa-solid fa-crown"></i>
+
+                        مصنع متخصص في أثاث الرتان
+
+                    </span>
+
+                    <h2
+                        class="text-4xl md:text-6xl font-black leading-tight">
+
+                        ${escapeHtml(appData.siteInfo.heroHeadline)}
+
+                    </h2>
+
+                    <p
+                        class="text-gray-300 text-lg leading-9 mt-6">
+
+                        ${escapeHtml(appData.siteInfo.heroSubtext)}
+
+                    </p>
+
+                    <div class="flex flex-wrap gap-3 mt-8">
+
+                        <button
+                            onclick="navigateTo('products')"
+                            class="gold-bg px-7 py-4 rounded-xl font-black">
+
+                            تصفح المنتجات
+
+                            <i class="fa-solid fa-arrow-left mr-2"></i>
+
+                        </button>
+
+                        <button
+                            onclick="navigateTo('contact')"
+                            class="px-7 py-4 rounded-xl border border-white/20 hover:bg-white/5 font-bold">
+
+                            تواصل معنا
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="max-w-7xl mx-auto px-4 py-16">
+
+            <div class="text-center mb-10">
+
+                <span class="gold font-bold">
+                    خدماتنا ومنتجاتنا
+                </span>
+
+                <h2 class="text-3xl md:text-4xl font-black mt-2">
+                    اختاري القسم المناسب
+                </h2>
+
+            </div>
+
+            <div class="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+
+                ${appData.categories.map(category => `
+
+                    <button
+                        onclick="filterProductsAndNavigate('${escapeHtml(category)}')"
+                        class="glass rounded-2xl p-6 text-center hover:border-yellow-500/50 transition">
+
+                        <div
+                            class="w-14 h-14 rounded-full gold-bg mx-auto flex items-center justify-center mb-4">
+
+                            <i class="fa-solid fa-chair"></i>
+
+                        </div>
+
+                        <h3 class="font-bold">
+                            ${escapeHtml(category)}
+                        </h3>
+
+                    </button>
+
+                `).join("")}
+
+            </div>
+
+        </section>
+
+
+        <section class="max-w-7xl mx-auto px-4 pb-16">
+
+            <div class="flex items-end justify-between mb-8">
+
+                <div>
+
+                    <span class="gold font-bold">
+                        اختياراتنا
+                    </span>
+
+                    <h2 class="text-3xl font-black mt-1">
+                        أحدث المنتجات
+                    </h2>
+
+                </div>
+
+                <button
+                    onclick="navigateTo('products')"
+                    class="text-yellow-500 hover:text-yellow-400">
+
+                    عرض الكل
+
+                    <i class="fa-solid fa-arrow-left mr-1"></i>
+
+                </button>
+
+            </div>
+
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+                ${appData.products.slice(0, 6).map(renderProductCard).join("")}
+
+            </div>
+
+        </section>
+
+
+        <section class="max-w-7xl mx-auto px-4 pb-20">
+
+            <div class="glass rounded-3xl p-8 md:p-12">
+
+                <div class="grid md:grid-cols-3 gap-8 text-center">
+
+                    <div>
+
+                        <i class="fa-solid fa-industry text-3xl gold"></i>
+
+                        <h3 class="font-black text-xl mt-4">
+                            تصنيع مباشر
+                        </h3>
+
+                        <p class="text-gray-400 mt-2">
+                            التعامل مباشرة مع المصنع
+                        </p>
+
+                    </div>
+
+                    <div>
+
+                        <i class="fa-solid fa-shield-halved text-3xl gold"></i>
+
+                        <h3 class="font-black text-xl mt-4">
+                            جودة عالية
+                        </h3>
+
+                        <p class="text-gray-400 mt-2">
+                            خامات وتصنيع مناسب للاستخدام الخارجي
+                        </p>
+
+                    </div>
+
+                    <div>
+
+                        <i class="fa-solid fa-truck-fast text-3xl gold"></i>
+
+                        <h3 class="font-black text-xl mt-4">
+                            توريد وتوصيل
+                        </h3>
+
+                        <p class="text-gray-400 mt-2">
+                            خدمة للأفراد والمشروعات
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    `;
+
+}
+
+
+/* =========================================================
+   PRODUCTS
+========================================================= */
+
+function renderProductsPage() {
+
+    const main =
+        document.getElementById("mainContainer");
+
+    const filtered =
+        activeCategory === "الكل"
+            ? appData.products
+            : appData.products.filter(
+                p => p.category === activeCategory
+            );
+
+    main.innerHTML = `
+
+        <section class="max-w-7xl mx-auto px-4 py-12">
+
+            <div class="text-center mb-10">
+
+                <span class="gold font-bold">
+                    منتجاتنا
+                </span>
+
+                <h2 class="text-4xl font-black mt-2">
+                    المنتجات والأقسام
+                </h2>
+
+            </div>
+
+
+            <div
+                class="flex gap-2 overflow-x-auto hide-scrollbar pb-5 mb-8">
+
+                <button
+                    onclick="filterProducts('الكل')"
+                    class="px-5 py-2 rounded-full whitespace-nowrap
+                    ${activeCategory === "الكل"
+                        ? "gold-bg"
+                        : "bg-white/5 border border-white/10"}">
+
+                    الكل
+
+                </button>
+
+                ${appData.categories.map(category => `
+
+                    <button
+                        onclick="filterProducts('${escapeHtml(category)}')"
+                        class="px-5 py-2 rounded-full whitespace-nowrap
+                        ${activeCategory === category
+                            ? "gold-bg"
+                            : "bg-white/5 border border-white/10"}">
+
+                        ${escapeHtml(category)}
+
+                    </button>
+
+                `).join("")}
+
+            </div>
+
+
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+                ${
+                    filtered.length
+                    ? filtered.map(renderProductCard).join("")
+                    : `
+                        <div class="col-span-full text-center py-20 text-gray-500">
+                            لا توجد منتجات في هذا القسم حالياً.
+                        </div>
+                    `
+                }
+
+            </div>
+
+        </section>
+
+    `;
+
+}
+
+
+function filterProducts(category) {
+
+    activeCategory = category;
+
+    renderProductsPage();
+
+}
+
+
+function filterProductsAndNavigate(category) {
+
+    activeCategory = category;
+
+    navigateTo("products");
+
+}
+
+
+/* =========================================================
+   PRODUCT CARD
+========================================================= */
+
+function renderProductCard(product) {
+
+    return `
+
+        <article
+            class="product-card glass rounded-2xl overflow-hidden border border-white/10">
+
+            <div class="relative">
+
+                <img
+                    src="${escapeHtml(product.image)}"
+                    alt="${escapeHtml(product.title)}"
+                    class="w-full h-64 object-cover">
+
+                ${
+                    product.oldPrice
+                    ? `
+                        <span
+                            class="absolute top-3 right-3 bg-red-600 text-white text-xs px-3 py-1 rounded-full">
+                            عرض
+                        </span>
+                    `
+                    : ""
+                }
+
+            </div>
+
+            <div class="p-5">
+
+                <div class="text-xs gold mb-2">
+                    ${escapeHtml(product.category)}
+                </div>
+
+                <h3 class="font-black text-lg leading-8">
+                    ${escapeHtml(product.title)}
+                </h3>
+
+                <p class="text-gray-400 text-sm leading-7 mt-2 line-clamp-2">
+                    ${escapeHtml(product.description)}
+                </p>
+
+                <div class="flex items-end justify-between gap-3 mt-5">
+
+                    <div>
+
+                        <div class="text-xl font-black gold">
+                            ${formatPrice(product.price)} جنيه
+                        </div>
+
+                        ${
+                            product.oldPrice
+                            ? `
+                                <div class="text-sm text-gray-500 line-through">
+                                    ${formatPrice(product.oldPrice)} جنيه
+                                </div>
+                            `
+                            : ""
+                        }
+
+                    </div>
+
+                    <div class="flex gap-2">
+
+                        <button
+                            onclick="openProductDetail(${product.id})"
+                            class="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10">
+
+                            <i class="fa-solid fa-eye"></i>
+
+                        </button>
+
+                        <button
+                            onclick="addToCart(${product.id})"
+                            class="w-10 h-10 rounded-xl gold-bg">
+
+                            <i class="fa-solid fa-cart-plus"></i>
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </article>
+
+    `;
+
+}
+
+
+/* =========================================================
+   ABOUT
+========================================================= */
+
+function renderAboutPage() {
+
+    document.getElementById("mainContainer").innerHTML = `
+
+        <section class="max-w-5xl mx-auto px-4 py-16">
+
+            <div class="text-center mb-12">
+
+                <span class="gold font-bold">
+                    عن المصنع
+                </span>
+
+                <h2 class="text-4xl font-black mt-2">
+                    المتحدة للرتان والأثاث
+                </h2>
+
+            </div>
+
+            <div class="glass rounded-3xl p-7 md:p-12">
+
+                <div class="grid md:grid-cols-2 gap-10 items-center">
+
+                    <img
+                        src="${escapeHtml(appData.siteInfo.logo)}"
+                        class="w-full aspect-square object-cover rounded-2xl"
+                        alt="المصنع">
+
+                    <div>
+
+                        <h3 class="text-2xl font-black gold mb-5">
+                            جمال يدوم .. وراحة تدوم
+                        </h3>
+
+                        <p class="text-gray-300 leading-9">
+
+                            نحن متخصصون في تصنيع وتوريد أثاث الرتان
+                            للمنازل والكافيهات والمطاعم والحدائق والروف
+                            والقرى السياحية والفنادق.
+
+                        </p>
+
+                        <p class="text-gray-400 leading-9 mt-5">
+
+                            هدفنا تقديم منتجات عملية بتصميمات مميزة
+                            مع إمكانية تنفيذ احتياجات المشروعات
+                            والكميات الكبيرة.
+
+                        </p>
+
+                        <div class="grid grid-cols-2 gap-3 mt-7">
+
+                            <div class="bg-white/5 rounded-xl p-4">
+
+                                <div class="gold text-2xl font-black">
+                                    100%
+                                </div>
+
+                                <div class="text-gray-400 text-sm">
+                                    تصنيع وتوريد
+                                </div>
+
+                            </div>
+
+                            <div class="bg-white/5 rounded-xl p-4">
+
+                                <div class="gold text-2xl font-black">
+                                    24/7
+                                </div>
+
+                                <div class="text-gray-400 text-sm">
+                                    استقبال الطلبات
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    `;
+
+}
+
+
+/* =========================================================
+   CONTACT
+========================================================= */
+
+function renderContactPage() {
+
+    document.getElementById("mainContainer").innerHTML = `
+
+        <section class="max-w-6xl mx-auto px-4 py-16">
+
+            <div class="text-center mb-12">
+
+                <span class="gold font-bold">
+                    تواصل معنا
+                </span>
+
+                <h2 class="text-4xl font-black mt-2">
+                    نحن في انتظارك
+                </h2>
+
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-6">
+
+                <div class="glass rounded-2xl p-7">
+
+                    <h3 class="text-xl font-black gold mb-6">
+                        بيانات التواصل
+                    </h3>
+
+                    <div class="space-y-5">
+
+                        <a
+                            href="tel:${escapeHtml(appData.siteInfo.phone)}"
+                            class="flex gap-4 items-center">
+
+                            <span class="w-12 h-12 rounded-full gold-bg flex items-center justify-center">
+                                <i class="fa-solid fa-phone"></i>
+                            </span>
+
+                            <div>
+                                <div class="text-gray-500 text-sm">
+                                    الهاتف
+                                </div>
+
+                                <div>
+                                    ${escapeHtml(appData.siteInfo.phone)}
+                                </div>
+                            </div>
+
+                        </a>
+
+                        <a
+                            target="_blank"
+                            href="https://wa.me/${normalizeWhatsApp(appData.siteInfo.whatsapp)}"
+                            class="flex gap-4 items-center">
+
+                            <span class="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center">
+                                <i class="fa-brands fa-whatsapp"></i>
+                            </span>
+
+                            <div>
+                                <div class="text-gray-500 text-sm">
+                                    WhatsApp
+                                </div>
+
+                                <div>
+                                    ${escapeHtml(appData.siteInfo.whatsapp)}
+                                </div>
+                            </div>
+
+                        </a>
+
+                        <div class="flex gap-4 items-center">
+
+                            <span class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+                                <i class="fa-solid fa-location-dot gold"></i>
+                            </span>
+
+                            <div>
+                                <div class="text-gray-500 text-sm">
+                                    العنوان
+                                </div>
+
+                                <div>
+                                    ${escapeHtml(appData.siteInfo.address)}
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="glass rounded-2xl p-7">
+
+                    <h3 class="text-xl font-black gold mb-6">
+                        اطلب الآن
+                    </h3>
+
+                    <p class="text-gray-400 leading-8 mb-6">
+
+                        اختاري المنتجات وأضيفيها إلى السلة،
+                        ثم أدخلي بياناتك لإتمام الطلب.
+
+                    </p>
+
+                    <button
+                        onclick="navigateTo('products')"
+                        class="w-full gold-bg py-4 rounded-xl font-black">
+
+                        تصفح المنتجات
+
+                    </button>
+
+                    <a
+                        target="_blank"
+                        href="https://wa.me/${normalizeWhatsApp(appData.siteInfo.whatsapp)}"
+                        class="mt-3 w-full bg-green-600 py-4 rounded-xl font-black flex items-center justify-center">
+
+                        <i class="fa-brands fa-whatsapp ml-2"></i>
+
+                        تحدث معنا على WhatsApp
+
+                    </a>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    `;
+
+}
+
+
+/* =========================================================
+   PRODUCT DETAIL
+========================================================= */
+
+function openProductDetail(id) {
+
+    const product =
+        appData.products.find(p => p.id === id);
+
+    if (!product) return;
+
+    document.getElementById("productDetailContent").innerHTML = `
+
+        <div class="flex justify-end">
+
+            <button
+                onclick="closeProductDetail()"
+                class="w-10 h-10 rounded-full bg-white/5">
+
+                <i class="fa-solid fa-xmark"></i>
+
+            </button>
+
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-7 mt-2">
+
+            <img
+                src="${escapeHtml(product.image)}"
+                class="w-full aspect-square object-cover rounded-2xl"
+                alt="${escapeHtml(product.title)}">
+
+            <div>
+
+                <div class="gold text-sm mb-2">
+                    ${escapeHtml(product.category)}
+                </div>
+
+                <h2 class="text-3xl font-black leading-10">
+                    ${escapeHtml(product.title)}
+                </h2>
+
+                <p class="text-gray-400 leading-8 mt-5">
+                    ${escapeHtml(product.description)}
+                </p>
+
+                <div class="mt-7">
+
+                    <div class="text-3xl font-black gold">
+                        ${formatPrice(product.price)} جنيه
+                    </div>
+
+                    ${
+                        product.oldPrice
+                        ? `
+                            <div class="text-gray-500 line-through">
+                                ${formatPrice(product.oldPrice)} جنيه
+                            </div>
+                        `
+                        : ""
+                    }
+
+                </div>
+
+                <button
+                    onclick="addToCart(${product.id}); closeProductDetail()"
+                    class="w-full gold-bg rounded-xl py-4 mt-7 font-black">
+
+                    <i class="fa-solid fa-cart-plus ml-2"></i>
+
+                    إضافة إلى السلة
+
+                </button>
+
+            </div>
+
+        </div>
+
+    `;
+
+    document
+        .getElementById("productDetailModal")
+        .classList.remove("hidden");
+
+}
+
+
+function closeProductDetail() {
+
+    document
+        .getElementById("productDetailModal")
+        .classList.add("hidden");
+
+}
+
+
+/* =========================================================
+   CART
+========================================================= */
+
+function addToCart(id) {
+
+    const product =
+        appData.products.find(p => p.id === id);
+
+    if (!product) return;
+
+    const existing =
+        cart.find(item => item.id === id);
+
+    if (existing) {
+
+        existing.qty += 1;
+
+    } else {
+
+        cart.push({
+            id: id,
+            qty: 1
+        });
+
+    }
+
+    saveCart();
+
+    updateCartBadge();
+
+    renderCart();
+
+    showToast("تمت إضافة المنتج إلى السلة");
+
+}
+
+
+function updateCartBadge() {
+
+    const count =
+        cart.reduce(
+            (total, item) =>
+                total + Number(item.qty || 0),
+            0
+        );
+
+    document.getElementById("cartBadge").textContent =
+        count;
+
+}
+
+
+function getCartTotal() {
+
+    return cart.reduce((total, item) => {
+
+        const product =
+            appData.products.find(
+                p => p.id === item.id
+            );
+
+        if (!product) return total;
+
+        return total +
+            Number(product.price || 0) *
+            Number(item.qty || 0);
+
+    }, 0);
+
+}
+
+
+function renderCart() {
+
+    const list =
+        document.getElementById("cartItemsList");
+
+    const total =
+        document.getElementById("cartTotalPrice");
+
+    if (!cart.length) {
+
+        list.innerHTML = `
+
+            <div class="text-center py-14">
+
+                <i class="fa-solid fa-cart-shopping text-5xl text-gray-700"></i>
+
+                <h3 class="font-bold text-xl mt-5">
+                    السلة فارغة
+                </h3>
+
+                <p class="text-gray-500 mt-2">
+                    أضيفي المنتجات التي تريدينها إلى السلة.
+                </p>
+
+                <button
+                    onclick="toggleCartModal(); navigateTo('products')"
+                    class="gold-bg px-6 py-3 rounded-xl mt-6 font-bold">
+
+                    تصفح المنتجات
+
+                </button>
+
+            </div>
+
+        `;
+
+        total.textContent =
+            "0 جنيه";
+
+        return;
+
+    }
+
+
+    list.innerHTML =
+        cart.map(item => {
+
+            const product =
+                appData.products.find(
+                    p => p.id === item.id
+                );
+
+            if (!product) return "";
+
+            const subtotal =
+                product.price * item.qty;
+
+            return `
+
+                <div
+                    class="flex gap-4 py-4 border-b border-white/10">
+
+                    <img
+                        src="${escapeHtml(product.image)}"
+                        class="w-20 h-20 object-cover rounded-xl"
+                        alt="${escapeHtml(product.title)}">
+
+                    <div class="flex-1">
+
+                        <h3 class="font-bold">
+                            ${escapeHtml(product.title)}
+                        </h3>
+
+                        <div class="gold font-bold mt-1">
+                            ${formatPrice(product.price)} جنيه
+                        </div>
+
+                        <div class="flex items-center gap-2 mt-3">
+
+                            <button
+                                onclick="changeCartQty(${product.id}, -1)"
+                                class="w-8 h-8 rounded-lg bg-white/5">
+
+                                <i class="fa-solid fa-minus"></i>
+
+                            </button>
+
+                            <span class="w-8 text-center">
+                                ${item.qty}
+                            </span>
+
+                            <button
+                                onclick="changeCartQty(${product.id}, 1)"
+                                class="w-8 h-8 rounded-lg bg-white/5">
+
+                                <i class="fa-solid fa-plus"></i>
+
+                            </button>
+
+                            <button
+                                onclick="removeFromCart(${product.id})"
+                                class="mr-auto text-red-500 w-8 h-8">
+
+                                <i class="fa-solid fa-trash"></i>
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                    <div class="font-black">
+                        ${formatPrice(subtotal)} جنيه
+                    </div>
+
+                </div>
+
+            `;
+
+        }).join("");
+
+
+    total.textContent =
+        formatPrice(getCartTotal()) + " جنيه";
+
+}
+
+
+function changeCartQty(id, amount) {
+
+    const item =
+        cart.find(item => item.id === id);
+
+    if (!item) return;
+
+    item.qty += amount;
+
+    if (item.qty <= 0) {
+
+        cart =
+            cart.filter(item => item.id !== id);
+
+    }
+
+    saveCart();
+
+    updateCartBadge();
+
+    renderCart();
+
+}
+
+
+function removeFromCart(id) {
+
+    cart =
+        cart.filter(item => item.id !== id);
+
+    saveCart();
+
+    updateCartBadge();
+
+    renderCart();
+
+}
+
+
+function toggleCartModal() {
+
+    const modal =
+        document.getElementById("cartModal");
+
+    modal.classList.toggle("hidden");
+
+    renderCart();
+
+}
+
+
+/* =========================================================
+   CUSTOMER DATA
+========================================================= */
+
+function startCardPayment() {
+
+    if (!cart.length) {
+
+        showToast("السلة فارغة");
+
+        return;
+
+    }
+
+    document
+        .getElementById("cartModal")
+        .classList.add("hidden");
+
+    document
+        .getElementById("paymentModal")
+        .classList.remove("hidden");
+
+    document
+        .getElementById("customerOrderTotal")
+        .textContent =
+        formatPrice(getCartTotal()) + " جنيه";
+
+}
+
+
+function submitCustomerData(event) {
+
+    event.preventDefault();
+
+    if (!cart.length) {
+
+        showToast("السلة فارغة");
+
+        return;
+
+    }
+
+    currentCustomerOrder = {
+
+        fullName:
+            document.getElementById("customerFullName").value.trim(),
+
+        phone:
+            document.getElementById("customerPhone").value.trim(),
+
+        governorate:
+            document.getElementById("customerGovernorate").value.trim(),
+
+        city:
+            document.getElementById("customerCity").value.trim(),
+
+        address:
+            document.getElementById("customerAddress").value.trim(),
+
+        delivery:
+            document.getElementById("customerDelivery").value,
+
+        days:
+            document.getElementById("customerDays").value,
+
+        notes:
+            document.getElementById("customerNotes").value.trim(),
+
+        total:
+            getCartTotal(),
+
+        items:
+            cart.map(item => {
+
+                const product =
+                    appData.products.find(
+                        p => p.id === item.id
+                    );
+
+                return {
+
+                    id: item.id,
+
+                    title:
+                        product ? product.title : "",
+
+                    price:
+                        product ? product.price : 0,
+
+                    qty:
+                        item.qty
+
+                };
+
+            })
+
+    };
+
+
+    document
+        .getElementById("paymentModal")
+        .classList.add("hidden");
+
+    renderConfirmation();
+
+}
+
+
+/* =========================================================
+   CONFIRMATION
+========================================================= */
+
+function renderConfirmation() {
+
+    if (!currentCustomerOrder) return;
+
+    const order =
+        currentCustomerOrder;
+
+    document.getElementById("confirmationContent").innerHTML = `
+
+        <div class="grid md:grid-cols-2 gap-4">
+
+            <div class="bg-white/5 rounded-xl p-4">
+
+                <div class="text-gray-500 text-sm">
+                    الاسم
+                </div>
+
+                <div class="font-bold mt-1">
+                    ${escapeHtml(order.fullName)}
+                </div>
+
+            </div>
+
+            <div class="bg-white/5 rounded-xl p-4">
+
+                <div class="text-gray-500 text-sm">
+                    رقم الموبايل
+                </div>
+
+                <div class="font-bold mt-1">
+                    ${escapeHtml(order.phone)}
+                </div>
+
+            </div>
+
+            <div class="bg-white/5 rounded-xl p-4">
+
+                <div class="text-gray-500 text-sm">
+                    المحافظة
+                </div>
+
+                <div class="font-bold mt-1">
+                    ${escapeHtml(order.governorate)}
+                </div>
+
+            </div>
+
+            <div class="bg-white/5 rounded-xl p-4">
+
+                <div class="text-gray-500 text-sm">
+                    المركز / المدينة
+                </div>
+
+                <div class="font-bold mt-1">
+                    ${escapeHtml(order.city)}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="bg-white/5 rounded-xl p-4 mt-4">
+
+            <div class="text-gray-500 text-sm">
+                العنوان
+            </div>
+
+            <div class="font-bold mt-1 leading-7">
+                ${escapeHtml(order.address)}
+            </div>
+
+        </div>
+
+
+        <div class="grid md:grid-cols-2 gap-4 mt-4">
+
+            <div class="bg-white/5 rounded-xl p-4">
+
+                <div class="text-gray-500 text-sm">
+                    طريقة الاستلام
+                </div>
+
+                <div class="font-bold mt-1">
+                    ${escapeHtml(order.delivery)}
+                </div>
+
+            </div>
+
+            <div class="bg-white/5 rounded-xl p-4">
+
+                <div class="text-gray-500 text-sm">
+                    موعد الاستلام
+                </div>
+
+                <div class="font-bold mt-1">
+                    ${escapeHtml(order.days)}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        ${
+            order.notes
+            ? `
+                <div class="bg-white/5 rounded-xl p-4 mt-4">
+
+                    <div class="text-gray-500 text-sm">
+                        الملاحظات
+                    </div>
+
+                    <div class="font-bold mt-1 leading-7">
+                        ${escapeHtml(order.notes)}
+                    </div>
+
+                </div>
+            `
+            : ""
+        }
+
+
+        <div class="mt-6">
+
+            <h3 class="font-black gold mb-3">
+                المنتجات
+            </h3>
+
+            <div class="space-y-2">
+
+                ${order.items.map(item => `
+
+                    <div
+                        class="flex justify-between gap-4 bg-white/5 rounded-xl p-3">
+
+                        <span>
+                            ${escapeHtml(item.title)}
+                            × ${item.qty}
+                        </span>
+
+                        <strong class="gold whitespace-nowrap">
+                            ${formatPrice(item.price * item.qty)}
+                            جنيه
+                        </strong>
+
+                    </div>
+
+                `).join("")}
+
+            </div>
+
+        </div>
+
+
+        <div
+            class="mt-6 p-5 rounded-2xl border border-yellow-500/30 bg-yellow-500/5">
+
+            <div class="flex justify-between items-center">
+
+                <span class="text-gray-400">
+                    الإجمالي النهائي
+                </span>
+
+                <strong class="text-2xl gold">
+                    ${formatPrice(order.total)} جنيه
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="grid md:grid-cols-2 gap-3 mt-6">
+
+            <button
+                onclick="backToCustomerForm()"
+                class="py-4 rounded-xl bg-white/5 border border-white/10 font-bold">
+
+                <i class="fa-solid fa-arrow-right ml-2"></i>
+
+                تعديل البيانات
+
+            </button>
+
+            <button
+                onclick="continueToCardGateway()"
+                class="py-4 rounded-xl gold-bg font-black">
+
+                تأكيد الطلب والانتقال للدفع
+
+                <i class="fa-solid fa-credit-card mr-2"></i>
+
+            </button>
+
+        </div>
+
+    `;
+
+    document
+        .getElementById("confirmationModal")
+        .classList.remove("hidden");
+
+}
+
+
+function backToCustomerForm() {
+
+    document
+        .getElementById("confirmationModal")
+        .classList.add("hidden");
+
+    document
+        .getElementById("paymentModal")
+        .classList.remove("hidden");
+
+}
+
+
+function closeConfirmationModal() {
+
+    document
+        .getElementById("confirmationModal")
+        .classList.add("hidden");
+
+}
+
+
+function closePaymentModal() {
+
+    document
+        .getElementById("paymentModal")
+        .classList.add("hidden");
+
+}
+
+
+/* =========================================================
+   CARD GATEWAY
+========================================================= */
+
+function continueToCardGateway() {
+
+    if (!currentCustomerOrder) {
+
+        showToast("بيانات الطلب غير موجودة");
+
+        return;
+
+    }
+
+    /*
+       =====================================================
+       مكان ربط بوابة الدفع الحقيقية
+
+       مثال بعد تجهيز الـ Backend:
+
+       fetch("/api/create-payment", {
+           method: "POST",
+           headers: {
+               "Content-Type": "application/json"
+           },
+           body: JSON.stringify(currentCustomerOrder)
+       })
+       .then(response => response.json())
+       .then(data => {
+           window.location.href = data.paymentUrl;
+       });
+
+       لا تضعي Secret Key هنا داخل JavaScript.
+       =====================================================
+    */
+
+    alert(
+        "تم تأكيد بيانات الطلب.\n\n" +
+        "بوابة الدفع الإلكتروني لم يتم ربطها بعد.\n" +
+        "يجب إضافة بيانات بوابة الدفع الحقيقية من خلال Backend آمن."
+    );
+
+}
+
+
+/* =========================================================
+   WHATSAPP
+========================================================= */
+
+function normalizeWhatsApp(number) {
+
+    let value =
+        String(number || "").replace(/\D/g, "");
+
+    if (value.startsWith("01")) {
+
+        value =
+            "2" + value;
+
+    }
+
+    if (!value.startsWith("20") && value.length === 10) {
+
+        value =
+            "20" + value;
+
+    }
+
+    return value;
+
+}
+
+
+function checkoutWhatsApp() {
+
+    if (!cart.length) {
+
+        showToast("السلة فارغة");
+
+        return;
+
+    }
+
+    let message =
+        "السلام عليكم، أريد طلب المنتجات التالية:%0A%0A";
+
+    cart.forEach(item => {
+
+        const product =
+            appData.products.find(
+                p => p.id === item.id
+            );
+
+        if (!product) return;
+
+        message +=
+            "• " +
+            encodeURIComponent(product.title) +
+            " × " +
+            item.qty +
+            " = " +
+            encodeURIComponent(
+                formatPrice(product.price * item.qty)
+            ) +
+            " جنيه%0A";
+
+    });
+
+    message +=
+        "%0Aالإجمالي: " +
+        encodeURIComponent(formatPrice(getCartTotal())) +
+        " جنيه";
+
+    const url =
+        "https://wa.me/" +
+        normalizeWhatsApp(appData.siteInfo.whatsapp) +
+        "?text=" +
+        message;
+
+    window.open(url, "_blank");
+
+}
+
+
+/* =========================================================
+   ADMIN AUTH
+========================================================= */
+
+function openAdminAuth() {
+
+    document
+        .getElementById("adminAuthModal")
+        .classList.remove("hidden");
+
+}
+
+
+function closeAdminAuth() {
+
+    document
+        .getElementById("adminAuthModal")
+        .classList.add("hidden");
+
+}
+
+
+function loginAdmin() {
+
+    const password =
+        document
+            .getElementById("adminPasswordInput")
+            .value;
+
+    if (password === appData.adminPassword) {
+
+        isAdminLoggedIn = true;
+
+        closeAdminAuth();
+
+        navigateTo("admin");
+
+    } else {
+
+        alert("كلمة المرور غير صحيحة");
+
+    }
+
+}
+
+
+/* =========================================================
+   ADMIN DASHBOARD
+========================================================= */
+
+function renderAdminDashboard() {
+
+    if (!isAdminLoggedIn) {
+
+        openAdminAuth();
+
+        return;
+
+    }
+
+    document.getElementById("mainContainer").innerHTML = `
+
+        <section class="max-w-7xl mx-auto px-4 py-12">
+
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+
+                <div>
+
+                    <span class="gold font-bold">
+                        لوحة التحكم
+                    </span>
+
+                    <h2 class="text-3xl font-black mt-1">
+                        إدارة الموقع
+                    </h2>
+
+                </div>
+
+                <button
+                    onclick="adminLogout()"
+                    class="bg-red-600/20 text-red-400 border border-red-500/20 px-5 py-3 rounded-xl">
+
+                    تسجيل الخروج
+
+                </button>
+
+            </div>
+
+
+            <div class="grid md:grid-cols-3 gap-4 mb-8">
+
+                <div class="glass rounded-2xl p-6">
+
+                    <div class="text-gray-
