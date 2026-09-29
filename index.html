@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المتحدة للرتان والأثاث | الموقع ولوحة التحكم</title>
+    <title>المتحدة للرتان والأثاث | المتجر الرئيسي ولوحة التحكم</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -15,127 +15,239 @@
 </head>
 <body class="bg-gray-100 text-gray-800">
 
-    <!-- شريط التنقل العلوي -->
+    <!-- شريط التنقل العلوي (Amazon Style) -->
     <header class="bg-gray-900 text-white sticky top-0 z-50 shadow-md">
         <div class="container mx-auto px-4 py-2 flex items-center justify-between gap-4">
             
+            <!-- الشعار -->
             <div class="flex items-center gap-2 cursor-pointer" onclick="switchTab('home')">
-                <span class="text-xl font-black text-amber-500 tracking-wider">المتحدة</span>
+                <span class="text-2xl font-black text-amber-500 tracking-wider">المتحدة</span>
                 <span class="text-xs text-gray-300 border-r border-gray-700 pr-2 hidden sm:inline">للرتان والأثاث</span>
             </div>
 
+            <!-- شريط البحث الذكي -->
             <div class="flex-1 max-w-2xl flex">
-                <select class="bg-gray-200 text-gray-700 text-sm px-2 rounded-r-md border-none hidden md:block outline-none cursor-pointer">
+                <select id="search-category-select" class="bg-gray-200 text-gray-700 text-sm px-2 rounded-r-md border-none hidden md:block outline-none cursor-pointer">
                     <option>كل الأقسام</option>
-                    <option>أطقم حدائق</option>
+                    <option>أطقم الحدائق</option>
                     <option>طاولات رتان</option>
+                    <option>كراسي ومقاعد</option>
                 </select>
-                <input type="text" placeholder="ابحث عن أثاث، طاولات، كراسي رتان..." class="w-full px-4 py-2 text-gray-900 bg-white focus:outline-none text-sm md:rounded-none rounded-r-md">
+                <input type="text" placeholder="ابحث عن أثاث، طاولات 80×80، كراسي رتان..." class="w-full px-4 py-2 text-gray-900 bg-white focus:outline-none text-sm md:rounded-none rounded-r-md">
                 <button class="bg-amber-500 hover:bg-amber-600 text-gray-900 px-5 rounded-l-md transition flex items-center justify-center font-bold">
                     <i class="fa-solid fa-search"></i>
                 </button>
             </div>
 
-            <div class="flex items-center gap-4 text-sm">
-                <div onclick="switchTab('login')" class="cursor-pointer hover:text-amber-400 flex items-center gap-1 text-xs bg-gray-800 px-3 py-2 rounded">
+            <!-- خيارات المستخدم -->
+            <div class="flex items-center gap-3 text-sm">
+                <div onclick="switchTab('login')" class="cursor-pointer hover:text-amber-400 flex items-center gap-1 text-xs bg-gray-800 px-3 py-2 rounded border border-gray-700">
                     <i class="fa-solid fa-lock text-amber-500"></i>
                     <span>لوحة التحكم</span>
                 </div>
                 <div onclick="switchTab('cart')" class="relative cursor-pointer flex items-center gap-1 bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-md transition">
                     <i class="fa-solid fa-cart-shopping text-amber-500 text-lg"></i>
                     <span class="font-bold hidden md:inline">السلة</span>
-                    <span class="absolute -top-2 -right-2 bg-amber-500 text-gray-900 text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">2</span>
+                    <span id="cart-badge" class="absolute -top-2 -right-2 bg-amber-500 text-gray-900 text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">2</span>
                 </div>
             </div>
 
         </div>
 
-        <nav class="bg-gray-800 text-xs sm:text-sm px-4 py-2 flex items-center gap-6 overflow-x-auto whitespace-nowrap border-t border-gray-700">
-            <a href="#" onclick="switchTab('home')" class="hover:text-amber-400 font-bold"><i class="fa-solid fa-bars"></i> الرئيسية</a>
-            <a href="#" onclick="switchTab('product')" class="hover:text-amber-400">طاولات مربعة (80×80)</a>
+        <!-- شريط الأقسام الديناميكي (يمكن التحكم به من لوحة التحكم) -->
+        <nav id="dynamic-categories-nav" class="bg-gray-800 text-xs sm:text-sm px-4 py-2.5 flex items-center gap-6 overflow-x-auto whitespace-nowrap border-t border-gray-700">
+            <a href="#" onclick="switchTab('home')" class="hover:text-amber-400 font-bold flex items-center gap-1 text-amber-400"><i class="fa-solid fa-bars"></i> الكل</a>
             <a href="#" onclick="switchTab('home')" class="hover:text-amber-400">أطقم الحدائق الفاخرة</a>
+            <a href="#" onclick="switchTab('product')" class="hover:text-amber-400">طاولات مربعة (80×80 سم)</a>
+            <a href="#" onclick="switchTab('home')" class="hover:text-amber-400">كراسي معدنية بحبال تنجيد</a>
+            <a href="#" onclick="switchTab('home')" class="hover:text-amber-400">شمسيات وتراسات</a>
+            <a href="#" onclick="switchTab('home')" class="hover:text-amber-400">عروض المتحدة</a>
         </nav>
     </header>
 
     <!-- ================= 1. الصفحة الرئيسية ================= -->
     <div id="tab-home" class="tab-content active">
+        <!-- بانر الإعلانات الرئيسي -->
         <section class="container mx-auto px-4 my-6">
             <div class="bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-xl p-8 md:p-12 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
                 <div class="max-w-xl">
-                    <span class="bg-amber-500 text-gray-900 text-xs font-bold px-3 py-1 rounded-full uppercase">تشكيلة صيف 2026</span>
+                    <span class="bg-amber-500 text-gray-900 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">تصاميم صيف 2026</span>
                     <h1 class="text-3xl md:text-5xl font-black mt-3 leading-tight">أثاث رتان عصري يجمع بين الفخامة والتحمل</h1>
-                    <p class="text-gray-300 mt-3 text-sm">بإطارات معدنية بيضاء وتفاصيل حبال وتنجيد فائقة الجودة.</p>
-                    <button onclick="switchTab('product')" class="mt-6 bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold px-6 py-3 rounded-lg shadow transition">تسوق التشكيلة الآن</button>
+                    <p class="text-gray-300 mt-3 text-sm md:text-base">إطارات معدنية بيضاء مقاومة للصدأ، مع تنجيد حبال زرقاء فاخرة وتصاميم تناسب كافة الحدائق والتراسات.</p>
+                    <button onclick="switchTab('product')" class="mt-6 bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold px-6 py-3 rounded-lg shadow transition">تسوق تشكيلة الطاولات الآن</button>
                 </div>
-                <div class="w-full md:w-1/3 bg-gray-700 h-64 rounded-lg flex items-center justify-center text-amber-500 text-4xl border border-gray-600">
-                    <i class="fa-solid fa-couch"></i>
+                <div class="w-full md:w-1/3 bg-gray-700 h-64 rounded-lg flex flex-col items-center justify-center text-amber-500 border border-gray-600 shadow-inner">
+                    <i class="fa-solid fa-couch text-5xl mb-2"></i>
+                    <p class="text-xs text-gray-300 font-bold">المتحدة للرتان والأثاث</p>
                 </div>
             </div>
         </section>
 
+        <!-- شبكة عرض المنتجات -->
         <main class="container mx-auto px-4 mb-16">
-            <h2 class="text-2xl font-black border-r-4 border-amber-500 pr-3 mb-6">أبرز منتجات الرتان والأثاث</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-black border-r-4 border-amber-500 pr-3 text-gray-900">أبرز منتجات الرتان والأثاث</h2>
+                <a href="#" onclick="switchTab('product')" class="text-amber-600 hover:underline text-sm font-bold">عرض الكل</a>
+            </div>
+
+            <div id="products-grid-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- منتج 1 -->
                 <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition p-4 flex flex-col justify-between border border-gray-200">
                     <div>
-                        <div class="bg-gray-100 h-48 rounded-md flex items-center justify-center text-gray-400 mb-4 cursor-pointer" onclick="switchTab('product')">
+                        <div class="bg-gray-100 h-48 rounded-md flex items-center justify-center text-gray-400 mb-4 relative cursor-pointer" onclick="switchTab('product')">
+                            <span class="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded font-bold">الأكثر طلباً</span>
                             <i class="fa-solid fa-table text-3xl text-gray-500"></i>
                         </div>
                         <h3 class="font-bold text-gray-800 text-base mb-1 cursor-pointer hover:text-amber-600" onclick="switchTab('product')">طاولة مربعة رتان (80×80 سم)</h3>
-                        <p class="text-gray-500 text-xs mb-3">سطح زجاجي مقسى مع قاعدة معدنية متينة.</p>
+                        <p class="text-gray-500 text-xs mb-3">سطح زجاجي مقسى مع قاعدة معدنية متينة وهيكل رتان أنيق.</p>
                     </div>
                     <div>
                         <div class="text-amber-600 font-black text-lg mb-3">1,850 ج.م</div>
                         <button onclick="switchTab('product')" class="w-full bg-gray-900 hover:bg-amber-500 hover:text-gray-900 text-white text-sm font-bold py-2 rounded transition">عرض التفاصيل والشراء</button>
                     </div>
                 </div>
+
+                <!-- منتج 2 -->
+                <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition p-4 flex flex-col justify-between border border-gray-200">
+                    <div>
+                        <div class="bg-gray-100 h-48 rounded-md flex items-center justify-center text-gray-400 mb-4 relative">
+                            <span class="absolute top-2 right-2 bg-amber-500 text-gray-900 text-xs px-2 py-0.5 rounded font-bold">جديد</span>
+                            <i class="fa-solid fa-chair text-3xl text-gray-500"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800 text-base mb-1">كرسي حدائق بتفاصيل حبال دقيقة</h3>
+                        <p class="text-gray-500 text-xs mb-3">مريح للغاية، مصمم خصيصاً للجلسات الخارجية الطويلة.</p>
+                    </div>
+                    <div>
+                        <div class="text-amber-600 font-black text-lg mb-3">950 ج.م</div>
+                        <button onclick="switchTab('cart')" class="w-full bg-gray-900 hover:bg-amber-500 hover:text-gray-900 text-white text-sm font-bold py-2 rounded transition">إضافة إلى السلة</button>
+                    </div>
+                </div>
+
+                <!-- منتج 3 -->
+                <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition p-4 flex flex-col justify-between border border-gray-200">
+                    <div>
+                        <div class="bg-gray-100 h-48 rounded-md flex items-center justify-center text-gray-400 mb-4">
+                            <i class="fa-solid fa-couch text-3xl text-gray-500"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800 text-base mb-1">طقم أثاث حديقة رتان فاخر</h3>
+                        <p class="text-gray-500 text-xs mb-3">إطار معدني أبيض مقاوم للصدأ مع تنجيد حبال زرقاء.</p>
+                    </div>
+                    <div>
+                        <div class="text-amber-600 font-black text-lg mb-3">4,500 ج.م</div>
+                        <button onclick="switchTab('cart')" class="w-full bg-gray-900 hover:bg-amber-500 hover:text-gray-900 text-white text-sm font-bold py-2 rounded transition">إضافة إلى السلة</button>
+                    </div>
+                </div>
+
+                <!-- منتج 4 -->
+                <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition p-4 flex flex-col justify-between border border-gray-200">
+                    <div>
+                        <div class="bg-gray-100 h-48 rounded-md flex items-center justify-center text-gray-400 mb-4">
+                            <i class="fa-solid fa-umbrella text-3xl text-gray-500"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800 text-base mb-1">شمسية تراس مقاومة للشمس</h3>
+                        <p class="text-gray-500 text-xs mb-3">تغطية مثالية للحدائق وأماكن الجلوس الخارجية باللون الأبيض.</p>
+                    </div>
+                    <div>
+                        <div class="text-amber-600 font-black text-lg mb-3">2,200 ج.م</div>
+                        <button onclick="switchTab('cart')" class="w-full bg-gray-900 hover:bg-amber-500 hover:text-gray-900 text-white text-sm font-bold py-2 rounded transition">إضافة إلى السلة</button>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
 
-    <!-- ================= 2. صفحة المنتج ================= -->
+    <!-- ================= 2. صفحة تفاصيل المنتج ================= -->
     <div id="tab-product" class="tab-content">
         <main class="container mx-auto px-4 my-8">
+            <nav class="text-xs text-gray-500 mb-6 flex items-center gap-2">
+                <a href="#" onclick="switchTab('home')" class="hover:text-amber-600">الرئيسية</a>
+                <span>/</span>
+                <span class="text-gray-800 font-bold">طاولة مربعة رتان (80×80 سم)</span>
+            </nav>
+
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div class="bg-gray-100 h-96 rounded-lg flex items-center justify-center text-gray-400 border">
+                <div class="bg-gray-100 h-96 rounded-lg flex items-center justify-center text-gray-400 border border-gray-200 relative">
+                    <span class="absolute top-3 right-3 bg-amber-500 text-gray-900 text-xs px-3 py-1 rounded font-bold">الأكثر طلباً</span>
                     <i class="fa-solid fa-table text-6xl text-gray-400"></i>
                 </div>
                 <div>
                     <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded">شركة المتحدة للرتان والأثاث</span>
                     <h1 class="text-2xl md:text-3xl font-black text-gray-900 mt-2">طاولة مربعة رتان بزجاج مقسى (80×80 سم)</h1>
-                    <div class="text-3xl font-black text-amber-600 mt-4">1,850 ج.م</div>
-                    <div class="mt-6 space-y-4">
-                        <label class="block text-sm font-bold text-gray-700">المقاسات المتوفرة:</label>
-                        <button class="border-2 border-amber-500 bg-amber-50 px-4 py-2 rounded text-sm font-bold">80×80 سم</button>
+                    <div class="flex items-center gap-2 mt-2 text-sm text-amber-500">
+                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star-half-stroke"></i>
+                        <span class="text-gray-600 text-xs font-bold">(4.8 من 5)</span>
                     </div>
-                    <button onclick="switchTab('cart')" class="mt-8 w-full bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold py-3 rounded-lg shadow transition">إضافة إلى السلة وانتقال للدفع</button>
+                    <div class="mt-4 pb-4 border-b border-gray-200">
+                        <div class="text-3xl font-black text-amber-600">1,850 ج.م</div>
+                        <p class="text-xs text-gray-500 mt-1">السعر شامل ضريبة القيمة المضافة والشحن السريع.</p>
+                    </div>
+                    <div class="mt-6 space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">المقاسات المتوفرة:</label>
+                            <div class="flex gap-3">
+                                <button class="border-2 border-amber-500 bg-amber-50 text-gray-900 px-4 py-2 rounded text-sm font-bold">80×80 سم</button>
+                                <button class="border border-gray-300 text-gray-700 px-4 py-2 rounded text-sm">100×100 سم</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-8 space-y-3">
+                        <button onclick="switchTab('cart')" class="w-full bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold py-3 rounded-lg shadow transition flex items-center justify-center gap-2 text-base">
+                            <i class="fa-solid fa-cart-shopping"></i> إضافة إلى السلة وانتقال للدفع
+                        </button>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- ================= 3. صفحة السلة ================= -->
+    <!-- ================= 3. صفحة سلة التسوق وإتمام الطلب ================= -->
     <div id="tab-cart" class="tab-content">
         <main class="container mx-auto px-4 my-8">
-            <h1 class="text-2xl font-black mb-6"><i class="fa-solid fa-cart-shopping text-amber-500"></i> سلة التسوق وإتمام الطلب</h1>
+            <h1 class="text-2xl md:text-3xl font-black text-gray-900 mb-6 flex items-center gap-3">
+                <i class="fa-solid fa-cart-shopping text-amber-500"></i> سلة التسوق وإتمام الطلب
+            </h1>
+
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div class="lg:col-span-2 space-y-4">
-                    <div class="bg-white p-4 rounded-xl shadow-sm border flex items-center justify-between">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between gap-4">
                         <div class="flex items-center gap-4">
-                            <i class="fa-solid fa-table text-2xl text-gray-500"></i>
+                            <div class="bg-gray-100 w-20 h-20 rounded-lg flex items-center justify-center text-gray-400">
+                                <i class="fa-solid fa-table text-2xl text-gray-500"></i>
+                            </div>
                             <div>
-                                <h3 class="font-bold">طاولة مربعة رتان (80×80 سم)</h3>
-                                <p class="text-xs text-gray-500">إطار أبيض | زجاج مقسى</p>
+                                <h3 class="font-bold text-gray-900 text-base">طاولة مربعة رتان (80×80 سم)</h3>
+                                <p class="text-xs text-gray-500 mt-1">الإطار أبيض | زجاج مقسى</p>
                             </div>
                         </div>
-                        <div class="text-amber-600 font-black">1,850 ج.م</div>
+                        <div class="text-amber-600 font-black text-lg">1,850 ج.م</div>
                     </div>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm border h-fit space-y-4">
-                    <h2 class="font-black border-b pb-2">ملخص الطلب: 1,850 ج.م</h2>
-                    <input type="text" placeholder="الاسم الكامل" class="w-full text-xs p-2 border rounded">
-                    <input type="text" placeholder="رقم الهاتف" class="w-full text-xs p-2 border rounded">
-                    <button onclick="alert('تم تسجيل طلبك بنجاح وسيرسل إلى لوحة تحكم الإدارة!')" class="w-full bg-amber-500 font-bold py-3 rounded text-sm">تأكيد الطلب</button>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 h-fit space-y-6">
+                    <h2 class="text-lg font-black text-gray-900 border-b border-gray-200 pb-3">ملخص الطلب</h2>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between text-gray-600">
+                            <span>إجمالي المنتجات:</span>
+                            <span class="font-bold text-gray-900">1,850 ج.م</span>
+                        </div>
+                        <div class="flex justify-between text-gray-600">
+                            <span>الشحن:</span>
+                            <span class="font-bold text-green-600">مجاني</span>
+                        </div>
+                        <div class="border-t border-gray-200 pt-3 flex justify-between text-base font-black">
+                            <span>المبلغ الإجمالي:</span>
+                            <span class="text-amber-600">1,850 ج.م</span>
+                        </div>
+                    </div>
+                    <div class="space-y-4 pt-4 border-t border-gray-200">
+                        <h3 class="font-bold text-sm text-gray-900">بيانات الشحن السريع:</h3>
+                        <input type="text" placeholder="الاسم الكامل" class="w-full text-xs px-3 py-2 border rounded bg-gray-50 focus:outline-none">
+                        <input type="text" placeholder="رقم الهاتف (للتواصل)" class="w-full text-xs px-3 py-2 border rounded bg-gray-50 focus:outline-none">
+                        <textarea placeholder="عنوان الشحن بالتفصيل (المحافظة، المدينة، الشارع)" rows="2" class="w-full text-xs px-3 py-2 border rounded bg-gray-50 focus:outline-none"></textarea>
+                    </div>
+                    <button onclick="alert('تم تسجيل طلبك بنجاح لدى شركة المتحدة للرتان والأثاث وسيرسل إلى لوحة التحكم الخاصة بك!')" class="w-full bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold py-3 rounded-lg shadow transition flex items-center justify-center gap-2 text-sm">
+                        تأكيد وإتمام الطلب الآن <i class="fa-solid fa-check"></i>
+                    </button>
                 </div>
             </div>
         </main>
@@ -154,11 +266,11 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1">البريد الإلكتروني:</label>
-                        <input type="email" id="login-email" value="admin@elmothda.com" class="w-full text-xs px-3 py-2.5 border border-gray-300 rounded bg-gray-50 focus:bg-white focus:outline-none">
+                        <input type="email" id="login-email" value="admin@elmothda.com" class="w-full text-xs px-3 py-2.5 border rounded bg-gray-50 focus:outline-none">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1">كلمة المرور:</label>
-                        <input type="password" id="login-pass" value="AboAli_23012026" class="w-full text-xs px-3 py-2.5 border border-gray-300 rounded bg-gray-50 focus:bg-white focus:outline-none">
+                        <input type="password" id="login-pass" value="AboAli_23012026" class="w-full text-xs px-3 py-2.5 border rounded bg-gray-50 focus:outline-none">
                     </div>
                     <button onclick="handleLogin()" class="w-full bg-gray-900 hover:bg-amber-500 hover:text-gray-900 text-white font-bold py-3 rounded-lg shadow transition text-sm">
                         دخول الإدارة
@@ -168,86 +280,97 @@
         </main>
     </div>
 
-    <!-- ================= 5. لوحة التحكم الفعلية (Admin Dashboard) ================= -->
+    <!-- ================= 5. لوحة التحكم الفعالة (إدارة الأقسام والمنتجات) ================= -->
     <div id="tab-admin" class="tab-content">
         <main class="container mx-auto px-4 my-8">
-            <div class="flex items-center justify-between mb-6 bg-gray-900 text-white p-4 rounded-xl">
+            <div class="flex items-center justify-between mb-6 bg-gray-900 text-white p-4 rounded-xl shadow">
                 <div>
                     <h1 class="text-lg font-black text-amber-500">لوحة تحكم إدارة شركة المتحدة للرتان والأثاث</h1>
-                    <p class="text-xs text-gray-300">مرحباً بك، المشرف العام</p>
+                    <p class="text-xs text-gray-300">مرحباً بك، المشرف العام (إدارة الأقسام والمنتجات)</p>
                 </div>
-                <button onclick="switchTab('home')" class="bg-red-500 text-white text-xs px-4 py-2 rounded font-bold">تسجيل خروج</button>
+                <button onclick="switchTab('home')" class="bg-red-500 hover:bg-red-600 text-white text-xs px-4 py-2 rounded font-bold transition">تسجيل خروج</button>
             </div>
 
-            <!-- إحصائيات سريعة -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                    <p class="text-xs text-gray-500">إجمالي المنتجات بالموقع</p>
-                    <h3 class="text-2xl font-black text-gray-900 mt-1">4 منتجات رتان</h3>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                    <p class="text-xs text-gray-500">الطلبات الجديدة اليوم</p>
-                    <h3 class="text-2xl font-black text-amber-600 mt-1">3 طلبات قيد التجهيز</h3>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                    <p class="text-xs text-gray-500">إجمالي المبيعات المسجلة</p>
-                    <h3 class="text-2xl font-black text-green-600 mt-1">11,250 ج.م</h3>
+            <!-- قسم التحكم في أقسام الموقع (إضافة قسم جديد يظهر في شريط الموقع تلقائياً) -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
+                <h2 class="font-bold text-base text-gray-900 mb-2 border-b pb-2"><i class="fa-solid fa-layer-group text-amber-500"></i> إدارة أقسام الموقع الرئيسية</h2>
+                <p class="text-xs text-gray-500 mb-4">اكتب اسم القسم الجديد (مثل: ترابيزات مودิร์ن، أطقم بلاكونات) ليتم إضافته فوراً لشريط الأقسام العلوي.</p>
+                <div class="flex gap-3 max-w-xl">
+                    <input type="text" id="new-category-input" placeholder="اسم القسم الجديد..." class="text-xs p-2.5 border rounded flex-1 focus:outline-none">
+                    <button onclick="addNewCategory()" class="bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold px-6 py-2 rounded text-xs transition">إضافة القسم للموقع</button>
                 </div>
             </div>
 
             <!-- قسم إضافة منتج جديد -->
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
-                <h2 class="font-bold text-base text-gray-900 mb-4 border-b pb-2"><i class="fa-solid fa-plus text-amber-500"></i> إضافة منتج رتان جديد للموقع</h2>
+                <h2 class="font-bold text-base text-gray-900 mb-4 border-b pb-2"><i class="fa-solid fa-plus text-amber-500"></i> إضافة منتج رتان جديد</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <input type="text" placeholder="اسم المنتج (مثال: طقم حدائق 3 قطع)" class="text-xs p-2.5 border rounded">
                     <input type="text" placeholder="السعر (بالجنيه المصري)" class="text-xs p-2.5 border rounded">
-                    <input type="text" placeholder="المقاسات أو التفاصيل (مثل 80×80 سم)" class="text-xs p-2.5 border rounded">
+                    <input type="text" placeholder="المقاسات والتفاصيل (مثل 80×80 سم)" class="text-xs p-2.5 border rounded">
                 </div>
-                <button onclick="alert('تمت إضافة المنتج بنجاح وأصبح ظاهراً في صفحة المتجر الرئيسية!')" class="mt-4 bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold px-6 py-2 rounded text-xs">نشر المنتج على الموقع</button>
-            </div>
-
-            <!-- قائمة الطلبات الواردة من العملاء -->
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <h2 class="font-bold text-base text-gray-900 mb-4 border-b pb-2"><i class="fa-solid fa-list-check text-amber-500"></i> طلبات العملاء الحالية</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-xs text-right">
-                        <thead>
-                            <tr class="bg-gray-100 text-gray-700 border-b">
-                                <th class="p-3">رقم الطلب</th>
-                                <th class="p-3">اسم العميل</th>
-                                <th class="p-3">المنتج المطلوب</th>
-                                <th class="p-3">المبلغ الإجمالي</th>
-                                <th class="p-3">الحالة</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="border-b">
-                                <td class="p-3 font-bold">#1001</td>
-                                <td class="p-3">أحمد محمد</td>
-                                <td class="p-3">طاولة مربعة رتان (80×80 سم)</td>
-                                <td class="p-3 text-amber-600 font-bold">1,850 ج.م</td>
-                                <td class="p-3"><span class="bg-amber-100 text-amber-800 px-2 py-1 rounded font-bold">قيد التجهيز والتفصيل</span></td>
-                            </tr>
-                            <tr class="border-b">
-                                <td class="p-3 font-bold">#1002</td>
-                                <td class="p-3">محمود إبراهيم</td>
-                                <td class="p-3">كرسي حدائق بحبال تنجيد</td>
-                                <td class="p-3 text-amber-600 font-bold">950 ج.م</td>
-                                <td class="p-3"><span class="bg-green-100 text-green-800 px-2 py-1 rounded font-bold">تم الشحن</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                <button onclick="alert('تمت إضافة المنتج بنجاح وأصبح ظاهراً في صفحة المتجر الرئيسية!')" class="mt-4 bg-gray-900 hover:bg-amber-500 hover:text-gray-900 text-white font-bold px-6 py-2.5 rounded text-xs transition">نشر المنتج على الموقع</button>
             </div>
         </main>
     </div>
 
-    <!-- الفوتر -->
-    <footer class="bg-gray-900 text-gray-400 py-6 border-t border-gray-800 text-sm mt-16 text-center text-xs">
-        جميع الحقوق محفوظة © 2026 شركة المتحدة للرتان والأثاث.
+    <!-- ================= 6. الفوتر الضخم الكامل (العنوان وأرقام التواصل والديباجة) ================= -->
+    <footer class="bg-gray-900 text-gray-400 pt-12 pb-6 border-t border-gray-800 text-sm mt-16">
+        <div class="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+            <!-- عمذة 1: عن الشركة -->
+            <div>
+                <h4 class="text-white font-bold mb-3 text-base flex items-center gap-2">
+                    <span class="text-amber-500">■</span> المتحدة للرتان والأثاث
+                </h4>
+                <p class="text-xs leading-relaxed text-gray-400">
+                    رواد تصنيع وتوريد أثاث الحدائق، الرتان الفاخر، والطاولات العصرية بأعلى معايير الجودة والمتانة لتناسب كافة الأذواق والمساحات.
+                </p>
+                <div class="mt-4 flex gap-3 text-amber-500 text-lg">
+                    <i class="fa-brands fa-facebook cursor-pointer hover:text-white"></i>
+                    <i class="fa-brands fa-instagram cursor-pointer hover:text-white"></i>
+                    <i class="fa-brands fa-whatsapp cursor-pointer hover:text-white"></i>
+                </div>
+            </div>
+
+            <!-- عمود 2: أرقام التواصل والعنوان -->
+            <div>
+                <h4 class="text-white font-bold mb-3 text-base">بيانات التواصل</h4>
+                <ul class="space-y-2 text-xs text-gray-300">
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-location-dot text-amber-500"></i> مصر، القاهرة / الجيزة</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-phone text-amber-500"></i> الخط الساخن: 01000000000</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-envelope text-amber-500"></i> info@elmothda.com</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-clock text-amber-500"></i> العمل: طوال أيام الأسبوع</li>
+                </ul>
+            </div>
+
+            <!-- عمود 3: خدمة العملاء -->
+            <div>
+                <h4 class="text-white font-bold mb-3 text-base">خدمة العملاء</h4>
+                <ul class="space-y-2 text-xs">
+                    <li><a href="#" class="hover:text-amber-400 transition">تتبع الطلبات</a></li>
+                    <li><a href="#" class="hover:text-amber-400 transition">سياسة الاستبدال والاسترجاع</a></li>
+                    <li><a href="#" onclick="switchTab('cart')" class="hover:text-amber-400 transition">سلة التسوق</a></li>
+                    <li><a href="#" onclick="switchTab('login')" class="hover:text-amber-400 transition text-amber-400 font-bold">دخول الإدارة (لوحة التحكم)</a></li>
+                </ul>
+            </div>
+
+            <!-- عمود 4: النشرة البريدية -->
+            <div>
+                <h4 class="text-white font-bold mb-3 text-base">النشرة البريدية</h4>
+                <p class="text-xs mb-3 text-gray-400">اشترك ليصلك أحدث عروض أثاث الحدائق والرتان.</p>
+                <div class="flex">
+                    <input type="email" placeholder="بريدك الإلكتروني" class="px-3 py-2 text-xs rounded-r text-gray-900 bg-white w-full focus:outline-none">
+                    <button class="bg-amber-500 text-gray-900 px-4 rounded-l font-bold text-xs hover:bg-amber-600 transition">اشتراك</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center border-t border-gray-800 pt-6 text-xs text-gray-500">
+            جميع الحقوق محفوظة © 2026 شركة المتحدة للرتان والأثاث. تصميم وتنفيذ المتجر الإلكتروني.
+        </div>
     </footer>
 
-    <!-- سكريبت التنقل والتحقق من لوحة التحكم -->
+    <!-- سكريبت البرمجة والتحكم بالأقسام ولوحة التحكم -->
     <script>
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(tab => {
@@ -265,8 +388,35 @@
                 alert('تم تسجيل الدخول بنجاح! أهلاً بك في لوحة تحكم المتحدة للرتان والأثاث.');
                 switchTab('admin');
             } else {
-                alert('خطأ في البريد الإلكتروني أو كلمة المرور. تأكد من البيانات المدخلة.');
+                alert('خطأ في البريد الإلكتروني أو كلمة المرور.');
             }
+        }
+
+        // دالة إضافة قسم جديد من لوحة التحكم ليظهر تلقائياً في شريط الأقسام العلوي ومحرك البحث
+        function addNewCategory() {
+            const categoryName = document.getElementById('new-category-input').value.trim();
+            if(!categoryName) {
+                alert('الرجاء كتابة اسم القسم أولاً.');
+                return;
+            }
+
+            // إضافة القسم إلى شريط التنقل العلوي (Nav)
+            const nav = document.getElementById('dynamic-categories-nav');
+            const newLink = document.createElement('a');
+            newLink.href = '#';
+            newLink.className = 'hover:text-amber-400';
+            newLink.innerText = categoryName;
+            newLink.onclick = () => switchTab('home');
+            nav.appendChild(newLink);
+
+            // إضافة القسم إلى قائمة select الخاصة بالبحث العلوي
+            const select = document.getElementById('search-category-select');
+            const newOption = document.createElement('option');
+            newOption.text = categoryName;
+            select.add(newOption);
+
+            alert('تمت إضافة القسم "' + categoryName + '" بنجاح وظهر الآن في شريط الأقسام العلوي للموقع!');
+            document.getElementById('new-category-input').value = '';
         }
     </script>
 
