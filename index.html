@@ -3,422 +3,5061 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المتحدة للرتان والأثاث | المتجر الرئيسي ولوحة التحكم</title>
+
+    <title>المتحدة للرتان والأثاث | المصنع والتوريد</title>
+
+    <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap');
-        body { font-family: 'Cairo', sans-serif; background-color: #f3f4f6; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-    </style>
-</head>
-<body class="bg-gray-100 text-gray-800">
 
-    <!-- شريط التنقل العلوي (Amazon Style) -->
-    <header class="bg-gray-900 text-white sticky top-0 z-50 shadow-md">
-        <div class="container mx-auto px-4 py-2 flex items-center justify-between gap-4">
-            
-            <!-- الشعار -->
-            <div class="flex items-center gap-2 cursor-pointer" onclick="switchTab('home')">
-                <span class="text-2xl font-black text-amber-500 tracking-wider">المتحدة</span>
-                <span class="text-xs text-gray-300 border-r border-gray-700 pr-2 hidden sm:inline">للرتان والأثاث</span>
-            </div>
-
-            <!-- شريط البحث الذكي -->
-            <div class="flex-1 max-w-2xl flex">
-                <select id="search-category-select" class="bg-gray-200 text-gray-700 text-sm px-2 rounded-r-md border-none hidden md:block outline-none cursor-pointer">
-                    <option>كل الأقسام</option>
-                    <option>أطقم الحدائق</option>
-                    <option>طاولات رتان</option>
-                    <option>كراسي ومقاعد</option>
-                </select>
-                <input type="text" placeholder="ابحث عن أثاث، طاولات 80×80، كراسي رتان..." class="w-full px-4 py-2 text-gray-900 bg-white focus:outline-none text-sm md:rounded-none rounded-r-md">
-                <button class="bg-amber-500 hover:bg-amber-600 text-gray-900 px-5 rounded-l-md transition flex items-center justify-center font-bold">
-                    <i class="fa-solid fa-search"></i>
-                </button>
-            </div>
-
-            <!-- خيارات المستخدم -->
-            <div class="flex items-center gap-3 text-sm">
-                <div onclick="switchTab('login')" class="cursor-pointer hover:text-amber-400 flex items-center gap-1 text-xs bg-gray-800 px-3 py-2 rounded border border-gray-700">
-                    <i class="fa-solid fa-lock text-amber-500"></i>
-                    <span>لوحة التحكم</span>
-                </div>
-                <div onclick="switchTab('cart')" class="relative cursor-pointer flex items-center gap-1 bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-md transition">
-                    <i class="fa-solid fa-cart-shopping text-amber-500 text-lg"></i>
-                    <span class="font-bold hidden md:inline">السلة</span>
-                    <span id="cart-badge" class="absolute -top-2 -right-2 bg-amber-500 text-gray-900 text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">2</span>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- شريط الأقسام الديناميكي (يمكن التحكم به من لوحة التحكم) -->
-        <nav id="dynamic-categories-nav" class="bg-gray-800 text-xs sm:text-sm px-4 py-2.5 flex items-center gap-6 overflow-x-auto whitespace-nowrap border-t border-gray-700">
-            <a href="#" onclick="switchTab('home')" class="hover:text-amber-400 font-bold flex items-center gap-1 text-amber-400"><i class="fa-solid fa-bars"></i> الكل</a>
-            <a href="#" onclick="switchTab('home')" class="hover:text-amber-400">أطقم الحدائق الفاخرة</a>
-            <a href="#" onclick="switchTab('product')" class="hover:text-amber-400">طاولات مربعة (80×80 سم)</a>
-            <a href="#" onclick="switchTab('home')" class="hover:text-amber-400">كراسي معدنية بحبال تنجيد</a>
-            <a href="#" onclick="switchTab('home')" class="hover:text-amber-400">شمسيات وتراسات</a>
-            <a href="#" onclick="switchTab('home')" class="hover:text-amber-400">عروض المتحدة</a>
-        </nav>
-    </header>
-
-    <!-- ================= 1. الصفحة الرئيسية ================= -->
-    <div id="tab-home" class="tab-content active">
-        <!-- بانر الإعلانات الرئيسي -->
-        <section class="container mx-auto px-4 my-6">
-            <div class="bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-xl p-8 md:p-12 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
-                <div class="max-w-xl">
-                    <span class="bg-amber-500 text-gray-900 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">تصاميم صيف 2026</span>
-                    <h1 class="text-3xl md:text-5xl font-black mt-3 leading-tight">أثاث رتان عصري يجمع بين الفخامة والتحمل</h1>
-                    <p class="text-gray-300 mt-3 text-sm md:text-base">إطارات معدنية بيضاء مقاومة للصدأ، مع تنجيد حبال زرقاء فاخرة وتصاميم تناسب كافة الحدائق والتراسات.</p>
-                    <button onclick="switchTab('product')" class="mt-6 bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold px-6 py-3 rounded-lg shadow transition">تسوق تشكيلة الطاولات الآن</button>
-                </div>
-                <div class="w-full md:w-1/3 bg-gray-700 h-64 rounded-lg flex flex-col items-center justify-center text-amber-500 border border-gray-600 shadow-inner">
-                    <i class="fa-solid fa-couch text-5xl mb-2"></i>
-                    <p class="text-xs text-gray-300 font-bold">المتحدة للرتان والأثاث</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- شبكة عرض المنتجات -->
-        <main class="container mx-auto px-4 mb-16">
-            <div class="flex items-center justify-between mb-6">
-                <h2 class="text-2xl font-black border-r-4 border-amber-500 pr-3 text-gray-900">أبرز منتجات الرتان والأثاث</h2>
-                <a href="#" onclick="switchTab('product')" class="text-amber-600 hover:underline text-sm font-bold">عرض الكل</a>
-            </div>
-
-            <div id="products-grid-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                <!-- منتج 1 -->
-                <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition p-4 flex flex-col justify-between border border-gray-200">
-                    <div>
-                        <div class="bg-gray-100 h-48 rounded-md flex items-center justify-center text-gray-400 mb-4 relative cursor-pointer" onclick="switchTab('product')">
-                            <span class="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded font-bold">الأكثر طلباً</span>
-                            <i class="fa-solid fa-table text-3xl text-gray-500"></i>
-                        </div>
-                        <h3 class="font-bold text-gray-800 text-base mb-1 cursor-pointer hover:text-amber-600" onclick="switchTab('product')">طاولة مربعة رتان (80×80 سم)</h3>
-                        <p class="text-gray-500 text-xs mb-3">سطح زجاجي مقسى مع قاعدة معدنية متينة وهيكل رتان أنيق.</p>
-                    </div>
-                    <div>
-                        <div class="text-amber-600 font-black text-lg mb-3">1,850 ج.م</div>
-                        <button onclick="switchTab('product')" class="w-full bg-gray-900 hover:bg-amber-500 hover:text-gray-900 text-white text-sm font-bold py-2 rounded transition">عرض التفاصيل والشراء</button>
-                    </div>
-                </div>
-
-                <!-- منتج 2 -->
-                <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition p-4 flex flex-col justify-between border border-gray-200">
-                    <div>
-                        <div class="bg-gray-100 h-48 rounded-md flex items-center justify-center text-gray-400 mb-4 relative">
-                            <span class="absolute top-2 right-2 bg-amber-500 text-gray-900 text-xs px-2 py-0.5 rounded font-bold">جديد</span>
-                            <i class="fa-solid fa-chair text-3xl text-gray-500"></i>
-                        </div>
-                        <h3 class="font-bold text-gray-800 text-base mb-1">كرسي حدائق بتفاصيل حبال دقيقة</h3>
-                        <p class="text-gray-500 text-xs mb-3">مريح للغاية، مصمم خصيصاً للجلسات الخارجية الطويلة.</p>
-                    </div>
-                    <div>
-                        <div class="text-amber-600 font-black text-lg mb-3">950 ج.م</div>
-                        <button onclick="switchTab('cart')" class="w-full bg-gray-900 hover:bg-amber-500 hover:text-gray-900 text-white text-sm font-bold py-2 rounded transition">إضافة إلى السلة</button>
-                    </div>
-                </div>
-
-                <!-- منتج 3 -->
-                <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition p-4 flex flex-col justify-between border border-gray-200">
-                    <div>
-                        <div class="bg-gray-100 h-48 rounded-md flex items-center justify-center text-gray-400 mb-4">
-                            <i class="fa-solid fa-couch text-3xl text-gray-500"></i>
-                        </div>
-                        <h3 class="font-bold text-gray-800 text-base mb-1">طقم أثاث حديقة رتان فاخر</h3>
-                        <p class="text-gray-500 text-xs mb-3">إطار معدني أبيض مقاوم للصدأ مع تنجيد حبال زرقاء.</p>
-                    </div>
-                    <div>
-                        <div class="text-amber-600 font-black text-lg mb-3">4,500 ج.م</div>
-                        <button onclick="switchTab('cart')" class="w-full bg-gray-900 hover:bg-amber-500 hover:text-gray-900 text-white text-sm font-bold py-2 rounded transition">إضافة إلى السلة</button>
-                    </div>
-                </div>
-
-                <!-- منتج 4 -->
-                <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition p-4 flex flex-col justify-between border border-gray-200">
-                    <div>
-                        <div class="bg-gray-100 h-48 rounded-md flex items-center justify-center text-gray-400 mb-4">
-                            <i class="fa-solid fa-umbrella text-3xl text-gray-500"></i>
-                        </div>
-                        <h3 class="font-bold text-gray-800 text-base mb-1">شمسية تراس مقاومة للشمس</h3>
-                        <p class="text-gray-500 text-xs mb-3">تغطية مثالية للحدائق وأماكن الجلوس الخارجية باللون الأبيض.</p>
-                    </div>
-                    <div>
-                        <div class="text-amber-600 font-black text-lg mb-3">2,200 ج.م</div>
-                        <button onclick="switchTab('cart')" class="w-full bg-gray-900 hover:bg-amber-500 hover:text-gray-900 text-white text-sm font-bold py-2 rounded transition">إضافة إلى السلة</button>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- ================= 2. صفحة تفاصيل المنتج ================= -->
-    <div id="tab-product" class="tab-content">
-        <main class="container mx-auto px-4 my-8">
-            <nav class="text-xs text-gray-500 mb-6 flex items-center gap-2">
-                <a href="#" onclick="switchTab('home')" class="hover:text-amber-600">الرئيسية</a>
-                <span>/</span>
-                <span class="text-gray-800 font-bold">طاولة مربعة رتان (80×80 سم)</span>
-            </nav>
-
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div class="bg-gray-100 h-96 rounded-lg flex items-center justify-center text-gray-400 border border-gray-200 relative">
-                    <span class="absolute top-3 right-3 bg-amber-500 text-gray-900 text-xs px-3 py-1 rounded font-bold">الأكثر طلباً</span>
-                    <i class="fa-solid fa-table text-6xl text-gray-400"></i>
-                </div>
-                <div>
-                    <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded">شركة المتحدة للرتان والأثاث</span>
-                    <h1 class="text-2xl md:text-3xl font-black text-gray-900 mt-2">طاولة مربعة رتان بزجاج مقسى (80×80 سم)</h1>
-                    <div class="flex items-center gap-2 mt-2 text-sm text-amber-500">
-                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star-half-stroke"></i>
-                        <span class="text-gray-600 text-xs font-bold">(4.8 من 5)</span>
-                    </div>
-                    <div class="mt-4 pb-4 border-b border-gray-200">
-                        <div class="text-3xl font-black text-amber-600">1,850 ج.م</div>
-                        <p class="text-xs text-gray-500 mt-1">السعر شامل ضريبة القيمة المضافة والشحن السريع.</p>
-                    </div>
-                    <div class="mt-6 space-y-4">
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-2">المقاسات المتوفرة:</label>
-                            <div class="flex gap-3">
-                                <button class="border-2 border-amber-500 bg-amber-50 text-gray-900 px-4 py-2 rounded text-sm font-bold">80×80 سم</button>
-                                <button class="border border-gray-300 text-gray-700 px-4 py-2 rounded text-sm">100×100 سم</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-8 space-y-3">
-                        <button onclick="switchTab('cart')" class="w-full bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold py-3 rounded-lg shadow transition flex items-center justify-center gap-2 text-base">
-                            <i class="fa-solid fa-cart-shopping"></i> إضافة إلى السلة وانتقال للدفع
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- ================= 3. صفحة سلة التسوق وإتمام الطلب ================= -->
-    <div id="tab-cart" class="tab-content">
-        <main class="container mx-auto px-4 my-8">
-            <h1 class="text-2xl md:text-3xl font-black text-gray-900 mb-6 flex items-center gap-3">
-                <i class="fa-solid fa-cart-shopping text-amber-500"></i> سلة التسوق وإتمام الطلب
-            </h1>
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-2 space-y-4">
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between gap-4">
-                        <div class="flex items-center gap-4">
-                            <div class="bg-gray-100 w-20 h-20 rounded-lg flex items-center justify-center text-gray-400">
-                                <i class="fa-solid fa-table text-2xl text-gray-500"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-bold text-gray-900 text-base">طاولة مربعة رتان (80×80 سم)</h3>
-                                <p class="text-xs text-gray-500 mt-1">الإطار أبيض | زجاج مقسى</p>
-                            </div>
-                        </div>
-                        <div class="text-amber-600 font-black text-lg">1,850 ج.م</div>
-                    </div>
-                </div>
-
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 h-fit space-y-6">
-                    <h2 class="text-lg font-black text-gray-900 border-b border-gray-200 pb-3">ملخص الطلب</h2>
-                    <div class="space-y-3 text-sm">
-                        <div class="flex justify-between text-gray-600">
-                            <span>إجمالي المنتجات:</span>
-                            <span class="font-bold text-gray-900">1,850 ج.م</span>
-                        </div>
-                        <div class="flex justify-between text-gray-600">
-                            <span>الشحن:</span>
-                            <span class="font-bold text-green-600">مجاني</span>
-                        </div>
-                        <div class="border-t border-gray-200 pt-3 flex justify-between text-base font-black">
-                            <span>المبلغ الإجمالي:</span>
-                            <span class="text-amber-600">1,850 ج.م</span>
-                        </div>
-                    </div>
-                    <div class="space-y-4 pt-4 border-t border-gray-200">
-                        <h3 class="font-bold text-sm text-gray-900">بيانات الشحن السريع:</h3>
-                        <input type="text" placeholder="الاسم الكامل" class="w-full text-xs px-3 py-2 border rounded bg-gray-50 focus:outline-none">
-                        <input type="text" placeholder="رقم الهاتف (للتواصل)" class="w-full text-xs px-3 py-2 border rounded bg-gray-50 focus:outline-none">
-                        <textarea placeholder="عنوان الشحن بالتفصيل (المحافظة، المدينة، الشارع)" rows="2" class="w-full text-xs px-3 py-2 border rounded bg-gray-50 focus:outline-none"></textarea>
-                    </div>
-                    <button onclick="alert('تم تسجيل طلبك بنجاح لدى شركة المتحدة للرتان والأثاث وسيرسل إلى لوحة التحكم الخاصة بك!')" class="w-full bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold py-3 rounded-lg shadow transition flex items-center justify-center gap-2 text-sm">
-                        تأكيد وإتمام الطلب الآن <i class="fa-solid fa-check"></i>
-                    </button>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- ================= 4. شاشة تسجيل الدخول للوحة التحكم ================= -->
-    <div id="tab-login" class="tab-content">
-        <main class="container mx-auto px-4 my-16 max-w-md">
-            <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
-                <div class="text-center mb-6">
-                    <i class="fa-solid fa-lock text-3xl text-amber-500 mb-2"></i>
-                    <h2 class="text-xl font-black text-gray-900">تسجيل دخول لوحة التحكم</h2>
-                    <p class="text-xs text-gray-500 mt-1">خاص بإدارة شركة المتحدة للرتان والأثاث</p>
-                </div>
-                
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">البريد الإلكتروني:</label>
-                        <input type="email" id="login-email" value="admin@elmothda.com" class="w-full text-xs px-3 py-2.5 border rounded bg-gray-50 focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">كلمة المرور:</label>
-                        <input type="password" id="login-pass" value="AboAli_23012026" class="w-full text-xs px-3 py-2.5 border rounded bg-gray-50 focus:outline-none">
-                    </div>
-                    <button onclick="handleLogin()" class="w-full bg-gray-900 hover:bg-amber-500 hover:text-gray-900 text-white font-bold py-3 rounded-lg shadow transition text-sm">
-                        دخول الإدارة
-                    </button>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- ================= 5. لوحة التحكم الفعالة (إدارة الأقسام والمنتجات) ================= -->
-    <div id="tab-admin" class="tab-content">
-        <main class="container mx-auto px-4 my-8">
-            <div class="flex items-center justify-between mb-6 bg-gray-900 text-white p-4 rounded-xl shadow">
-                <div>
-                    <h1 class="text-lg font-black text-amber-500">لوحة تحكم إدارة شركة المتحدة للرتان والأثاث</h1>
-                    <p class="text-xs text-gray-300">مرحباً بك، المشرف العام (إدارة الأقسام والمنتجات)</p>
-                </div>
-                <button onclick="switchTab('home')" class="bg-red-500 hover:bg-red-600 text-white text-xs px-4 py-2 rounded font-bold transition">تسجيل خروج</button>
-            </div>
-
-            <!-- قسم التحكم في أقسام الموقع (إضافة قسم جديد يظهر في شريط الموقع تلقائياً) -->
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
-                <h2 class="font-bold text-base text-gray-900 mb-2 border-b pb-2"><i class="fa-solid fa-layer-group text-amber-500"></i> إدارة أقسام الموقع الرئيسية</h2>
-                <p class="text-xs text-gray-500 mb-4">اكتب اسم القسم الجديد (مثل: ترابيزات مودิร์ن، أطقم بلاكونات) ليتم إضافته فوراً لشريط الأقسام العلوي.</p>
-                <div class="flex gap-3 max-w-xl">
-                    <input type="text" id="new-category-input" placeholder="اسم القسم الجديد..." class="text-xs p-2.5 border rounded flex-1 focus:outline-none">
-                    <button onclick="addNewCategory()" class="bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold px-6 py-2 rounded text-xs transition">إضافة القسم للموقع</button>
-                </div>
-            </div>
-
-            <!-- قسم إضافة منتج جديد -->
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
-                <h2 class="font-bold text-base text-gray-900 mb-4 border-b pb-2"><i class="fa-solid fa-plus text-amber-500"></i> إضافة منتج رتان جديد</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <input type="text" placeholder="اسم المنتج (مثال: طقم حدائق 3 قطع)" class="text-xs p-2.5 border rounded">
-                    <input type="text" placeholder="السعر (بالجنيه المصري)" class="text-xs p-2.5 border rounded">
-                    <input type="text" placeholder="المقاسات والتفاصيل (مثل 80×80 سم)" class="text-xs p-2.5 border rounded">
-                </div>
-                <button onclick="alert('تمت إضافة المنتج بنجاح وأصبح ظاهراً في صفحة المتجر الرئيسية!')" class="mt-4 bg-gray-900 hover:bg-amber-500 hover:text-gray-900 text-white font-bold px-6 py-2.5 rounded text-xs transition">نشر المنتج على الموقع</button>
-            </div>
-        </main>
-    </div>
-
-    <!-- ================= 6. الفوتر الضخم الكامل (العنوان وأرقام التواصل والديباجة) ================= -->
-    <footer class="bg-gray-900 text-gray-400 pt-12 pb-6 border-t border-gray-800 text-sm mt-16">
-        <div class="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <!-- عمذة 1: عن الشركة -->
-            <div>
-                <h4 class="text-white font-bold mb-3 text-base flex items-center gap-2">
-                    <span class="text-amber-500">■</span> المتحدة للرتان والأثاث
-                </h4>
-                <p class="text-xs leading-relaxed text-gray-400">
-                    رواد تصنيع وتوريد أثاث الحدائق، الرتان الفاخر، والطاولات العصرية بأعلى معايير الجودة والمتانة لتناسب كافة الأذواق والمساحات.
-                </p>
-                <div class="mt-4 flex gap-3 text-amber-500 text-lg">
-                    <i class="fa-brands fa-facebook cursor-pointer hover:text-white"></i>
-                    <i class="fa-brands fa-instagram cursor-pointer hover:text-white"></i>
-                    <i class="fa-brands fa-whatsapp cursor-pointer hover:text-white"></i>
-                </div>
-            </div>
-
-            <!-- عمود 2: أرقام التواصل والعنوان -->
-            <div>
-                <h4 class="text-white font-bold mb-3 text-base">بيانات التواصل</h4>
-                <ul class="space-y-2 text-xs text-gray-300">
-                    <li class="flex items-center gap-2"><i class="fa-solid fa-location-dot text-amber-500"></i> مصر، القاهرة / الجيزة</li>
-                    <li class="flex items-center gap-2"><i class="fa-solid fa-phone text-amber-500"></i> الخط الساخن: 01000000000</li>
-                    <li class="flex items-center gap-2"><i class="fa-solid fa-envelope text-amber-500"></i> info@elmothda.com</li>
-                    <li class="flex items-center gap-2"><i class="fa-solid fa-clock text-amber-500"></i> العمل: طوال أيام الأسبوع</li>
-                </ul>
-            </div>
-
-            <!-- عمود 3: خدمة العملاء -->
-            <div>
-                <h4 class="text-white font-bold mb-3 text-base">خدمة العملاء</h4>
-                <ul class="space-y-2 text-xs">
-                    <li><a href="#" class="hover:text-amber-400 transition">تتبع الطلبات</a></li>
-                    <li><a href="#" class="hover:text-amber-400 transition">سياسة الاستبدال والاسترجاع</a></li>
-                    <li><a href="#" onclick="switchTab('cart')" class="hover:text-amber-400 transition">سلة التسوق</a></li>
-                    <li><a href="#" onclick="switchTab('login')" class="hover:text-amber-400 transition text-amber-400 font-bold">دخول الإدارة (لوحة التحكم)</a></li>
-                </ul>
-            </div>
-
-            <!-- عمود 4: النشرة البريدية -->
-            <div>
-                <h4 class="text-white font-bold mb-3 text-base">النشرة البريدية</h4>
-                <p class="text-xs mb-3 text-gray-400">اشترك ليصلك أحدث عروض أثاث الحدائق والرتان.</p>
-                <div class="flex">
-                    <input type="email" placeholder="بريدك الإلكتروني" class="px-3 py-2 text-xs rounded-r text-gray-900 bg-white w-full focus:outline-none">
-                    <button class="bg-amber-500 text-gray-900 px-4 rounded-l font-bold text-xs hover:bg-amber-600 transition">اشتراك</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="text-center border-t border-gray-800 pt-6 text-xs text-gray-500">
-            جميع الحقوق محفوظة © 2026 شركة المتحدة للرتان والأثاث. تصميم وتنفيذ المتجر الإلكتروني.
-        </div>
-    </footer>
-
-    <!-- سكريبت البرمجة والتحكم بالأقسام ولوحة التحكم -->
     <script>
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.getElementById('tab-' + tabId).classList.add('active');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function handleLogin() {
-            const email = document.getElementById('login-email').value;
-            const pass = document.getElementById('login-pass').value;
-
-            if(email === 'admin@elmothda.com' && pass === 'AboAli_23012026') {
-                alert('تم تسجيل الدخول بنجاح! أهلاً بك في لوحة تحكم المتحدة للرتان والأثاث.');
-                switchTab('admin');
-            } else {
-                alert('خطأ في البريد الإلكتروني أو كلمة المرور.');
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gold: {
+                            400: '#facc15',
+                            500: '#d97706',
+                            600: '#b45309',
+                            700: '#92400e',
+                            800: '#78350f',
+                        },
+                        dark: {
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            700: '#334155'
+                        }
+                    }
+                }
             }
-        }
-
-        // دالة إضافة قسم جديد من لوحة التحكم ليظهر تلقائياً في شريط الأقسام العلوي ومحرك البحث
-        function addNewCategory() {
-            const categoryName = document.getElementById('new-category-input').value.trim();
-            if(!categoryName) {
-                alert('الرجاء كتابة اسم القسم أولاً.');
-                return;
-            }
-
-            // إضافة القسم إلى شريط التنقل العلوي (Nav)
-            const nav = document.getElementById('dynamic-categories-nav');
-            const newLink = document.createElement('a');
-            newLink.href = '#';
-            newLink.className = 'hover:text-amber-400';
-            newLink.innerText = categoryName;
-            newLink.onclick = () => switchTab('home');
-            nav.appendChild(newLink);
-
-            // إضافة القسم إلى قائمة select الخاصة بالبحث العلوي
-            const select = document.getElementById('search-category-select');
-            const newOption = document.createElement('option');
-            newOption.text = categoryName;
-            select.add(newOption);
-
-            alert('تمت إضافة القسم "' + categoryName + '" بنجاح وظهر الآن في شريط الأقسام العلوي للموقع!');
-            document.getElementById('new-category-input').value = '';
         }
     </script>
 
+    <!-- FontAwesome -->
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    >
+
+    <!-- Cairo -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap"
+        rel="stylesheet"
+    >
+
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #0b0f17;
+            color: #f1f5f9;
+        }
+
+        .gold-gradient-text {
+            background: linear-gradient(
+                135deg,
+                #fef08a 0%,
+                #d97706 50%,
+                #92400e 100%
+            );
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .gold-bg-gradient {
+            background: linear-gradient(
+                135deg,
+                #d97706 0%,
+                #b45309 100%
+            );
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(217, 119, 6, 0.2);
+        }
+
+        .glass-nav {
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(217, 119, 6, 0.2);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d97706;
+            border-radius: 4px;
+        }
+
+        .loading-spinner {
+            width: 22px;
+            height: 22px;
+            border: 3px solid rgba(255,255,255,.25);
+            border-top-color: #facc15;
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col justify-between overflow-x-hidden">
+
+<!-- ========================================================= -->
+<!-- HEADER -->
+<!-- ========================================================= -->
+
+<header class="glass-nav sticky top-0 z-50 transition-all duration-300">
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+
+        <div
+            class="flex items-center gap-3 cursor-pointer"
+            onclick="navigateTo('home')"
+        >
+            <img
+                id="siteLogo"
+                src="logo.png"
+                alt="المتحدة للرتان والأثاث"
+                class="h-14 w-14 object-contain rounded-full border-2 border-amber-500/50 shadow-lg shadow-amber-500/20"
+            >
+
+            <div>
+                <h1
+                    id="siteTitle"
+                    class="text-xl font-bold gold-gradient-text tracking-wide"
+                >
+                    المتحدة للرتان والأثاث
+                </h1>
+
+                <p
+                    id="siteSubtitle"
+                    class="text-xs text-amber-200/70"
+                >
+                    جمال يدوم .. وراحة تدوم
+                </p>
+            </div>
+        </div>
+
+        <nav class="hidden md:flex items-center gap-8 text-sm font-semibold">
+
+            <button
+                onclick="navigateTo('home')"
+                class="hover:text-amber-400 transition-colors flex items-center gap-2"
+            >
+                <i class="fa-solid fa-house text-amber-500"></i>
+                الرئيسية
+            </button>
+
+            <button
+                onclick="navigateTo('products')"
+                class="hover:text-amber-400 transition-colors flex items-center gap-2"
+            >
+                <i class="fa-solid fa-couch text-amber-500"></i>
+                المنتجات والأقسام
+            </button>
+
+            <button
+                onclick="navigateTo('about')"
+                class="hover:text-amber-400 transition-colors flex items-center gap-2"
+            >
+                <i class="fa-solid fa-award text-amber-500"></i>
+                عن المصنع
+            </button>
+
+            <button
+                onclick="navigateTo('contact')"
+                class="hover:text-amber-400 transition-colors flex items-center gap-2"
+            >
+                <i class="fa-solid fa-headset text-amber-500"></i>
+                اتصل بنا
+            </button>
+
+        </nav>
+
+        <div class="flex items-center gap-4">
+
+            <button
+                onclick="toggleCartModal()"
+                class="relative p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-amber-400 transition border border-amber-500/30"
+            >
+                <i class="fa-solid fa-cart-shopping text-lg"></i>
+
+                <span
+                    id="cartBadge"
+                    class="absolute -top-1 -right-1 bg-amber-600 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full hidden"
+                >
+                    0
+                </span>
+            </button>
+
+        </div>
+    </div>
+</header>
+
+
+<!-- ========================================================= -->
+<!-- MAIN -->
+<!-- ========================================================= -->
+
+<main id="mainContainer" class="flex-grow"></main>
+
+
+<!-- ========================================================= -->
+<!-- CART MODAL -->
+<!-- ========================================================= -->
+
+<div
+    id="cartModal"
+    class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4"
+>
+
+    <div
+        class="glass-card max-w-lg w-full rounded-2xl overflow-hidden border border-amber-500/40 shadow-2xl flex flex-col max-h-[90vh]"
+    >
+
+        <div
+            class="p-4 bg-slate-900 flex justify-between items-center border-b border-slate-800"
+        >
+
+            <h3 class="font-bold text-lg text-amber-400 flex items-center gap-2">
+                <i class="fa-solid fa-basket-shopping"></i>
+                سلة المشتريات
+            </h3>
+
+            <button
+                onclick="toggleCartModal()"
+                class="text-slate-400 hover:text-white"
+            >
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+
+        </div>
+
+        <div
+            id="cartItemsList"
+            class="p-4 overflow-y-auto flex-grow space-y-3"
+        ></div>
+
+        <div
+            class="p-4 bg-slate-900/90 border-t border-slate-800 space-y-3"
+        >
+
+            <div class="flex justify-between items-center font-bold text-lg">
+                <span>الإجمالي:</span>
+
+                <span
+                    id="cartTotalPrice"
+                    class="text-amber-400"
+                >
+                    0 ج.م
+                </span>
+            </div>
+
+            <button
+                onclick="startCardPayment()"
+                class="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 font-bold text-white transition flex items-center justify-center gap-2"
+            >
+                <i class="fa-solid fa-credit-card text-xl"></i>
+                الدفع بالفيزا / Mastercard
+            </button>
+
+            <button
+                onclick="checkoutWhatsApp()"
+                class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-white transition flex items-center justify-center gap-2"
+            >
+                <i class="fa-brands fa-whatsapp text-xl"></i>
+                إرسال الطلب عبر الواتساب
+            </button>
+
+        </div>
+    </div>
+</div>
+
+
+<!-- ========================================================= -->
+<!-- PAYMENT MODAL -->
+<!-- ========================================================= -->
+
+<div
+    id="paymentModal"
+    class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto"
+>
+
+    <div
+        class="glass-card max-w-2xl w-full rounded-2xl p-6 border border-amber-500/40 shadow-2xl my-6"
+    >
+
+        <div class="text-center mb-5">
+
+            <div
+                class="w-16 h-16 mx-auto rounded-full bg-amber-600/20 flex items-center justify-center mb-3"
+            >
+                <i class="fa-solid fa-credit-card text-amber-400 text-2xl"></i>
+            </div>
+
+            <h3 class="text-xl font-bold text-amber-400">
+                بيانات الطلب والدفع بالفيزا
+            </h3>
+
+            <p class="text-xs text-slate-400 mt-2">
+                اكتب بيانات الاستلام أولاً، ثم سيتم تحويلك إلى بوابة الدفع الآمنة.
+                لا نطلب أو نخزن بيانات البطاقة داخل الموقع.
+            </p>
+
+        </div>
+
+        <form
+            id="paymentCustomerForm"
+            onsubmit="submitCardOrder(event)"
+            class="space-y-4"
+        >
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+                <div>
+                    <label class="block text-xs text-slate-300 font-bold mb-1">
+                        الاسم بالكامل *
+                    </label>
+
+                    <input
+                        type="text"
+                        id="customerName"
+                        required
+                        autocomplete="name"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500"
+                        placeholder="اكتب اسمك بالكامل"
+                    >
+                </div>
+
+                <div>
+                    <label class="block text-xs text-slate-300 font-bold mb-1">
+                        رقم الهاتف *
+                    </label>
+
+                    <input
+                        type="tel"
+                        id="customerPhone"
+                        required
+                        autocomplete="tel"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500"
+                        placeholder="01xxxxxxxxx"
+                    >
+                </div>
+
+            </div>
+
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+                <div>
+                    <label class="block text-xs text-slate-300 font-bold mb-1">
+                        المحافظة *
+                    </label>
+
+                    <input
+                        type="text"
+                        id="customerGovernorate"
+                        required
+                        autocomplete="address-level1"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500"
+                        placeholder="مثال: المنوفية"
+                    >
+                </div>
+
+                <div>
+                    <label class="block text-xs text-slate-300 font-bold mb-1">
+                        العنوان بالتفصيل *
+                    </label>
+
+                    <input
+                        type="text"
+                        id="customerAddress"
+                        required
+                        autocomplete="street-address"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500"
+                        placeholder="المدينة - المنطقة - الشارع - رقم العقار"
+                    >
+                </div>
+
+            </div>
+
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+                <div>
+                    <label class="block text-xs text-slate-300 font-bold mb-1">
+                        طريقة الاستلام *
+                    </label>
+
+                    <select
+                        id="deliveryMethod"
+                        required
+                        onchange="toggleDeliveryFields()"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500"
+                    >
+                        <option value="">اختر طريقة الاستلام</option>
+                        <option value="استلام من المصنع">استلام من المصنع</option>
+                        <option value="شركة شحن">شركة شحن</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-slate-300 font-bold mb-1">
+                        مدة الاستلام المطلوبة *
+                    </label>
+
+                    <select
+                        id="deliveryDuration"
+                        required
+                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500"
+                    >
+                        <option value="">اختر المدة</option>
+                        <option value="أسرع وقت متاح">أسرع وقت متاح</option>
+                        <option value="خلال 1 - 3 أيام">خلال 1 - 3 أيام</option>
+                        <option value="خلال 3 - 7 أيام">خلال 3 - 7 أيام</option>
+                        <option value="خلال 7 - 14 يوم">خلال 7 - 14 يوم</option>
+                    </select>
+                </div>
+
+            </div>
+
+
+            <div id="shippingCompanyWrap" class="hidden">
+
+                <label class="block text-xs text-slate-300 font-bold mb-1">
+                    ملاحظات شركة الشحن / عنوان التسليم
+                </label>
+
+                <input
+                    type="text"
+                    id="shippingNotes"
+                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500"
+                    placeholder="أي تفاصيل إضافية للتسليم أو الشحن"
+                >
+
+            </div>
+
+
+            <div>
+
+                <label class="block text-xs text-slate-300 font-bold mb-1">
+                    ملاحظات على الطلب
+                </label>
+
+                <textarea
+                    id="customerNotes"
+                    rows="2"
+                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500"
+                    placeholder="لون، مقاس، موعد، أو أي طلب خاص"
+                ></textarea>
+
+            </div>
+
+
+            <div class="bg-slate-900 rounded-xl p-4 border border-slate-800">
+
+                <div class="flex justify-between font-bold">
+
+                    <span>إجمالي الطلب</span>
+
+                    <span
+                        id="paymentTotal"
+                        class="text-amber-400"
+                    >
+                        0 ج.م
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <button
+                id="continuePaymentBtn"
+                type="submit"
+                class="w-full py-3 rounded-xl gold-bg-gradient text-slate-950 font-bold"
+            >
+                <i class="fa-solid fa-lock ml-1"></i>
+                حفظ الطلب والمتابعة للدفع
+            </button>
+
+            <button
+                type="button"
+                onclick="closePaymentModal()"
+                class="w-full py-2 text-slate-400 hover:text-white text-sm"
+            >
+                إلغاء
+            </button>
+
+            <p
+                id="paymentSetupNotice"
+                class="text-[11px] text-amber-300/80 text-center mt-3"
+            ></p>
+
+        </form>
+    </div>
+</div>
+
+
+<!-- ========================================================= -->
+<!-- ADMIN LOGIN -->
+<!-- ========================================================= -->
+
+<div
+    id="adminAuthModal"
+    class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4"
+>
+
+    <div
+        class="glass-card max-w-md w-full rounded-2xl p-6 border border-amber-500/40 shadow-2xl"
+    >
+
+        <div class="text-center mb-6">
+
+            <img
+                id="adminLoginLogo"
+                src="logo.png"
+                alt="Logo"
+                class="w-20 h-20 mx-auto rounded-full border-2 border-amber-500 mb-2"
+            >
+
+            <h3 class="text-xl font-bold text-amber-400">
+                تسجيل الدخول للإدارة
+            </h3>
+
+            <p class="text-xs text-slate-400">
+                لوحة الإدارة خاصة بصاحب الموقع فقط
+            </p>
+
+        </div>
+
+        <form
+            onsubmit="handleAdminLogin(event)"
+            class="space-y-4"
+        >
+
+            <div>
+
+                <label class="block text-xs font-semibold mb-1 text-slate-300">
+                    البريد الإلكتروني
+                </label>
+
+                <input
+                    type="email"
+                    id="adminEmailInput"
+                    required
+                    autocomplete="username"
+                    placeholder="اكتب البريد الإلكتروني"
+                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500"
+                >
+
+            </div>
+
+
+            <div>
+
+                <label class="block text-xs font-semibold mb-1 text-slate-300">
+                    كلمة السر
+                </label>
+
+                <input
+                    type="password"
+                    id="adminPasswordInput"
+                    required
+                    autocomplete="current-password"
+                    placeholder="أدخل كلمة المرور"
+                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500"
+                >
+
+            </div>
+
+
+            <button
+                id="adminLoginButton"
+                type="submit"
+                class="w-full py-3 rounded-xl gold-bg-gradient text-slate-950 font-bold hover:brightness-110 transition"
+            >
+                دخول
+            </button>
+
+
+            <button
+                type="button"
+                onclick="closeAdminAuth()"
+                class="w-full py-2 text-slate-400 hover:text-white text-sm"
+            >
+                إلغاء
+            </button>
+
+            <p
+                id="adminLoginStatus"
+                class="text-center text-xs text-slate-500"
+            ></p>
+
+        </form>
+    </div>
+</div>
+
+
+<!-- ========================================================= -->
+<!-- PRODUCT DETAIL -->
+<!-- ========================================================= -->
+
+<div
+    id="productDetailModal"
+    class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4"
+>
+
+    <div
+        id="productDetailContent"
+        class="glass-card max-w-2xl w-full rounded-2xl overflow-hidden border border-amber-500/40 shadow-2xl relative"
+    ></div>
+
+</div>
+
+
+<!-- ========================================================= -->
+<!-- CHATBOT -->
+<!-- ========================================================= -->
+
+<div
+    id="chatbotContainer"
+    class="fixed bottom-6 left-6 z-40 flex flex-col items-start"
+>
+
+    <div
+        id="chatBox"
+        class="glass-card w-80 sm:w-96 rounded-2xl border border-amber-500/40 shadow-2xl mb-4 hidden flex-col overflow-hidden h-96 transition-all duration-300"
+    >
+
+        <div
+            class="p-3 bg-slate-900 border-b border-slate-800 flex justify-between items-center"
+        >
+
+            <div class="flex items-center gap-2">
+
+                <img
+                    id="chatLogo"
+                    src="logo.png"
+                    class="w-8 h-8 rounded-full border border-amber-500"
+                >
+
+                <div>
+
+                    <h4 class="font-bold text-sm text-amber-400">
+                        مساعد المتحدة الذكي
+                    </h4>
+
+                    <span class="text-[10px] text-emerald-400 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                        متصل الآن
+                    </span>
+
+                </div>
+
+            </div>
+
+            <button
+                onclick="toggleChatbot()"
+                class="text-slate-400 hover:text-white"
+            >
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+        </div>
+
+
+        <div
+            id="chatMessages"
+            class="p-3 overflow-y-auto flex-grow space-y-3 text-sm"
+        >
+
+            <div
+                class="bg-slate-800/80 p-3 rounded-xl border border-slate-700/50 max-w-[85%] text-slate-200"
+            >
+                أهلاً بك في <strong>المتحدة للرتان والأثاث</strong>!
+                كيف يمكنني مساعدتك اليوم؟
+                يمكنك الاستفسار عن المنتجات والأسعار والعنوان والتوصيل.
+            </div>
+
+        </div>
+
+
+        <div
+            class="p-2 bg-slate-900 border-t border-slate-800 flex gap-2"
+        >
+
+            <input
+                type="text"
+                id="chatInput"
+                onkeypress="handleChatKeyPress(event)"
+                placeholder="اكتب سؤالك هنا..."
+                class="flex-grow bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+            >
+
+            <button
+                onclick="sendChatMessage()"
+                class="px-3 py-2 gold-bg-gradient rounded-lg text-slate-950 font-bold text-xs"
+            >
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <button
+        onclick="toggleChatbot()"
+        class="p-4 gold-bg-gradient text-slate-950 rounded-full shadow-lg hover:scale-110 transition flex items-center justify-center gap-2 font-bold"
+    >
+
+        <i class="fa-solid fa-comments text-xl"></i>
+
+        <span class="hidden sm:inline">
+            تحدث مع المساعد الذكي
+        </span>
+
+    </button>
+
+</div>
+
+
+<!-- ========================================================= -->
+<!-- FOOTER -->
+<!-- ========================================================= -->
+
+<footer
+    class="bg-slate-950 border-t border-slate-800/80 mt-16 py-12"
+>
+
+    <div
+        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8"
+    >
+
+        <div class="space-y-4">
+
+            <div class="flex items-center gap-3">
+
+                <img
+                    id="footerLogo"
+                    src="logo.png"
+                    alt="Logo"
+                    class="w-12 h-12 rounded-full border border-amber-500"
+                >
+
+                <h3
+                    id="footerTitle"
+                    class="font-bold text-lg gold-gradient-text"
+                >
+                    المتحدة للرتان والأثاث
+                </h3>
+
+            </div>
+
+            <p
+                id="footerBio"
+                class="text-xs text-slate-400 leading-relaxed"
+            >
+                المصنع الرائد في تصنيع وتوريد أثاث الرتان الطبيعي والصناعي،
+                الشماسي، البرجولات، وأثاث الكافيهات والحدائق.
+            </p>
+
+        </div>
+
+
+        <div>
+
+            <h4
+                class="font-bold text-amber-400 mb-4 border-b border-amber-500/30 pb-2 inline-block"
+            >
+                أقسامنا
+            </h4>
+
+            <ul
+                id="footerCategoriesList"
+                class="space-y-2 text-xs text-slate-300"
+            ></ul>
+
+        </div>
+
+
+        <div>
+
+            <h4
+                class="font-bold text-amber-400 mb-4 border-b border-amber-500/30 pb-2 inline-block"
+            >
+                روابط سريعة
+            </h4>
+
+            <ul class="space-y-2 text-xs text-slate-300">
+
+                <li>
+                    <button
+                        onclick="navigateTo('home')"
+                        class="hover:text-amber-400"
+                    >
+                        الرئيسية
+                    </button>
+                </li>
+
+                <li>
+                    <button
+                        onclick="navigateTo('products')"
+                        class="hover:text-amber-400"
+                    >
+                        كتالوج المنتجات
+                    </button>
+                </li>
+
+                <li>
+                    <button
+                        onclick="navigateTo('about')"
+                        class="hover:text-amber-400"
+                    >
+                        عن المصنع
+                    </button>
+                </li>
+
+                <li>
+                    <button
+                        onclick="openAdminAuth()"
+                        class="hover:text-amber-400 text-amber-500 font-bold"
+                    >
+                        <i class="fa-solid fa-lock ml-1"></i>
+                        دخول الإدارة
+                    </button>
+                </li>
+
+            </ul>
+
+        </div>
+
+
+        <div>
+
+            <h4
+                class="font-bold text-amber-400 mb-4 border-b border-amber-500/30 pb-2 inline-block"
+            >
+                معلومات التواصل
+            </h4>
+
+            <div class="space-y-3 text-xs text-slate-300">
+
+                <p class="flex items-center gap-2">
+                    <i class="fa-solid fa-phone text-amber-500"></i>
+                    <span id="footerPhone"></span>
+                </p>
+
+                <p class="flex items-center gap-2">
+                    <i class="fa-brands fa-whatsapp text-emerald-500"></i>
+                    <span id="footerWhatsapp"></span>
+                </p>
+
+                <p class="flex items-center gap-2">
+                    <i class="fa-solid fa-location-dot text-amber-500"></i>
+                    <span id="footerAddress"></span>
+                </p>
+
+
+                <div class="flex gap-3 pt-2 text-base">
+
+                    <a
+                        id="footerFbLink"
+                        href="#"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-amber-400 hover:bg-amber-600 hover:text-white transition"
+                    >
+                        <i class="fa-brands fa-facebook-f"></i>
+                    </a>
+
+                    <a
+                        id="footerInstaLink"
+                        href="#"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-amber-400 hover:bg-amber-600 hover:text-white transition"
+                    >
+                        <i class="fa-brands fa-instagram"></i>
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div
+        class="max-w-7xl mx-auto px-4 mt-8 pt-6 border-t border-slate-900 text-center text-xs text-slate-500"
+    >
+
+        &copy;
+        <span id="currentYear"></span>
+
+        جميع الحقوق محفوظة لـ
+
+        <strong class="text-amber-400">
+            المتحدة للرتان والأثاث
+        </strong>
+
+    </div>
+
+</footer>
+
+
+<!-- ========================================================= -->
+<!-- APPLICATION JAVASCRIPT -->
+<!-- ========================================================= -->
+
+<script>
+
+/* ============================================================
+   API CONFIGURATION
+============================================================ */
+
+const API = {
+    payment: "/api/create-payment",
+    orders: "/api/orders",
+    adminLogin: "/api/admin-login"
+};
+
+
+/* ============================================================
+   DEFAULT DATA
+============================================================ */
+
+const defaultState = {
+
+    siteInfo: {
+
+        title: "المتحدة للرتان والأثاث",
+
+        subtitle: "جمال يدوم .. وراحة تدوم",
+
+        heroHeadline:
+            "تصميمات فاخرة وجودة تدوم لجميع مساحاتك الخارجية والداخلية",
+
+        heroSubtext:
+            "المتحدة للرتان والأثاث لتصنيع وتوريد أثاث الرتان والكافيهات والقرى السياحية والبرجولات والشماسي.",
+
+        logo: "logo.png",
+
+        phone: "+201000000000",
+
+        whatsapp: "+201000000000",
+
+        address:
+            "محافظة المنوفية - مركز أشمون",
+
+        facebook: "https://facebook.com",
+
+        instagram: "https://instagram.com",
+
+        vodafoneCash: "",
+
+        bankAccount: ""
+
+    },
+
+
+    categories: [
+
+        "أثاث كافيهات ومطاعم",
+
+        "روف جاردن وحدائق",
+
+        "قرى سياحية وفنادق",
+
+        "مراجيح وبرجولات",
+
+        "شماسي وتندات"
+
+    ],
+
+
+    products: [
+
+        {
+            id: 1,
+
+            title:
+                "طقم كافيه رتان فاخر 4 كراسي + ترابيزة",
+
+            category:
+                "أثاث كافيهات ومطاعم",
+
+            price: 8500,
+
+            oldPrice: 10200,
+
+            image: "logo.png",
+
+            description:
+                "طقم رتان بيور مجدول يدوياً، مناسب للكافيهات والمطاعم والحدائق.",
+
+            inStock: true
+        },
+
+
+        {
+            id: 2,
+
+            title:
+                "مرجيحة رتان عش العصفور لشخصين",
+
+            category:
+                "مراجيح وبرجولات",
+
+            price: 6200,
+
+            oldPrice: 7500,
+
+            image: "logo.png",
+
+            description:
+                "مرجيحة حدائق وروف بتصميم مميز للاستخدام الخارجي.",
+
+            inStock: true
+        },
+
+
+        {
+            id: 3,
+
+            title:
+                "شمسية حدائق ومطاعم متحركة 3 متر",
+
+            category:
+                "شماسي وتندات",
+
+            price: 4300,
+
+            oldPrice: 5000,
+
+            image: "logo.png",
+
+            description:
+                "شمسية مناسبة للحدائق والكافيهات والمطاعم.",
+
+            inStock: true
+        }
+
+    ]
+
+};
+
+
+/* ============================================================
+   APPLICATION STATE
+============================================================ */
+
+let appData =
+    JSON.parse(
+        localStorage.getItem("united_rattan_db")
+    ) || defaultState;
+
+
+if (!appData.siteInfo) {
+    appData.siteInfo = defaultState.siteInfo;
+}
+
+if (!Array.isArray(appData.categories)) {
+    appData.categories = defaultState.categories;
+}
+
+if (!Array.isArray(appData.products)) {
+    appData.products = defaultState.products;
+}
+
+
+/*
+    الطلبات الحقيقية لا نعتمد فيها على localStorage.
+    الطلبات يتم تحميلها من /api/orders بعد دخول الإدارة.
+*/
+
+appData.orders = [];
+
+
+let cart =
+    JSON.parse(
+        localStorage.getItem("united_rattan_cart")
+    ) || [];
+
+
+let isAdminLoggedIn =
+    Boolean(
+        sessionStorage.getItem(
+            "united_admin_access_token"
+        )
+    );
+
+
+let activeCategory = "الكل";
+
+
+/* ============================================================
+   INITIALIZATION
+============================================================ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        saveLocalData();
+
+        updateHeaderAndFooter();
+
+        navigateTo("home");
+
+        document.getElementById(
+            "currentYear"
+        ).innerText =
+            new Date().getFullYear();
+
+
+        /*
+            الدخول إلى الإدارة عن طريق:
+            #admin
+            أو ?admin=1
+        */
+
+        const params =
+            new URLSearchParams(
+                window.location.search
+            );
+
+
+        if (
+            window.location.hash === "#admin" ||
+            params.get("admin") === "1"
+        ) {
+
+            setTimeout(
+                () => openAdminAuth(),
+                300
+            );
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   LOCAL STORAGE
+============================================================ */
+
+function saveLocalData() {
+
+    localStorage.setItem(
+        "united_rattan_db",
+        JSON.stringify(appData)
+    );
+
+
+    localStorage.setItem(
+        "united_rattan_cart",
+        JSON.stringify(cart)
+    );
+
+
+    updateCartBadge();
+
+}
+
+
+/* ============================================================
+   NAVIGATION
+============================================================ */
+
+function navigateTo(
+    page,
+    param = null
+) {
+
+    const container =
+        document.getElementById(
+            "mainContainer"
+        );
+
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+
+
+    if (page === "home") {
+
+        container.innerHTML =
+            renderHomePage();
+
+    }
+
+
+    else if (page === "products") {
+
+        container.innerHTML =
+            renderProductsPage(param);
+
+    }
+
+
+    else if (page === "about") {
+
+        container.innerHTML =
+            renderAboutPage();
+
+    }
+
+
+    else if (page === "contact") {
+
+        container.innerHTML =
+            renderContactPage();
+
+    }
+
+
+    else if (page === "admin") {
+
+        if (!isAdminLoggedIn) {
+
+            openAdminAuth();
+
+            return;
+
+        }
+
+
+        container.innerHTML =
+            renderAdminDashboard();
+
+
+        loadServerOrders();
+
+    }
+
+}
+
+
+/* ============================================================
+   HEADER / FOOTER
+============================================================ */
+
+function updateHeaderAndFooter() {
+
+    const info =
+        appData.siteInfo;
+
+
+    document.getElementById(
+        "siteLogo"
+    ).src =
+        info.logo || "logo.png";
+
+
+    document.getElementById(
+        "siteTitle"
+    ).innerText =
+        info.title;
+
+
+    document.getElementById(
+        "siteSubtitle"
+    ).innerText =
+        info.subtitle;
+
+
+    document.getElementById(
+        "footerLogo"
+    ).src =
+        info.logo || "logo.png";
+
+
+    document.getElementById(
+        "adminLoginLogo"
+    ).src =
+        info.logo || "logo.png";
+
+
+    document.getElementById(
+        "chatLogo"
+    ).src =
+        info.logo || "logo.png";
+
+
+    document.getElementById(
+        "footerTitle"
+    ).innerText =
+        info.title;
+
+
+    document.getElementById(
+        "footerBio"
+    ).innerText =
+        info.heroSubtext;
+
+
+    document.getElementById(
+        "footerPhone"
+    ).innerText =
+        info.phone;
+
+
+    document.getElementById(
+        "footerWhatsapp"
+    ).innerText =
+        info.whatsapp;
+
+
+    document.getElementById(
+        "footerAddress"
+    ).innerText =
+        info.address;
+
+
+    document.getElementById(
+        "footerFbLink"
+    ).href =
+        info.facebook || "#";
+
+
+    document.getElementById(
+        "footerInstaLink"
+    ).href =
+        info.instagram || "#";
+
+
+    const footerCatList =
+        document.getElementById(
+            "footerCategoriesList"
+        );
+
+
+    footerCatList.innerHTML =
+        appData.categories
+            .map(
+                category => `
+                    <li>
+                        <button
+                            onclick="navigateTo('products', '${escapeAttribute(category)}')"
+                            class="hover:text-amber-400"
+                        >
+                            ${escapeHtml(category)}
+                        </button>
+                    </li>
+                `
+            )
+            .join("");
+
+}
+
+
+/* ============================================================
+   SECURITY / ESCAPING HELPERS
+============================================================ */
+
+function escapeHtml(value) {
+
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+}
+
+
+function escapeAttribute(value) {
+
+    return String(value ?? "")
+        .replaceAll("\\", "\\\\")
+        .replaceAll("'", "\\'")
+        .replaceAll('"', "&quot;");
+
+}
+
+
+/* ============================================================
+   HOME PAGE
+============================================================ */
+
+function renderHomePage() {
+
+    return `
+
+        <section
+            class="relative py-20 overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 border-b border-slate-800"
+        >
+
+            <div
+                class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center gap-12"
+            >
+
+                <div class="md:w-1/2 space-y-6 text-center md:text-right">
+
+                    <span
+                        class="px-4 py-1.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-bold inline-block"
+                    >
+                        ✨ المتحدة للرتان والأثاث
+                    </span>
+
+
+                    <h2
+                        class="text-3xl sm:text-5xl font-extrabold leading-tight gold-gradient-text"
+                    >
+                        ${escapeHtml(
+                            appData.siteInfo.heroHeadline
+                        )}
+                    </h2>
+
+
+                    <p
+                        class="text-slate-300 text-sm sm:text-base leading-relaxed"
+                    >
+                        ${escapeHtml(
+                            appData.siteInfo.heroSubtext
+                        )}
+                    </p>
+
+
+                    <div
+                        class="flex flex-wrap gap-4 justify-center md:justify-start pt-4"
+                    >
+
+                        <button
+                            onclick="navigateTo('products')"
+                            class="px-8 py-4 rounded-xl gold-bg-gradient text-slate-950 font-extrabold shadow-lg hover:scale-105 transition flex items-center gap-2"
+                        >
+                            <i class="fa-solid fa-store"></i>
+                            استعراض الكتالوج
+                        </button>
+
+
+                        <a
+                            href="https://wa.me/${String(
+                                appData.siteInfo.whatsapp
+                            ).replace(/[^0-9]/g, "")}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="px-8 py-4 rounded-xl border border-emerald-500/50 text-emerald-400 font-bold hover:bg-emerald-500/10 transition flex items-center gap-2"
+                        >
+                            <i class="fa-brands fa-whatsapp text-xl"></i>
+                            تواصل مباشر
+                        </a>
+
+                    </div>
+
+                </div>
+
+
+                <div class="md:w-1/2 relative flex justify-center">
+
+                    <div
+                        class="relative w-72 h-72 sm:w-96 sm:h-96 rounded-full p-2 gold-bg-gradient shadow-2xl shadow-amber-500/20"
+                    >
+
+                        <img
+                            src="${escapeAttribute(
+                                appData.siteInfo.logo
+                            )}"
+                            alt="المتحدة للرتان"
+                            class="w-full h-full object-cover rounded-full border-4 border-slate-950"
+                        >
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section
+            class="py-10 bg-slate-900/50 border-b border-slate-800"
+        >
+
+            <div
+                class="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center"
+            >
+
+                <div class="p-4 glass-card rounded-xl">
+
+                    <i class="fa-solid fa-shield-halved text-3xl text-amber-400 mb-2"></i>
+
+                    <h4 class="font-bold text-sm">
+                        جودة وتصنيع
+                    </h4>
+
+                    <p class="text-xs text-slate-400 mt-1">
+                        خامات مناسبة للاستخدام الخارجي
+                    </p>
+
+                </div>
+
+
+                <div class="p-4 glass-card rounded-xl">
+
+                    <i class="fa-solid fa-truck-fast text-3xl text-amber-400 mb-2"></i>
+
+                    <h4 class="font-bold text-sm">
+                        توصيل للمحافظات
+                    </h4>
+
+                    <p class="text-xs text-slate-400 mt-1">
+                        شحن حسب الاتفاق مع العميل
+                    </p>
+
+                </div>
+
+
+                <div class="p-4 glass-card rounded-xl">
+
+                    <i class="fa-solid fa-industry text-3xl text-amber-400 mb-2"></i>
+
+                    <h4 class="font-bold text-sm">
+                        أسعار من المصنع
+                    </h4>
+
+                    <p class="text-xs text-slate-400 mt-1">
+                        أسعار للأفراد والمشروعات
+                    </p>
+
+                </div>
+
+
+                <div class="p-4 glass-card rounded-xl">
+
+                    <i class="fa-solid fa-headset text-3xl text-amber-400 mb-2"></i>
+
+                    <h4 class="font-bold text-sm">
+                        خدمة العملاء
+                    </h4>
+
+                    <p class="text-xs text-slate-400 mt-1">
+                        تواصل مباشر للاستفسارات والطلبات
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section
+            class="py-16 max-w-7xl mx-auto px-4"
+        >
+
+            <div class="text-center mb-12">
+
+                <h3
+                    class="text-2xl sm:text-4xl font-bold gold-gradient-text"
+                >
+                    الأقسام
+                </h3>
+
+                <p class="text-slate-400 text-sm mt-2">
+                    اختر القسم لمشاهدة المنتجات
+                </p>
+
+            </div>
+
+
+            <div
+                class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+            >
+
+                ${appData.categories
+                    .map(
+                        cat => `
+
+                            <div
+                                onclick="navigateTo('products', '${escapeAttribute(cat)}')"
+                                class="glass-card rounded-2xl p-6 text-center cursor-pointer hover:border-amber-500 transition group hover:-translate-y-1"
+                            >
+
+                                <div
+                                    class="w-16 h-16 mx-auto rounded-full gold-bg-gradient flex items-center justify-center text-slate-950 text-2xl font-bold mb-4 group-hover:scale-110 transition"
+                                >
+                                    <i class="fa-solid fa-couch"></i>
+                                </div>
+
+                                <h4
+                                    class="font-bold text-lg text-white group-hover:text-amber-400 transition"
+                                >
+                                    ${escapeHtml(cat)}
+                                </h4>
+
+                                <p
+                                    class="text-xs text-slate-400 mt-2"
+                                >
+                                    عرض منتجات القسم
+                                </p>
+
+                            </div>
+
+                        `
+                    )
+                    .join("")}
+
+            </div>
+
+        </section>
+
+
+        <section
+            class="py-16 bg-slate-900/40 border-t border-slate-800"
+        >
+
+            <div class="max-w-7xl mx-auto px-4">
+
+                <div
+                    class="flex justify-between items-center mb-10"
+                >
+
+                    <div>
+
+                        <h3
+                            class="text-2xl font-bold text-amber-400"
+                        >
+                            أحدث المنتجات
+                        </h3>
+
+                        <p
+                            class="text-xs text-slate-400 mt-1"
+                        >
+                            تصفح منتجات المتحدة للرتان والأثاث
+                        </p>
+
+                    </div>
+
+
+                    <button
+                        onclick="navigateTo('products')"
+                        class="text-amber-400 hover:underline text-sm font-bold flex items-center gap-1"
+                    >
+                        عرض الكل
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+
+                </div>
+
+
+                <div
+                    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                >
+
+                    ${appData.products
+                        .slice(0, 6)
+                        .map(p => renderProductCard(p))
+                        .join("")}
+
+                </div>
+
+            </div>
+
+        </section>
+
+    `;
+
+}
+
+
+/* ============================================================
+   PRODUCTS
+============================================================ */
+
+function renderProductsPage(
+    filterCategory = null
+) {
+
+    if (filterCategory) {
+
+        activeCategory =
+            filterCategory;
+
+    }
+
+
+    const filteredProducts =
+        activeCategory === "الكل"
+            ? appData.products
+            : appData.products.filter(
+                p =>
+                    p.category ===
+                    activeCategory
+            );
+
+
+    return `
+
+        <section
+            class="py-12 max-w-7xl mx-auto px-4"
+        >
+
+            <div class="text-center mb-10">
+
+                <h2
+                    class="text-3xl font-extrabold gold-gradient-text"
+                >
+                    كتالوج المنتجات
+                </h2>
+
+                <p
+                    class="text-xs text-slate-400 mt-2"
+                >
+                    منتجات المتحدة للرتان والأثاث
+                </p>
+
+            </div>
+
+
+            <div
+                class="flex flex-wrap gap-2 justify-center mb-10"
+            >
+
+                <button
+                    onclick="filterProducts('الكل')"
+                    class="px-5 py-2.5 rounded-xl font-bold text-sm transition ${
+                        activeCategory === "الكل"
+                            ? "gold-bg-gradient text-slate-950 shadow-lg"
+                            : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                    }"
+                >
+                    الكل (${appData.products.length})
+                </button>
+
+
+                ${appData.categories
+                    .map(
+                        cat => `
+
+                            <button
+                                onclick="filterProducts('${escapeAttribute(cat)}')"
+                                class="px-5 py-2.5 rounded-xl font-bold text-sm transition ${
+                                    activeCategory === cat
+                                        ? "gold-bg-gradient text-slate-950 shadow-lg"
+                                        : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                                }"
+                            >
+                                ${escapeHtml(cat)}
+                            </button>
+
+                        `
+                    )
+                    .join("")}
+
+            </div>
+
+
+            ${
+                filteredProducts.length === 0
+                    ? `
+
+                        <div
+                            class="text-center py-16 glass-card rounded-2xl"
+                        >
+
+                            <i
+                                class="fa-solid fa-box-open text-5xl text-slate-600 mb-3"
+                            ></i>
+
+                            <p
+                                class="text-slate-400 font-bold"
+                            >
+                                لا توجد منتجات مضافة في هذا القسم حالياً.
+                            </p>
+
+                        </div>
+
+                    `
+                    : `
+
+                        <div
+                            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                        >
+
+                            ${filteredProducts
+                                .map(p =>
+                                    renderProductCard(p)
+                                )
+                                .join("")}
+
+                        </div>
+
+                    `
+            }
+
+        </section>
+
+    `;
+
+}
+
+
+function filterProducts(category) {
+
+    activeCategory =
+        category;
+
+    document.getElementById(
+        "mainContainer"
+    ).innerHTML =
+        renderProductsPage();
+
+}
+
+
+/* ============================================================
+   PRODUCT CARD
+============================================================ */
+
+function renderProductCard(p) {
+
+    return `
+
+        <div
+            class="glass-card rounded-2xl overflow-hidden border border-slate-800 hover:border-amber-500/50 transition duration-300 flex flex-col justify-between group"
+        >
+
+            <div>
+
+                <div
+                    class="relative h-60 overflow-hidden bg-slate-950 cursor-pointer"
+                    onclick="openProductDetail(${Number(p.id)})"
+                >
+
+                    <img
+                        src="${escapeAttribute(p.image || "logo.png")}"
+                        alt="${escapeAttribute(p.title)}"
+                        class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                    >
+
+                    <span
+                        class="absolute top-3 right-3 px-3 py-1 rounded-full bg-slate-950/80 text-amber-400 border border-amber-500/30 text-xs font-bold"
+                    >
+                        ${escapeHtml(p.category)}
+                    </span>
+
+                </div>
+
+
+                <div class="p-5">
+
+                    <h4
+                        onclick="openProductDetail(${Number(p.id)})"
+                        class="font-bold text-base text-white hover:text-amber-400 transition cursor-pointer mb-2 line-clamp-1"
+                    >
+                        ${escapeHtml(p.title)}
+                    </h4>
+
+
+                    <p
+                        class="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-4"
+                    >
+                        ${escapeHtml(
+                            p.description ||
+                            "لا يوجد وصف مضاف لهذا المنتج."
+                        )}
+                    </p>
+
+
+                    <div
+                        class="flex justify-between items-baseline mb-4"
+                    >
+
+                        <div>
+
+                            <span
+                                class="text-lg font-extrabold text-amber-400"
+                            >
+                                ${Number(p.price).toLocaleString()}
+                                ج.م
+                            </span>
+
+                            ${
+                                p.oldPrice
+                                    ? `
+                                        <span
+                                            class="text-xs text-slate-500 line-through mr-2"
+                                        >
+                                            ${Number(
+                                                p.oldPrice
+                                            ).toLocaleString()}
+                                            ج.م
+                                        </span>
+                                    `
+                                    : ""
+                            }
+
+                        </div>
+
+
+                        <span
+                            class="text-[10px] px-2 py-0.5 rounded ${
+                                p.inStock
+                                    ? "bg-emerald-950 text-emerald-400 border border-emerald-500/30"
+                                    : "bg-rose-950 text-rose-400 border border-rose-500/30"
+                            }"
+                        >
+                            ${
+                                p.inStock
+                                    ? "متوفر"
+                                    : "غير متوفر"
+                            }
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div
+                class="p-5 pt-0 flex gap-2"
+            >
+
+                <button
+                    onclick="addToCart(${Number(p.id)})"
+                    ${
+                        !p.inStock
+                            ? "disabled"
+                            : ""
+                    }
+                    class="flex-grow py-2.5 rounded-xl ${
+                        p.inStock
+                            ? "gold-bg-gradient hover:brightness-110"
+                            : "bg-slate-700 cursor-not-allowed"
+                    } text-slate-950 font-bold transition flex items-center justify-center gap-2 text-sm"
+                >
+                    <i class="fa-solid fa-cart-plus"></i>
+                    ${p.inStock ? "إضافة للسلة" : "غير متوفر"}
+                </button>
+
+
+                <button
+                    onclick="openProductDetail(${Number(p.id)})"
+                    class="p-2.5 rounded-xl bg-slate-800 text-amber-400 hover:bg-slate-700 transition"
+                >
+                    <i class="fa-solid fa-eye"></i>
+                </button>
+
+            </div>
+
+        </div>
+
+    `;
+
+}
+
+
+/* ============================================================
+   ABOUT
+============================================================ */
+
+function renderAboutPage() {
+
+    return `
+
+        <section
+            class="py-16 max-w-5xl mx-auto px-4"
+        >
+
+            <div
+                class="glass-card rounded-2xl p-8 border border-amber-500/30 space-y-8"
+            >
+
+                <div class="text-center">
+
+                    <img
+                        src="${escapeAttribute(
+                            appData.siteInfo.logo
+                        )}"
+                        class="w-24 h-24 mx-auto rounded-full border-2 border-amber-500 mb-4 shadow-xl"
+                    >
+
+                    <h2
+                        class="text-3xl font-extrabold gold-gradient-text"
+                    >
+                        ${escapeHtml(
+                            appData.siteInfo.title
+                        )}
+                    </h2>
+
+                    <p
+                        class="text-amber-200/80 text-sm mt-1"
+                    >
+                        ${escapeHtml(
+                            appData.siteInfo.subtitle
+                        )}
+                    </p>
+
+                </div>
+
+
+                <div
+                    class="space-y-4 text-sm leading-relaxed text-slate-300 border-t border-slate-800 pt-6"
+                >
+
+                    <h3
+                        class="font-bold text-lg text-amber-400"
+                    >
+                        من نحن؟
+                    </h3>
+
+                    <p>
+                        تعتبر
+                        <strong>
+                            المتحدة للرتان والأثاث
+                        </strong>
+                        من المصانع المتخصصة في تصنيع وتوريد أثاث الرتان
+                        والأثاث الخارجي وتجهيزات الكافيهات والمطاعم
+                        والمشروعات.
+                    </p>
+
+                </div>
+
+
+                <div
+                    class="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-slate-800 pt-6"
+                >
+
+                    <div
+                        class="p-4 bg-slate-900 rounded-xl border border-slate-800 text-center"
+                    >
+
+                        <i
+                            class="fa-solid fa-award text-2xl text-amber-400 mb-2"
+                        ></i>
+
+                        <h4 class="font-bold">
+                            جودة التصنيع
+                        </h4>
+
+                        <p
+                            class="text-xs text-slate-400 mt-1"
+                        >
+                            اهتمام بالتفاصيل والخامات
+                        </p>
+
+                    </div>
+
+
+                    <div
+                        class="p-4 bg-slate-900 rounded-xl border border-slate-800 text-center"
+                    >
+
+                        <i
+                            class="fa-solid fa-palette text-2xl text-amber-400 mb-2"
+                        ></i>
+
+                        <h4 class="font-bold">
+                            تنفيذ حسب الطلب
+                        </h4>
+
+                        <p
+                            class="text-xs text-slate-400 mt-1"
+                        >
+                            مقاسات وألوان حسب المشروع
+                        </p>
+
+                    </div>
+
+
+                    <div
+                        class="p-4 bg-slate-900 rounded-xl border border-slate-800 text-center"
+                    >
+
+                        <i
+                            class="fa-solid fa-truck-ramp-box text-2xl text-amber-400 mb-2"
+                        ></i>
+
+                        <h4 class="font-bold">
+                            توريد للمشروعات
+                        </h4>
+
+                        <p
+                            class="text-xs text-slate-400 mt-1"
+                        >
+                            تجهيز الكافيهات والمطاعم والحدائق
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    `;
+
+}
+
+
+/* ============================================================
+   CONTACT
+============================================================ */
+
+function renderContactPage() {
+
+    return `
+
+        <section
+            class="py-16 max-w-4xl mx-auto px-4"
+        >
+
+            <div
+                class="glass-card rounded-2xl p-8 border border-amber-500/30 space-y-8"
+            >
+
+                <div class="text-center">
+
+                    <h2
+                        class="text-3xl font-extrabold gold-gradient-text"
+                    >
+                        تواصل معنا
+                    </h2>
+
+                    <p
+                        class="text-xs text-slate-400 mt-2"
+                    >
+                        فريق خدمة العملاء جاهز للرد على استفساراتكم
+                    </p>
+
+                </div>
+
+
+                <div
+                    class="grid grid-cols-1 md:grid-cols-2 gap-6"
+                >
+
+                    <div
+                        class="space-y-4 bg-slate-900/80 p-6 rounded-xl border border-slate-800"
+                    >
+
+                        <h3
+                            class="font-bold text-amber-400 border-b border-slate-800 pb-2"
+                        >
+                            بيانات الاتصال
+                        </h3>
+
+                        <p class="text-sm flex items-center gap-3">
+                            <i
+                                class="fa-solid fa-phone text-amber-400 text-lg"
+                            ></i>
+
+                            <span>
+                                الهاتف:
+                                ${escapeHtml(
+                                    appData.siteInfo.phone
+                                )}
+                            </span>
+                        </p>
+
+
+                        <p class="text-sm flex items-center gap-3">
+                            <i
+                                class="fa-brands fa-whatsapp text-emerald-400 text-lg"
+                            ></i>
+
+                            <span>
+                                الواتساب:
+                                ${escapeHtml(
+                                    appData.siteInfo.whatsapp
+                                )}
+                            </span>
+                        </p>
+
+
+                        <p class="text-sm flex items-center gap-3">
+                            <i
+                                class="fa-solid fa-location-dot text-amber-400 text-lg"
+                            ></i>
+
+                            <span>
+                                العنوان:
+                                ${escapeHtml(
+                                    appData.siteInfo.address
+                                )}
+                            </span>
+                        </p>
+
+                    </div>
+
+
+                    <div
+                        class="space-y-4 bg-slate-900/80 p-6 rounded-xl border border-slate-800"
+                    >
+
+                        <h3
+                            class="font-bold text-amber-400 border-b border-slate-800 pb-2"
+                        >
+                            الدفع والتحويل
+                        </h3>
+
+                        <p class="text-sm flex items-center gap-3">
+
+                            <i
+                                class="fa-solid fa-mobile-retro text-amber-400 text-lg"
+                            ></i>
+
+                            <span>
+                                فودافون كاش:
+                                <strong class="text-white">
+                                    ${
+                                        appData.siteInfo
+                                            .vodafoneCash ||
+                                        "يتم تحديده عند الطلب"
+                                    }
+                                </strong>
+                            </span>
+
+                        </p>
+
+
+                        <p class="text-sm flex items-center gap-3">
+
+                            <i
+                                class="fa-solid fa-building-columns text-amber-400 text-lg"
+                            ></i>
+
+                            <span>
+                                الحساب البنكي:
+                                <strong class="text-white">
+                                    ${
+                                        appData.siteInfo
+                                            .bankAccount ||
+                                        "يتم تحديده عند الطلب"
+                                    }
+                                </strong>
+                            </span>
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="text-center pt-4">
+
+                    <a
+                        href="https://wa.me/${String(
+                            appData.siteInfo.whatsapp
+                        ).replace(/[^0-9]/g, "")}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-white transition"
+                    >
+
+                        <i
+                            class="fa-brands fa-whatsapp text-xl"
+                        ></i>
+
+                        المراسلة عبر الواتساب
+
+                    </a>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    `;
+
+}
+
+
+/* ============================================================
+   ADMIN DASHBOARD
+============================================================ */
+
+function renderAdminDashboard() {
+
+    if (!isAdminLoggedIn) {
+
+        return "";
+
+    }
+
+
+    return `
+
+        <section
+            class="py-12 max-w-7xl mx-auto px-4"
+        >
+
+            <div
+                class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 bg-slate-900 p-6 rounded-2xl border border-amber-500/30"
+            >
+
+                <div>
+
+                    <h2
+                        class="text-2xl font-extrabold gold-gradient-text flex items-center gap-2"
+                    >
+                        <i class="fa-solid fa-sliders"></i>
+                        لوحة تحكم الإدارة
+                    </h2>
+
+                    <p
+                        class="text-xs text-slate-400 mt-1"
+                    >
+                        لوحة الإدارة خاصة بصاحب الموقع.
+                    </p>
+
+                </div>
+
+
+                <button
+                    onclick="logoutAdmin()"
+                    class="px-4 py-2 rounded-xl bg-rose-900/50 border border-rose-500/40 text-rose-300 font-bold hover:bg-rose-800 transition text-xs"
+                >
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    تسجيل الخروج
+                </button>
+
+            </div>
+
+
+            <div
+                class="grid grid-cols-1 lg:grid-cols-3 gap-8"
+            >
+
+                <!-- PRODUCT FORM -->
+
+                <div
+                    class="glass-card p-6 rounded-2xl border border-amber-500/30 space-y-4"
+                >
+
+                    <h3
+                        id="adminProductFormTitle"
+                        class="font-bold text-lg text-amber-400 border-b border-slate-800 pb-2"
+                    >
+                        إضافة منتج جديد
+                    </h3>
+
+
+                    <form
+                        onsubmit="handleSaveProduct(event)"
+                        class="space-y-4"
+                    >
+
+                        <input
+                            type="hidden"
+                            id="editProductId"
+                            value=""
+                        >
+
+
+                        <div>
+
+                            <label
+                                class="block text-xs text-slate-300 font-bold mb-1"
+                            >
+                                اسم المنتج
+                            </label>
+
+                            <input
+                                type="text"
+                                id="prodTitleInput"
+                                required
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                            >
+
+                        </div>
+
+
+                        <div>
+
+                            <label
+                                class="block text-xs text-slate-300 font-bold mb-1"
+                            >
+                                القسم
+                            </label>
+
+                            <select
+                                id="prodCategoryInput"
+                                required
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                            >
+
+                                ${appData.categories
+                                    .map(
+                                        c => `
+                                            <option value="${escapeAttribute(c)}">
+                                                ${escapeHtml(c)}
+                                            </option>
+                                        `
+                                    )
+                                    .join("")}
+
+                            </select>
+
+                        </div>
+
+
+                        <div
+                            class="grid grid-cols-2 gap-2"
+                        >
+
+                            <div>
+
+                                <label
+                                    class="block text-xs text-slate-300 font-bold mb-1"
+                                >
+                                    السعر
+                                </label>
+
+                                <input
+                                    type="number"
+                                    min="0"
+                                    id="prodPriceInput"
+                                    required
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                                >
+
+                            </div>
+
+
+                            <div>
+
+                                <label
+                                    class="block text-xs text-slate-300 font-bold mb-1"
+                                >
+                                    السعر القديم
+                                </label>
+
+                                <input
+                                    type="number"
+                                    min="0"
+                                    id="prodOldPriceInput"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                                >
+
+                            </div>
+
+                        </div>
+
+
+                        <div>
+
+                            <label
+                                class="block text-xs text-slate-300 font-bold mb-1"
+                            >
+                                صورة المنتج
+                            </label>
+
+                            <input
+                                type="file"
+                                id="prodImageFileInput"
+                                accept="image/*"
+                                onchange="previewImageUpload(event)"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300"
+                            >
+
+                            <input
+                                type="hidden"
+                                id="prodImageBase64"
+                            >
+
+
+                            <div
+                                id="imagePreviewContainer"
+                                class="mt-2 hidden"
+                            >
+
+                                <img
+                                    id="imagePreview"
+                                    src=""
+                                    class="w-20 h-20 object-cover rounded-lg border border-amber-500"
+                                >
+
+                            </div>
+
+                        </div>
+
+
+                        <div>
+
+                            <label
+                                class="block text-xs text-slate-300 font-bold mb-1"
+                            >
+                                وصف المنتج
+                            </label>
+
+                            <textarea
+                                id="prodDescriptionInput"
+                                rows="3"
+                                required
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                            ></textarea>
+
+                        </div>
+
+
+                        <div>
+
+                            <label
+                                class="flex items-center gap-2 cursor-pointer text-xs text-slate-300"
+                            >
+
+                                <input
+                                    type="checkbox"
+                                    id="prodInStockInput"
+                                    checked
+                                    class="rounded accent-amber-500"
+                                >
+
+                                <span>
+                                    المنتج متوفر
+                                </span>
+
+                            </label>
+
+                        </div>
+
+
+                        <div class="flex gap-2 pt-2">
+
+                            <button
+                                type="submit"
+                                class="flex-grow py-3 rounded-xl gold-bg-gradient text-slate-950 font-bold text-xs"
+                            >
+                                <i class="fa-solid fa-floppy-disk"></i>
+                                حفظ المنتج
+                            </button>
+
+
+                            <button
+                                type="button"
+                                onclick="resetProductForm()"
+                                class="px-3 py-3 bg-slate-800 text-slate-400 rounded-xl text-xs"
+                            >
+                                إلغاء
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+
+                <!-- SITE SETTINGS -->
+
+                <div
+                    class="glass-card p-6 rounded-2xl border border-amber-500/30 space-y-4"
+                >
+
+                    <h3
+                        class="font-bold text-lg text-amber-400 border-b border-slate-800 pb-2"
+                    >
+                        بيانات الموقع
+                    </h3>
+
+
+                    <form
+                        onsubmit="handleSaveSiteSettings(event)"
+                        class="space-y-3"
+                    >
+
+                        <div>
+
+                            <label
+                                class="block text-xs text-slate-300 font-bold mb-1"
+                            >
+                                اسم الموقع
+                            </label>
+
+                            <input
+                                type="text"
+                                id="setSiteTitle"
+                                value="${escapeAttribute(
+                                    appData.siteInfo.title
+                                )}"
+                                required
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                            >
+
+                        </div>
+
+
+                        <div>
+
+                            <label
+                                class="block text-xs text-slate-300 font-bold mb-1"
+                            >
+                                الشعار اللفظي
+                            </label>
+
+                            <input
+                                type="text"
+                                id="setSiteSubtitle"
+                                value="${escapeAttribute(
+                                    appData.siteInfo.subtitle
+                                )}"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                            >
+
+                        </div>
+
+
+                        <div>
+
+                            <label
+                                class="block text-xs text-slate-300 font-bold mb-1"
+                            >
+                                الهاتف
+                            </label>
+
+                            <input
+                                type="text"
+                                id="setSitePhone"
+                                value="${escapeAttribute(
+                                    appData.siteInfo.phone
+                                )}"
+                                required
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                            >
+
+                        </div>
+
+
+                        <div>
+
+                            <label
+                                class="block text-xs text-slate-300 font-bold mb-1"
+                            >
+                                الواتساب
+                            </label>
+
+                            <input
+                                type="text"
+                                id="setSiteWhatsapp"
+                                value="${escapeAttribute(
+                                    appData.siteInfo.whatsapp
+                                )}"
+                                required
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                            >
+
+                        </div>
+
+
+                        <div>
+
+                            <label
+                                class="block text-xs text-slate-300 font-bold mb-1"
+                            >
+                                فودافون كاش
+                            </label>
+
+                            <input
+                                type="text"
+                                id="setSiteVodafone"
+                                value="${escapeAttribute(
+                                    appData.siteInfo.vodafoneCash
+                                )}"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                            >
+
+                        </div>
+
+
+                        <div>
+
+                            <label
+                                class="block text-xs text-slate-300 font-bold mb-1"
+                            >
+                                الحساب البنكي / IBAN
+                            </label>
+
+                            <input
+                                type="text"
+                                id="setSiteBank"
+                                value="${escapeAttribute(
+                                    appData.siteInfo.bankAccount
+                                )}"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                            >
+
+                        </div>
+
+
+                        <div>
+
+                            <label
+                                class="block text-xs text-slate-300 font-bold mb-1"
+                            >
+                                تغيير اللوجو
+                            </label>
+
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onchange="handleLogoChange(event)"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300"
+                            >
+
+                        </div>
+
+
+                        <button
+                            type="submit"
+                            class="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 font-bold text-slate-950 text-xs"
+                        >
+                            تحديث بيانات الموقع
+                        </button>
+
+                    </form>
+
+                </div>
+
+
+                <!-- PRODUCTS -->
+
+                <div
+                    class="glass-card p-6 rounded-2xl border border-amber-500/30 space-y-4"
+                >
+
+                    <h3
+                        class="font-bold text-lg text-amber-400 border-b border-slate-800 pb-2"
+                    >
+                        المنتجات
+                        (${appData.products.length})
+                    </h3>
+
+
+                    <div
+                        class="space-y-3 max-h-[600px] overflow-y-auto pr-1"
+                    >
+
+                        ${
+                            appData.products.length === 0
+                                ? `
+                                    <div
+                                        class="text-center text-slate-500 text-sm py-8"
+                                    >
+                                        لا توجد منتجات.
+                                    </div>
+                                `
+                                : appData.products
+                                    .map(
+                                        p => `
+
+                                            <div
+                                                class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-3"
+                                            >
+
+                                                <img
+                                                    src="${escapeAttribute(
+                                                        p.image ||
+                                                        "logo.png"
+                                                    )}"
+                                                    class="w-12 h-12 rounded-lg object-cover border border-slate-700"
+                                                >
+
+                                                <div
+                                                    class="flex-grow overflow-hidden"
+                                                >
+
+                                                    <h4
+                                                        class="font-bold text-xs text-white truncate"
+                                                    >
+                                                        ${escapeHtml(
+                                                            p.title
+                                                        )}
+                                                    </h4>
+
+                                                    <p
+                                                        class="text-[10px] text-amber-400"
+                                                    >
+                                                        ${Number(
+                                                            p.price
+                                                        ).toLocaleString()}
+                                                        ج.م
+                                                    </p>
+
+                                                </div>
+
+
+                                                <div
+                                                    class="flex items-center gap-1"
+                                                >
+
+                                                    <button
+                                                        onclick="editProduct(${Number(
+                                                            p.id
+                                                        )})"
+                                                        class="p-2 bg-slate-800 text-amber-400 hover:bg-amber-600 hover:text-slate-950 rounded-lg text-xs"
+                                                    >
+                                                        <i class="fa-solid fa-pen"></i>
+                                                    </button>
+
+
+                                                    <button
+                                                        onclick="deleteProduct(${Number(
+                                                            p.id
+                                                        )})"
+                                                        class="p-2 bg-slate-800 text-rose-400 hover:bg-rose-600 hover:text-white rounded-lg text-xs"
+                                                    >
+                                                        <i class="fa-solid fa-trash"></i>
+                                                    </button>
+
+                                                </div>
+
+                                            </div>
+
+                                        `
+                                    )
+                                    .join("")
+                        }
+
+                    </div>
+
+                </div>
+
+
+                <!-- ORDERS -->
+
+                <div
+                    class="glass-card p-6 rounded-2xl border border-amber-500/30 space-y-4 lg:col-span-3"
+                >
+
+                    <div
+                        class="flex justify-between items-center border-b border-slate-800 pb-2"
+                    >
+
+                        <h3
+                            class="font-bold text-lg text-amber-400"
+                        >
+                            طلبات العملاء
+                            (${appData.orders.length})
+                        </h3>
+
+                        <button
+                            onclick="loadServerOrders()"
+                            class="px-3 py-1.5 rounded-lg bg-slate-800 text-amber-400 text-xs"
+                        >
+                            <i class="fa-solid fa-rotate"></i>
+                            تحديث
+                        </button>
+
+                    </div>
+
+
+                    <div
+                        class="space-y-3 max-h-[650px] overflow-y-auto"
+                    >
+
+                        ${
+                            appData.orders.length === 0
+                                ? `
+                                    <div
+                                        class="text-center py-10 text-slate-500 text-sm"
+                                    >
+                                        لا توجد طلبات حتى الآن.
+                                    </div>
+                                `
+                                : appData.orders
+                                    .slice()
+                                    .reverse()
+                                    .map(
+                                        o =>
+                                            renderAdminOrder(
+                                                o
+                                            )
+                                    )
+                                    .join("")
+                        }
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    `;
+
+}
+
+
+/* ============================================================
+   ADMIN ORDER
+============================================================ */
+
+function renderAdminOrder(o) {
+
+    const items =
+        Array.isArray(o.items)
+            ? o.items
+            : [];
+
+
+    return `
+
+        <div
+            class="bg-slate-900 p-4 rounded-xl border border-slate-800"
+        >
+
+            <div
+                class="flex flex-wrap justify-between gap-3 mb-3"
+            >
+
+                <div>
+
+                    <h4
+                        class="font-bold text-white"
+                    >
+                        ${escapeHtml(
+                            o.customerName ||
+                            "عميل"
+                        )}
+                    </h4>
+
+                    <p
+                        class="text-xs text-slate-400"
+                    >
+                        ${escapeHtml(
+                            o.customerPhone ||
+                            ""
+                        )}
+
+                        •
+
+                        ${escapeHtml(
+                            o.createdAt ||
+                            ""
+                        )}
+                    </p>
+
+                </div>
+
+
+                <div class="text-left">
+
+                    <span
+                        class="text-amber-400 font-bold"
+                    >
+                        ${Number(
+                            o.total || 0
+                        ).toLocaleString()}
+                        ج.م
+                    </span>
+
+                    <p
+                        class="text-[10px] text-slate-500"
+                    >
+                        رقم الطلب:
+                        ${escapeHtml(
+                            String(
+                                o.id || ""
+                            )
+                        )}
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div
+                class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-slate-300"
+            >
+
+                <p>
+                    <strong class="text-amber-400">
+                        العنوان:
+                    </strong>
+                    ${escapeHtml(
+                        o.governorate || ""
+                    )}
+                    -
+                    ${escapeHtml(
+                        o.address || ""
+                    )}
+                </p>
+
+
+                <p>
+                    <strong class="text-amber-400">
+                        الاستلام:
+                    </strong>
+                    ${escapeHtml(
+                        o.deliveryMethod ||
+                        ""
+                    )}
+                </p>
+
+
+                <p>
+                    <strong class="text-amber-400">
+                        المدة:
+                    </strong>
+                    ${escapeHtml(
+                        o.deliveryDuration ||
+                        ""
+                    )}
+                </p>
+
+
+                <p>
+                    <strong class="text-amber-400">
+                        الدفع:
+                    </strong>
+                    ${escapeHtml(
+                        o.paymentStatus ||
+                        ""
+                    )}
+                </p>
+
+
+                <p>
+                    <strong class="text-amber-400">
+                        حالة الطلب:
+                    </strong>
+                    ${escapeHtml(
+                        o.orderStatus ||
+                        "جديد"
+                    )}
+                </p>
+
+            </div>
+
+
+            <div
+                class="mt-3 pt-3 border-t border-slate-800"
+            >
+
+                <p
+                    class="text-xs text-slate-300 font-bold mb-1"
+                >
+                    المنتجات:
+                </p>
+
+
+                <ul
+                    class="text-xs text-slate-400 space-y-1"
+                >
+
+                    ${
+                        items.length
+                            ? items
+                                .map(
+                                    item =>
+                                        `<li>
+                                            • ${escapeHtml(
+                                                item.title ||
+                                                "منتج"
+                                            )}
+                                            ×
+                                            ${Number(
+                                                item.qty || 0
+                                            )}
+                                            —
+                                            ${(
+                                                Number(
+                                                    item.price ||
+                                                    0
+                                                ) *
+                                                Number(
+                                                    item.qty ||
+                                                    0
+                                                )
+                                            ).toLocaleString()}
+                                            ج.م
+                                        </li>`
+                                )
+                                .join("")
+                            : "<li>لا توجد تفاصيل للمنتجات</li>"
+                    }
+
+                </ul>
+
+
+                ${
+                    o.notes
+                        ? `
+                            <p
+                                class="text-xs text-slate-400 mt-2"
+                            >
+                                <strong class="text-amber-400">
+                                    ملاحظات:
+                                </strong>
+
+                                ${escapeHtml(
+                                    o.notes
+                                )}
+                            </p>
+                        `
+                        : ""
+                }
+
+
+                ${
+                    o.shippingNotes
+                        ? `
+                            <p
+                                class="text-xs text-slate-400 mt-1"
+                            >
+                                <strong class="text-amber-400">
+                                    تفاصيل الشحن:
+                                </strong>
+
+                                ${escapeHtml(
+                                    o.shippingNotes
+                                )}
+                            </p>
+                        `
+                        : ""
+                }
+
+            </div>
+
+
+            <div class="flex gap-2 mt-3">
+
+                <button
+                    onclick="markOrderStatus(${Number(
+                        o.id
+                    )}, 'تمت المراجعة')"
+                    class="px-3 py-1.5 rounded-lg bg-emerald-900/50 text-emerald-300 border border-emerald-500/30 text-xs"
+                >
+                    تمت المراجعة
+                </button>
+
+
+                <button
+                    onclick="markOrderStatus(${Number(
+                        o.id
+                    )}, 'جاري التجهيز')"
+                    class="px-3 py-1.5 rounded-lg bg-amber-900/50 text-amber-300 border border-amber-500/30 text-xs"
+                >
+                    جاري التجهيز
+                </button>
+
+
+                <button
+                    onclick="deleteOrder(${Number(
+                        o.id
+                    )})"
+                    class="px-3 py-1.5 rounded-lg bg-rose-900/50 text-rose-300 border border-rose-500/30 text-xs"
+                >
+                    حذف الطلب
+                </button>
+
+            </div>
+
+        </div>
+
+    `;
+
+}
+
+
+/* ============================================================
+   IMAGE UPLOAD
+============================================================ */
+
+function previewImageUpload(event) {
+
+    const file =
+        event.target.files?.[0];
+
+
+    if (!file) return;
+
+
+    if (
+        !file.type.startsWith(
+            "image/"
+        )
+    ) {
+
+        alert(
+            "من فضلك اختر صورة صحيحة."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        file.size >
+        5 * 1024 * 1024
+    ) {
+
+        alert(
+            "حجم الصورة كبير. استخدم صورة أقل من 5 ميجابايت."
+        );
+
+        event.target.value = "";
+
+        return;
+
+    }
+
+
+    const reader =
+        new FileReader();
+
+
+    reader.onload =
+        function (e) {
+
+            const result =
+                e.target.result;
+
+
+            document.getElementById(
+                "prodImageBase64"
+            ).value =
+                result;
+
+
+            document.getElementById(
+                "imagePreview"
+            ).src =
+                result;
+
+
+            document.getElementById(
+                "imagePreviewContainer"
+            ).classList.remove(
+                "hidden"
+            );
+
+        };
+
+
+    reader.readAsDataURL(
+        file
+    );
+
+}
+
+
+/* ============================================================
+   LOGO
+============================================================ */
+
+function handleLogoChange(event) {
+
+    const file =
+        event.target.files?.[0];
+
+
+    if (!file) return;
+
+
+    if (
+        !file.type.startsWith(
+            "image/"
+        )
+    ) {
+
+        alert(
+            "من فضلك اختر صورة."
+        );
+
+        return;
+
+    }
+
+
+    const reader =
+        new FileReader();
+
+
+    reader.onload =
+        function (e) {
+
+            appData.siteInfo.logo =
+                e.target.result;
+
+
+            saveLocalData();
+
+            updateHeaderAndFooter();
+
+
+            alert(
+                "تم تغيير اللوجو في هذا المتصفح."
+            );
+
+        };
+
+
+    reader.readAsDataURL(
+        file
+    );
+
+}
+
+
+/* ============================================================
+   PRODUCT SAVE
+============================================================ */
+
+function handleSaveProduct(e) {
+
+    e.preventDefault();
+
+
+    if (!isAdminLoggedIn) {
+
+        alert(
+            "يجب تسجيل الدخول للإدارة أولاً."
+        );
+
+        return;
+
+    }
+
+
+    const id =
+        document.getElementById(
+            "editProductId"
+        ).value;
+
+
+    const title =
+        document.getElementById(
+            "prodTitleInput"
+        ).value.trim();
+
+
+    const category =
+        document.getElementById(
+            "prodCategoryInput"
+        ).value;
+
+
+    const price =
+        Number(
+            document.getElementById(
+                "prodPriceInput"
+            ).value
+        );
+
+
+    const oldPriceValue =
+        document.getElementById(
+            "prodOldPriceInput"
+        ).value;
+
+
+    const oldPrice =
+        oldPriceValue
+            ? Number(oldPriceValue)
+            : null;
+
+
+    const description =
+        document.getElementById(
+            "prodDescriptionInput"
+        ).value.trim();
+
+
+    const inStock =
+        document.getElementById(
+            "prodInStockInput"
+        ).checked;
+
+
+    let image =
+        document.getElementById(
+            "prodImageBase64"
+        ).value;
+
+
+    if (
+        !title ||
+        !category ||
+        !price ||
+        !description
+    ) {
+
+        alert(
+            "من فضلك أكمل بيانات المنتج."
+        );
+
+        return;
+
+    }
+
+
+    if (!image && id) {
+
+        const existing =
+            appData.products.find(
+                p =>
+                    String(p.id) ===
+                    String(id)
+            );
+
+
+        image =
+            existing?.image ||
+            "logo.png";
+
+    }
+
+
+    if (!image && !id) {
+
+        alert(
+            "من فضلك اختر صورة المنتج."
+        );
+
+        return;
+
+    }
+
+
+    if (id) {
+
+        const index =
+            appData.products.findIndex(
+                p =>
+                    String(p.id) ===
+                    String(id)
+            );
+
+
+        if (index !== -1) {
+
+            appData.products[index] = {
+
+                id:
+                    Number(id),
+
+                title,
+
+                category,
+
+                price,
+
+                oldPrice,
+
+                image,
+
+                description,
+
+                inStock
+
+            };
+
+        }
+
+    }
+
+
+    else {
+
+        appData.products.unshift({
+
+            id:
+                Date.now(),
+
+            title,
+
+            category,
+
+            price,
+
+            oldPrice,
+
+            image,
+
+            description,
+
+            inStock
+
+        });
+
+    }
+
+
+    saveLocalData();
+
+
+    alert(
+        "تم حفظ المنتج."
+    );
+
+
+    navigateTo("admin");
+
+}
+
+
+/* ============================================================
+   EDIT PRODUCT
+============================================================ */
+
+function editProduct(id) {
+
+    const product =
+        appData.products.find(
+            p =>
+                Number(p.id) ===
+                Number(id)
+        );
+
+
+    if (!product) return;
+
+
+    document.getElementById(
+        "editProductId"
+    ).value =
+        product.id;
+
+
+    document.getElementById(
+        "prodTitleInput"
+    ).value =
+        product.title;
+
+
+    document.getElementById(
+        "prodCategoryInput"
+    ).value =
+        product.category;
+
+
+    document.getElementById(
+        "prodPriceInput"
+    ).value =
+        product.price;
+
+
+    document.getElementById(
+        "prodOldPriceInput"
+    ).value =
+        product.oldPrice || "";
+
+
+    document.getElementById(
+        "prodDescriptionInput"
+    ).value =
+        product.description || "";
+
+
+    document.getElementById(
+        "prodInStockInput"
+    ).checked =
+        Boolean(
+            product.inStock
+        );
+
+
+    document.getElementById(
+        "prodImageBase64"
+    ).value =
+        product.image || "";
+
+
+    document.getElementById(
+        "imagePreview"
+    ).src =
+        product.image || "logo.png";
+
+
+    document.getElementById(
+        "imagePreviewContainer"
+    ).classList.remove(
+        "hidden"
+    );
+
+
+    document.getElementById(
+        "adminProductFormTitle"
+    ).innerText =
+        "تعديل بيانات المنتج";
+
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+
+}
+
+
+/* ============================================================
+   RESET PRODUCT
+============================================================ */
+
+function resetProductForm() {
+
+    const id =
+        document.getElementById(
+            "editProductId"
+        );
+
+
+    if (id) id.value = "";
+
+
+    document.getElementById(
+        "prodTitleInput"
+    ).value = "";
+
+
+    document.getElementById(
+        "prodPriceInput"
+    ).value = "";
+
+
+    document.getElementById(
+        "prodOldPriceInput"
+    ).value = "";
+
+
+    document.getElementById(
+        "prodDescriptionInput"
+    ).value = "";
+
+
+    document.getElementById(
+        "prodImageBase64"
+    ).value = "";
+
+
+    document.getElementById(
+        "imagePreviewContainer"
+    ).classList.add(
+        "hidden"
+    );
+
+
+    document.getElementById(
+        "adminProductFormTitle"
+    ).innerText =
+        "إضافة منتج جديد";
+
+}
+
+
+/* ============================================================
+   DELETE PRODUCT
+============================================================ */
+
+function deleteProduct(id) {
+
+    if (!isAdminLoggedIn) {
+
+        alert(
+            "غير مسموح."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !confirm(
+            "هل تريد حذف هذا المنتج نهائياً؟"
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    appData.products =
+        appData.products.filter(
+            p =>
+                Number(p.id) !==
+                Number(id)
+        );
+
+
+    saveLocalData();
+
+
+    navigateTo("admin");
+
+}
+
+
+/* ============================================================
+   SITE SETTINGS
+============================================================ */
+
+function handleSaveSiteSettings(e) {
+
+    e.preventDefault();
+
+
+    if (!isAdminLoggedIn) {
+
+        alert(
+            "يجب تسجيل الدخول."
+        );
+
+        return;
+
+    }
+
+
+    appData.siteInfo.title =
+        document.getElementById(
+            "setSiteTitle"
+        ).value.trim();
+
+
+    appData.siteInfo.subtitle =
+        document.getElementById(
+            "setSiteSubtitle"
+        ).value.trim();
+
+
+    appData.siteInfo.phone =
+        document.getElementById(
+            "setSitePhone"
+        ).value.trim();
+
+
+    appData.siteInfo.whatsapp =
+        document.getElementById(
+            "setSiteWhatsapp"
+        ).value.trim();
+
+
+    appData.siteInfo.vodafoneCash =
+        document.getElementById(
+            "setSiteVodafone"
+        ).value.trim();
+
+
+    appData.siteInfo.bankAccount =
+        document.getElementById(
+            "setSiteBank"
+        ).value.trim();
+
+
+    saveLocalData();
+
+    updateHeaderAndFooter();
+
+
+    alert(
+        "تم حفظ بيانات الموقع في هذا المتصفح."
+    );
+
+
+    navigateTo("admin");
+
+}
+
+
+/* ============================================================
+   PRODUCT DETAILS
+============================================================ */
+
+function openProductDetail(id) {
+
+    const product =
+        appData.products.find(
+            p =>
+                Number(p.id) ===
+                Number(id)
+        );
+
+
+    if (!product) return;
+
+
+    const modal =
+        document.getElementById(
+            "productDetailModal"
+        );
+
+
+    const content =
+        document.getElementById(
+            "productDetailContent"
+        );
+
+
+    content.innerHTML = `
+
+        <button
+            onclick="closeProductDetail()"
+            class="absolute top-3 left-3 w-8 h-8 rounded-full bg-slate-900/80 text-white flex items-center justify-center z-10 hover:bg-slate-800"
+        >
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+
+
+        <div
+            class="grid grid-cols-1 md:grid-cols-2"
+        >
+
+            <div
+                class="h-64 md:h-full bg-slate-950"
+            >
+
+                <img
+                    src="${escapeAttribute(
+                        product.image ||
+                        "logo.png"
+                    )}"
+                    class="w-full h-full object-cover"
+                >
+
+            </div>
+
+
+            <div
+                class="p-6 space-y-4 flex flex-col justify-between"
+            >
+
+                <div>
+
+                    <span
+                        class="text-xs text-amber-400 font-bold"
+                    >
+                        ${escapeHtml(
+                            product.category
+                        )}
+                    </span>
+
+
+                    <h3
+                        class="text-xl font-bold text-white mt-1"
+                    >
+                        ${escapeHtml(
+                            product.title
+                        )}
+                    </h3>
+
+
+                    <div class="my-3">
+
+                        <span
+                            class="text-2xl font-extrabold text-amber-400"
+                        >
+                            ${Number(
+                                product.price
+                            ).toLocaleString()}
+                            ج.م
+                        </span>
+
+
+                        ${
+                            product.oldPrice
+                                ? `
+                                    <span
+                                        class="text-xs text-slate-500 line-through mr-2"
+                                    >
+                                        ${Number(
+                                            product.oldPrice
+                                        ).toLocaleString()}
+                                        ج.م
+                                    </span>
+                                `
+                                : ""
+                        }
+
+                    </div>
+
+
+                    <div
+                        class="border-t border-slate-800 pt-3"
+                    >
+
+                        <h4
+                            class="text-xs font-bold text-slate-300 mb-1"
+                        >
+                            وصف المنتج:
+                        </h4>
+
+                        <p
+                            class="text-xs text-slate-400 leading-relaxed"
+                        >
+                            ${escapeHtml(
+                                product.description ||
+                                "لا يوجد وصف متاح."
+                            )}
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <button
+                    onclick="addToCart(${Number(
+                        product.id
+                    )}); closeProductDetail();"
+                    ${
+                        !product.inStock
+                            ? "disabled"
+                            : ""
+                    }
+                    class="w-full py-3 rounded-xl ${
+                        product.inStock
+                            ? "gold-bg-gradient"
+                            : "bg-slate-700"
+                    } text-slate-950 font-bold transition flex items-center justify-center gap-2"
+                >
+
+                    <i class="fa-solid fa-cart-plus"></i>
+
+                    ${
+                        product.inStock
+                            ? "إضافة إلى السلة"
+                            : "المنتج غير متوفر"
+                    }
+
+                </button>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    modal.classList.remove(
+        "hidden"
+    );
+
+}
+
+
+function closeProductDetail() {
+
+    document.getElementById(
+        "productDetailModal"
+    ).classList.add(
+        "hidden"
+    );
+
+}
+
+
+/* ============================================================
+   CART
+============================================================ */
+
+function addToCart(id) {
+
+    const product =
+        appData.products.find(
+            p =>
+                Number(p.id) ===
+                Number(id)
+        );
+
+
+    if (!product) return;
+
+
+    if (!product.inStock) {
+
+        alert(
+            "هذا المنتج غير متوفر حالياً."
+        );
+
+        return;
+
+    }
+
+
+    const existing =
+        cart.find(
+            item =>
+                Number(item.id) ===
+                Number(id)
+        );
+
+
+    if (existing) {
+
+        existing.qty += 1;
+
+    }
+
+
+    else {
+
+        cart.push({
+
+            id:
+                product.id,
+
+            title:
+                product.title,
+
+            price:
+                Number(product.price),
+
+            image:
+                product.image,
+
+            qty:
+                1
+
+        });
+
+    }
+
+
+    saveLocalData();
+
+    renderCartModal();
+
+
+    alert(
+        `تمت إضافة "${product.title}" إلى السلة.`
+    );
+
+}
+
+
+/* ============================================================
+   CART BADGE
+============================================================ */
+
+function updateCartBadge() {
+
+    const badge =
+        document.getElementById(
+            "cartBadge"
+        );
+
+
+    if (!badge) return;
+
+
+    const total =
+        cart.reduce(
+            (
+                sum,
+                item
+            ) =>
+                sum +
+                Number(
+                    item.qty || 0
+                ),
+            0
+        );
+
+
+    if (total > 0) {
+
+        badge.innerText =
+            total;
+
+        badge.classList.remove(
+            "hidden"
+        );
+
+    }
+
+
+    else {
+
+        badge.classList.add(
+            "hidden"
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   CART MODAL
+============================================================ */
+
+function toggleCartModal() {
+
+    const modal =
+        document.getElementById(
+            "cartModal"
+        );
+
+
+    if (
+        modal.classList.contains(
+            "hidden"
+        )
+    ) {
+
+        renderCartModal();
+
+        modal.classList.remove(
+            "hidden"
+        );
+
+    }
+
+
+    else {
+
+        modal.classList.add(
+            "hidden"
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   RENDER CART
+============================================================ */
+
+function renderCartModal() {
+
+    const list =
+        document.getElementById(
+            "cartItemsList"
+        );
+
+
+    const totalEl =
+        document.getElementById(
+            "cartTotalPrice"
+        );
+
+
+    if (
+        !cart.length
+    ) {
+
+        list.innerHTML = `
+
+            <p
+                class="text-center text-slate-400 py-8 text-sm"
+            >
+                سلة المشتريات فارغة حالياً.
+            </p>
+
+        `;
+
+
+        totalEl.innerText =
+            "0 ج.م";
+
+
+        return;
+
+    }
+
+
+    let total = 0;
+
+
+    list.innerHTML =
+        cart
+            .map(
+                (
+                    item,
+                    index
+                ) => {
+
+                    const subtotal =
+                        Number(
+                            item.price
+                        ) *
+                        Number(
+                            item.qty
+                        );
+
+
+                    total +=
+                        subtotal;
+
+
+                    return `
+
+                        <div
+                            class="flex items-center justify-between gap-3 bg-slate-900/80 p-3 rounded-xl border border-slate-800"
+                        >
+
+                            <img
+                                src="${escapeAttribute(
+                                    item.image ||
+                                    "logo.png"
+                                )}"
+                                class="w-12 h-12 rounded-lg object-cover"
+                            >
+
+
+                            <div class="flex-grow">
+
+                                <h5
+                                    class="text-xs font-bold text-white truncate"
+                                >
+                                    ${escapeHtml(
+                                        item.title
+                                    )}
+                                </h5>
+
+                                <span
+                                    class="text-xs text-amber-400"
+                                >
+                                    ${Number(
+                                        item.price
+                                    ).toLocaleString()}
+                                    ج.م
+                                </span>
+
+                            </div>
+
+
+                            <div
+                                class="flex items-center gap-2"
+                            >
+
+                                <button
+                                    onclick="changeQty(${index}, -1)"
+                                    class="w-6 h-6 bg-slate-800 rounded flex items-center justify-center text-xs text-white"
+                                >
+                                    -
+                                </button>
+
+
+                                <span
+                                    class="text-xs font-bold"
+                                >
+                                    ${Number(
+                                        item.qty
+                                    )}
+                                </span>
+
+
+                                <button
+                                    onclick="changeQty(${index}, 1)"
+                                    class="w-6 h-6 bg-slate-800 rounded flex items-center justify-center text-xs text-white"
+                                >
+                                    +
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    `;
+
+                }
+            )
+            .join("");
+
+
+    totalEl.innerText =
+        `${total.toLocaleString()} ج.م`;
+
+}
+
+
+/* ============================================================
+   QUANTITY
+============================================================ */
+
+function changeQty(
+    index,
+    delta
+) {
+
+    if (!cart[index]) return;
+
+
+    cart[index].qty +=
+        Number(delta);
+
+
+    if (
+        cart[index].qty <= 0
+    ) {
+
+        cart.splice(
+            index,
+            1
+        );
+
+    }
+
+
+    saveLocalData();
+
+    renderCartModal();
+
+}
+
+
+/* ============================================================
+   PAYMENT
+============================================================ */
+
+function startCardPayment() {
+
+    if (!cart.length) {
+
+        alert(
+            "السلة فارغة."
+        );
+
+        return;
+
+    }
+
+
+    const total =
+        cart.reduce(
+            (
+                sum,
+                item
+            ) =>
+                sum +
+                (
+                    Number(
+                        item.price
+                    ) *
+                    Number(
+                        item.qty
+                    )
+                ),
+            0
+        );
+
+
+    document.getElementById(
+        "paymentTotal"
+    ).textContent =
+        `${total.toLocaleString()} ج.م`;
+
+
+    document.getElementById(
+        "paymentSetupNotice"
+    ).textContent =
+        "بعد حفظ البيانات سيتم تحويلك إلى صفحة الدفع الآمنة.";
+
+
+    document.getElementById(
+        "paymentModal"
+    ).classList.remove(
+        "hidden"
+    );
+
+}
+
+
+/* ============================================================
+   DELIVERY
+============================================================ */
+
+function toggleDeliveryFields() {
+
+    const method =
+        document.getElementById(
+            "deliveryMethod"
+        ).value;
+
+
+    document
+        .getElementById(
+            "shippingCompanyWrap"
+        )
+        .classList.toggle(
+            "hidden",
+            method !== "شركة شحن"
+        );
+
+}
+
+
+/* ============================================================
+   CLOSE PAYMENT
+============================================================ */
+
+function closePaymentModal() {
+
+    document.getElementById(
+        "paymentModal"
+    ).classList.add(
+        "hidden"
+    );
+
+}
+
+
+/* ============================================================
+   SUBMIT CARD ORDER
+============================================================ */
+
+async function submitCardOrder(e) {
+
+    e.preventDefault();
+
+
+    if (!cart.length) {
+
+        alert(
+            "السلة فارغة."
+        );
+
+        return;
+
+    }
+
+
+    const customerName =
+        document.getElementById(
+            "customerName"
+        ).value.trim();
+
+
+    const customerPhone =
+        document.getElementById(
+            "customerPhone"
+        ).value.trim();
+
+
+    const governorate =
+        document.getElementById(
+            "customerGovernorate"
+        ).value.trim();
+
+
+    const address =
+        document.getElementById(
+            "customerAddress"
+        ).value.trim();
+
+
+    const deliveryMethod =
+        document.getElementById(
+            "deliveryMethod"
+        ).value;
+
+
+    const deliveryDuration =
+        document.getElementById(
+            "deliveryDuration"
+        ).value;
+
+
+    const shippingNotes =
+        document.getElementById(
+            "shippingNotes"
+        ).value.trim();
+
+
+    const notes =
+        document.getElementById(
+            "customerNotes"
+        ).value.trim();
+
+
+    const total =
+        cart.reduce(
+            (
+                sum,
+                item
+            ) =>
+                sum +
+                (
+                    Number(
+                        item.price
+                    ) *
+                    Number(
+                        item.qty
+                    )
+                ),
+            0
+        );
+
+
+    if (
+        !customerName ||
+        !customerPhone ||
+        !governorate ||
+        !address ||
+        !deliveryMethod ||
+        !deliveryDuration
+    ) {
+
+        alert(
+            "من فضلك أكمل بيانات العميل والاستلام."
+        );
+
+        return;
+
+    }
+
+
+    const payload = {
+
+        customerName,
+
+        customerPhone,
+
+        governorate,
+
+        address,
+
+        deliveryMethod,
+
+        deliveryDuration,
+
+        shippingNotes,
+
+        notes,
+
+        total,
+
+        paymentMethod:
+            "card",
+
+        items:
+            cart.map(
+                item => ({
+
+                    id:
+                        item.id,
+
+                    title:
+                        item.title,
+
+                    price:
+                        Number(
+                            item.price
+                        ),
+
+                    qty:
+                        Number(
+                            item.qty
+                        )
+
+                })
+            )
+
+    };
+
+
+    const submitButton =
+        document.getElementById(
+            "continuePaymentBtn"
+        );
+
+
+    if (submitButton) {
+
+        submitButton.disabled =
+            true;
+
+        submitButton.innerHTML =
+            `
+                <span class="loading-spinner"></span>
+                جاري إنشاء الطلب...
+            `;
+
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                API.payment,
+                {
+
+                    method:
+                        "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify(
+                            payload
+                        )
+
+                }
+            );
+
+
+        const data =
+            await response.json()
+                .catch(
+                    () => ({})
+                );
+
+
+        if (
+            !response.ok
+        ) {
+
+            throw new Error(
+                data.error ||
+                "تعذر إنشاء عملية الدفع."
+            );
+
+        }
+
+
+        if (
+            !data.checkout_url
+        ) {
+
+            throw new Error(
+                "الخادم لم يرجع رابط الدفع."
+            );
+
+        }
+
+
+        /*
+            نفرغ السلة فقط بعد نجاح إنشاء جلسة الدفع.
+        */
+
+        cart = [];
+
+        saveLocalData();
+
+
+        window.location.href =
+            data.checkout_url;
+
+    }
+
+
+    catch (error) {
+
+        console.error(
+            "Payment error:",
+            error
+        );
+
+
+        alert(
+            error.message ||
+            "تعذر بدء الدفع حالياً."
+        );
+
+
+        if (submitButton) {
+
+            submitButton.disabled =
+                false;
+
+            submitButton.innerHTML =
+                `
+                    <i class="fa-solid fa-lock ml-1"></i>
+                    حفظ الطلب والمتابعة للدفع
+                `;
+
+        }
+
+    }
+
+}
+
+
+/* ============================================================
+   WHATSAPP
+============================================================ */
+
+function checkoutWhatsApp() {
+
+    if (!cart.length) {
+
+        alert(
+            "السلة فارغة."
+        );
+
+        return;
+
+    }
+
+
+    let text =
+        "مرحباً، أود طلب المنتجات التالية من المتحدة للرتان والأثاث:%0A%0A";
+
+
+    let total = 0;
+
+
+    cart.forEach(
+        (
+            item,
+            index
+        ) => {
+
+            const subtotal =
+                Number(
+                    item.price
+                ) *
+                Number(
+                    item.qty
+                );
+
+
+            total +=
+                subtotal;
+
+
+            text +=
+                `${index + 1}. ${item.title} - الكمية: ${item.qty} - السعر: ${subtotal.toLocaleString()} ج.م%0A`;
+
+        }
+    );
+
+
+    text +=
+        `%0Aالإجمالي: ${total.toLocaleString()} ج.م`;
+
+
+    const phone =
+        String(
+            appData.siteInfo.whatsapp
+        ).replace(
+            /[^0-9]/g,
+            ""
+        );
+
+
+    window.open(
+        `https://wa.me/${phone}?text=${text}`,
+        "_blank"
+    );
+
+}
+
+
+/* ============================================================
+   ADMIN LOGIN
+============================================================ */
+
+function openAdminAuth() {
+
+    if (isAdminLoggedIn) {
+
+        navigateTo(
+            "admin"
+        );
+
+        return;
+
+    }
+
+
+    document.getElementById(
+        "adminAuthModal"
+    ).classList.remove(
+        "hidden"
+    );
+
+}
+
+
+function closeAdminAuth() {
+
+    document.getElementById(
+        "adminAuthModal"
+    ).classList.add(
+        "hidden"
+    );
+
+
+    document.getElementById(
+        "adminLoginStatus"
+    ).innerText =
+        "";
+
+}
+
+
+async function handleAdminLogin(e) {
+
+    e.preventDefault();
+
+    const email =
+        document.getElementById("adminEmailInput").value.trim();
+
+    const password =
+        document.getElementById("adminPasswordInput").value;
+
+    const button =
+        document.getElementById("adminLoginButton");
+
+    const status =
+        document.getElementById("adminLoginStatus");
+
+    button.disabled = true;
+    button.innerHTML = `
+        <span class="loading-spinner"></span>
+        جاري التحقق...
+    `;
+    status.innerText = "جارٍ التحقق من بيانات الإدارة...";
+
+    try {
+        const validEmail = "admin@elmothda.com";
+        const validPassword = "AboAli_23012026";
+
+        if (email !== validEmail || password !== validPassword) {
+            throw new Error("البريد الإلكتروني أو كلمة المرور غير صحيحة.");
+        }
+
+        sessionStorage.setItem(
+            "united_admin_access_token",
+            "local-admin-session"
+        );
+
+        isAdminLoggedIn = true;
+        closeAdminAuth();
+        document.getElementById("adminEmailInput").value = "";
+        document.getElementById("adminPasswordInput").value = "";
+        navigateTo("admin");
+
+    } catch (error) {
+        console.error("Admin login error:", error);
+        status.innerText = error.message || "تعذر تسجيل الدخول.";
+        alert(error.message || "البريد الإلكتروني أو كلمة المرور غير صحيحة.");
+    } finally {
+        button.disabled = false;
+        button.innerHTML = "دخول";
+    }
+}
+
+
+function toggleChatbot() {
+
+    const chatBox = document.getElementById("chatBox");
+
+    if (!chatBox) return;
+
+    chatBox.classList.toggle("hidden");
+    chatBox.classList.toggle("flex");
+
+    if (!chatBox.classList.contains("hidden")) {
+        const input = document.getElementById("chatInput");
+        if (input) {
+            setTimeout(() => input.focus(), 50);
+        }
+    }
+}
+
+
+function handleChatKeyPress(e) {
+
+    if (
+        e.key ===
+        "Enter"
+    ) {
+
+        sendChatMessage();
+
+    }
+
+}
+
+
+async function sendChatMessage() {
+
+    const input = document.getElementById("chatInput");
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    const messages = document.getElementById("chatMessages");
+
+    const userBubble = document.createElement("div");
+    userBubble.className =
+        "bg-amber-600/20 text-amber-200 border border-amber-500/30 p-3 rounded-xl max-w-[85%] mr-auto text-xs";
+    userBubble.innerText = msg;
+    messages.appendChild(userBubble);
+    input.value = "";
+
+    const thinkingBubble = document.createElement("div");
+    thinkingBubble.className =
+        "bg-slate-800/80 p-3 rounded-xl border border-slate-700/50 max-w-[85%] text-slate-300 text-xs";
+    thinkingBubble.innerText = "جاري التفكير...";
+    messages.appendChild(thinkingBubble);
+    messages.scrollTop = messages.scrollHeight;
+
+    window.unitedChatHistory = window.unitedChatHistory || [];
+    window.unitedChatHistory.push({ role: "user", content: msg });
+
+    const lower = msg.toLowerCase();
+    const products = Array.isArray(appData.products) ? appData.products : [];
+    const site = appData.siteInfo || {};
+    let reply = "";
+
+    try {
+        const response = await fetch("/api/ai-chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: msg,
+                history: window.unitedChatHistory.slice(-10),
+                site: {
+                    name: site.title || "المتحدة للرتان والأثاث",
+                    address: site.address || "محافظة المنوفية - مركز أشمون",
+                    whatsapp: site.whatsapp || ""
+                },
+                products: products.map(p => ({
+                    id: p.id,
+                    title: p.title,
+                    price: p.price,
+                    description: p.description,
+                    category: p.category,
+                    inStock: p.inStock
+                }))
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            reply = data.reply || data.message || data.answer || data.content || "";
+        }
+    } catch (error) {
+        console.warn("AI backend unavailable; using local assistant.", error);
+    }
+
+    if (!reply) {
+        const matchedProducts = products.filter(p => {
+            const text = `${p.title || ""} ${p.category || ""} ${p.description || ""}`.toLowerCase();
+            return text.includes(lower) || lower.split(/\s+/).some(w => w.length > 2 && text.includes(w));
+        }).slice(0, 3);
+
+        if (/^(السلام عليكم|سلام|اهلا|أهلا|هاي|hello|hi)/i.test(msg)) {
+            reply = "وعليكم السلام 👋 أهلاً بك في المتحدة للرتان والأثاث. تحب تعرف عن منتج معين، السعر، العنوان، ولا التوصيل؟";
+        } else if (lower.includes("عنوان") || lower.includes("مكان") || lower.includes("فين") || lower.includes("مقر")) {
+            reply = `عنواننا: ${site.address || "محافظة المنوفية - مركز أشمون"}. لو تحب، أقدر أساعدك كمان في الوصول للمنتجات أو طريقة التواصل.`;
+        } else if (lower.includes("رقم") || lower.includes("تواصل") || lower.includes("واتس") || lower.includes("واتساب")) {
+            reply = `للتواصل والطلبات: ${site.whatsapp || site.phone || "رقم التواصل الموجود بالموقع"}. اكتب لي اسم المنتج لو عايز تسأل عنه مباشرة.`;
+        } else if (lower.includes("سعر") || lower.includes("بكام") || lower.includes("بكم") || lower.includes("تكلفة") || lower.includes("فلوس")) {
+            const prices = products.slice(0, 5).map(p => `${p.title}: ${Number(p.price || 0).toLocaleString("ar-EG")} ج.م`).join("\n");
+            reply = prices ? `الأسعار الموجودة حالياً عندي:\n${prices}\n\nلو تقصد منتج معين اكتب اسمه وأنا أقولك سعره.` : "الأسعار غير مسجلة حالياً. اكتب اسم المنتج وسأساعدك بالمعلومات المتاحة.";
+        } else if (lower.includes("شحن") || lower.includes("توصيل") || lower.includes("استلام")) {
+            reply = "التوصيل متاح حسب المحافظة والمنتج. ابعت لي المحافظة أو اسم المنتج، وأنا أوضح لك المعلومات المتاحة عن الطلب.";
+        } else if (lower.includes("شكرا") || lower.includes("شكرًا") || lower.includes("تمام")) {
+            reply = "العفو ❤️ تحت أمرك. لو محتاج تسأل عن منتج تاني اكتب اسمه أو سؤالك مباشرة.";
+        } else if (matchedProducts.length) {
+            reply = matchedProducts.map(p =>
+                `📦 ${p.title}\nالسعر: ${Number(p.price || 0).toLocaleString("ar-EG")} ج.م\n${p.description || "متاح ضمن منتجات المتحدة للرتان والأثاث."}`
+            ).join("\n\n");
+        } else {
+            reply = "أهلاً بك! يمكنك تصفح الأقسام أو سؤالنا عن أي منتج وسنرد عليك فوراً.";
+        }
+    }
+
+    messages.removeChild(thinkingBubble);
+
+    const botBubble = document.createElement("div");
+    botBubble.className =
+        "bg-slate-800/80 p-3 rounded-xl border border-slate-700/50 max-w-[85%] text-slate-200 text-xs whitespace-pre-line";
+    botBubble.innerText = reply;
+    messages.appendChild(botBubble);
+    messages.scrollTop = messages.scrollHeight;
+
+    window.unitedChatHistory.push({ role: "assistant", content: reply });
+}
+
+async function loadServerOrders() {
+    try {
+        const response = await fetch(API.orders, {
+            headers: {
+                "Authorization": `Bearer ${sessionStorage.getItem("united_admin_access_token") || ""}`
+            }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data)) {
+                appData.orders = data;
+                saveLocalData();
+                if (window.location.hash === "#admin" || new URLSearchParams(window.location.search).get("admin") === "1") {
+                    navigateTo("admin");
+                }
+            }
+        }
+    } catch (e) {
+        console.warn("Could not load server orders:", e);
+    }
+}
+
+async function markOrderStatus(orderId, status) {
+    if (!isAdminLoggedIn) return;
+    try {
+        await fetch(`${API.orders}/${orderId}`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${sessionStorage.getItem("united_admin_access_token") || ""}`
+            },
+            body: JSON.stringify({ orderStatus: status })
+        });
+        alert(`تم تحديث حالة الطلب إلى: ${status}`);
+        loadServerOrders();
+    } catch (e) {
+        alert("تعذر تحديث حالة الطلب.");
+    }
+}
+
+async function deleteOrder(orderId) {
+    if (!isAdminLoggedIn) return;
+    if (!confirm("هل تريد حذف هذا الطلب نهائياً؟")) return;
+    try {
+        await fetch(`${API.orders}/${orderId}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${sessionStorage.getItem("united_admin_access_token") || ""}`
+            }
+        });
+        alert("تم حذف الطلب.");
+        loadServerOrders();
+    } catch (e) {
+        alert("تعذر حذف الطلب.");
+    }
+}
+
+function logoutAdmin() {
+    sessionStorage.removeItem("united_admin_access_token");
+    isAdminLoggedIn = false;
+    navigateTo("home");
+    alert("تم تسجيل خروج الإدارة.");
+}
+
+</script>
 </body>
 </html>
