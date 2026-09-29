@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المتحدة للرتان والأثاث | متجر الفخامة والأناقة العصرية</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        amazon: {
+                            dark: '#131921',
+                            nav: '#232f3e',
+                            hover: '#37475a',
+                            yellow: '#febd69',
+                            yellowHover: '#f3a847',
+                            light: '#eaeded',
+                            cardBg: '#ffffff',
+                            text: '#0f1111',
+                            muted: '#565959',
+                            link: '#007185'
+                        }
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #eaeded;
+            color: #0f1111;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #131921;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #febd69;
+            border-radius: 4px;
+        }
+        .amazon-btn {
+            background-color: #ffd814;
+            border: 1px solid #fcd200;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        .amazon-btn:hover {
+            background-color: #f7ca00;
+        }
+        .amazon-btn-secondary {
+            background-color: #ffa41c;
+            border: 1px solid #ff8f00;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        .amazon-btn-secondary:hover {
+            background-color: #fa8900;
+        }
+    </style>
+</head>
+<body class="bg-amazon-light text-amazon-text min-h-screen flex flex-col selection:bg-amazon-yellow selection:text-amazon-dark">
+
+    <!-- Top Amazon Header -->
+    <header class="bg-amazon-dark text-white sticky top-0 z-50 shadow-md">
+        <div class="max-w-7xl mx-auto px-2 sm:px-4 h-16 flex items-center justify-between gap-2 sm:gap-4">
+            
+            <!-- Logo Brand -->
+            <div class="flex items-center space-x-2 space-x-reverse cursor-pointer flex-shrink-0" onclick="switchTab('home')">
+                <div class="p-1.5 rounded hover:ring-1 hover:ring-white transition flex items-center space-x-1.5 space-x-reverse">
+                    <div class="w-9 h-9 rounded-full bg-amazon-yellow flex items-center justify-center text-amazon-dark font-black text-lg">
+                        <i class="fa-solid fa-couch"></i>
+                    </div>
+                    <div>
+                        <span class="text-base sm:text-lg font-black tracking-wider block text-white leading-tight">المتحدة <span class="text-amazon-yellow">للرتان</span></span>
+                        <span class="text-[10px] text-gray-300 block">الفخامة المصرية والعالمية</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deliver to Location (Optional Visual) -->
+            <div class="hidden lg:flex items-center text-xs text-gray-300 cursor-pointer hover:ring-1 hover:ring-white p-1.5 rounded transition">
+                <i class="fa-solid fa-location-dot text-white text-base ml-1"></i>
+                <div>
+                    <span class="block text-[10px] text-gray-400">الشحن إلى</span>
+                    <span class="font-bold text-white">المنوفية، أشمون</span>
+                </div>
+            </div>
+
+            <!-- Search Bar with Dropdown -->
+            <div class="flex-grow max-w-2xl flex items-center">
+                <div class="flex w-full rounded-md overflow-hidden focus-within:ring-2 focus-within:ring-amazon-yellow">
+                    <select id="search-category-select" class="hidden sm:block bg-gray-100 text-gray-800 text-xs px-3 py-2.5 border-r border-gray-300 focus:outline-none cursor-pointer">
+                        <option value="all">كل الأقسام</option>
+                        <option value="rattan">أثاث رتان وحدائق</option>
+                        <option value="living">الصالونات والمعيشة</option>
+                        <option value="bedroom">غرف النوم والديكور</option>
+                        <option value="umbrellas">المظلات والشماسي</option>
+                    </select>
+                    <input type="text" id="main-search-input" oninput="handleSearchInput(this.value)" placeholder="البحث في المتحدة للرتان والأثاث..." class="w-full px-4 py-2.5 text-sm text-gray-900 bg-white focus:outline-none">
+                    <button onclick="executeSearch()" class="bg-amazon-yellow hover:bg-amazon-yellowHover text-amazon-dark px-5 py-2.5 font-bold flex items-center justify-center transition">
+                        <i class="fa-solid fa-magnifying-glass text-base"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Header Actions (Orders, Cart, Admin) -->
+            <div class="flex items-center space-x-1 sm:space-x-3 space-x-reverse">
+                
+                <!-- Order Tracker Button -->
+                <button onclick="openTrackerModal()" class="hidden sm:flex flex-col text-right p-1.5 rounded hover:ring-1 hover:ring-white transition">
+                    <span class="text-[10px] text-gray-300">تتبع</span>
+                    <span class="text-xs font-bold text-white">طلباتك</span>
+                </button>
+
+                <!-- Admin Access Button -->
+                <button onclick="openAdminLoginModal()" class="p-2 rounded hover:ring-1 hover:ring-white transition text-gray-300 hover:text-white" title="لوحة التحكم">
+                    <i class="fa-solid fa-user-shield text-lg"></i>
+                </button>
+
+                <!-- Cart Badge Button -->
+                <button onclick="openCartModal()" class="relative flex items-center p-2 rounded hover:ring-1 hover:ring-white transition text-white">
+                    <div class="relative flex items-center">
+                        <span id="cart-badge" class="absolute -top-2 right-3 bg-amazon-yellow text-amazon-dark text-xs font-black w-5 h-5 rounded-full flex items-center justify-center shadow">0</span>
+                        <i class="fa-solid fa-cart-shopping text-2xl ml-1 text-amazon-yellow"></i>
+                        <span class="hidden md:inline font-bold text-sm mt-2">السلة</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Sub Navbar (Departments) -->
+        <div class="bg-amazon-nav text-xs sm:text-sm px-4 py-2 flex items-center justify-between overflow-x-auto whitespace-nowrap shadow-inner">
+            <div class="flex items-center space-x-6 space-x-reverse font-semibold">
+                <button onclick="switchTab('home')" class="flex items-center hover:text-amazon-yellow transition py-1 px-2 rounded hover:ring-1 hover:ring-white">
+                    <i class="fa-solid fa-bars ml-1"></i>
+                    <span>الرئيسية</span>
+                </button>
+                <button onclick="filterByDept('all')" class="hover:text-amazon-yellow transition py-1 px-2 rounded hover:ring-1 hover:ring-white">كل المنتجات</button>
+                <button onclick="filterByDept('rattan')" class="hover:text-amazon-yellow transition py-1 px-2 rounded hover:ring-1 hover:ring-white">أثاث رتان وحدائق</button>
+                <button onclick="filterByDept('living')" class="hover:text-amazon-yellow transition py-1 px-2 rounded hover:ring-1 hover:ring-white">الصالونات وغرف المعيشة</button>
+                <button onclick="filterByDept('bedroom')" class="hover:text-amazon-yellow transition py-1 px-2 rounded hover:ring-1 hover:ring-white">غرف النوم الفاخرة</button>
+                <button onclick="filterByDept('umbrellas')" class="hover:text-amazon-yellow transition py-1 px-2 rounded hover:ring-1 hover:ring-white">المظلات والشماسي</button>
+                <button onclick="switchTab('deals')" class="text-amazon-yellow font-bold hover:underline py-1 px-2">عروض اليوم (Today's Deals)</button>
+            </div>
+            <div class="hidden lg:block text-xs text-amazon-yellow font-bold px-2">
+                مصنع ومعرض أشمون - المنوفية | خدمة التوصيل لجميع المحافظات
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow pb-16">
+
+        <!-- TAB 1: HOME & STOREFRONT -->
+        <section id="tab-home" class="tab-content">
+            <!-- Hero Carousel Banner -->
+            <div class="relative bg-gradient-to-r from-amazon-dark to-amazon-nav text-white py-12 sm:py-20 px-4 sm:px-8 mb-8 shadow-md">
+                <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div>
+                        <span class="bg-amazon-yellow text-amazon-dark text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest inline-block mb-4">الأكثر مبيعاً في مصر 2026</span>
+                        <h1 class="text-3xl sm:text-5xl font-black mb-4 leading-tight">
+                            أرقى تشكيلات <span class="text-amazon-yellow">الرتان والأثاث العصري</span>
+                        </h1>
+                        <p class="text-gray-300 text-sm sm:text-base mb-6 font-light leading-relaxed">
+                            مصنوعة بأعلى معايير الجودة من أجود خامات الرتان الطبيعي والصناعي المقاوم للعوامل الجوية مع ضمان حقيقي وشحن سريع لباب منزلك.
+                        </p>
+                        <div class="flex flex-wrap gap-4">
+                            <button onclick="switchTab('deals')" class="amazon-btn font-bold text-amazon-dark px-6 py-3 text-sm shadow-md flex items-center">
+                                <i class="fa-solid fa-bolt ml-2 text-amazon-dark"></i>
+                                <span>تصفح عروض اليوم</span>
+                            </button>
+                            <a href="https://wa.me/201000000000" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-lg text-sm shadow-md flex items-center transition">
+                                <i class="fa-brands fa-whatsapp text-lg ml-2"></i>
+                                <span>استفسار فوري واتساب</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="flex justify-center">
+                        <div class="relative w-full max-w-md h-72 sm:h-80 rounded-2xl overflow-hidden shadow-2xl border-4 border-white/20">
+                            <img src="https://placehold.co/600x400/232f3e/febd69?text=Luxury+Rattan+Set" alt="Hero Rattan" class="w-full h-full object-cover">
+                            <div class="absolute bottom-3 right-3 bg-black/70 backdrop-blur px-4 py-2 rounded-xl text-xs font-bold text-amazon-yellow">
+                                طقم جاردن رتان ملكي - خصم 20%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Department Cards Grid -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 mb-12">
+                <h2 class="text-xl sm:text-2xl font-black mb-6 text-amazon-dark">تسوق حسب الأقسام الرئيسية</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div onclick="filterByDept('rattan')" class="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition cursor-pointer border border-gray-200 text-center group">
+                        <div class="w-16 h-16 rounded-full bg-amber-100 text-amber-700 mx-auto flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition">
+                            <i class="fa-solid fa-chair"></i>
+                        </div>
+                        <h3 class="font-bold text-sm text-amazon-text">أثاث رتان وحدائق</h3>
+                        <span class="text-xs text-amazon-link mt-1 block">اكتشف التشكيلة</span>
+                    </div>
+                    <div onclick="filterByDept('living')" class="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition cursor-pointer border border-gray-200 text-center group">
+                        <div class="w-16 h-16 rounded-full bg-blue-100 text-blue-700 mx-auto flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition">
+                            <i class="fa-solid fa-couch"></i>
+                        </div>
+                        <h3 class="font-bold text-sm text-amazon-text">الصالونات والمعيشة</h3>
+                        <span class="text-xs text-amazon-link mt-1 block">اكتشف التشكيلة</span>
+                    </div>
+                    <div onclick="filterByDept('bedroom')" class="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition cursor-pointer border border-gray-200 text-center group">
+                        <div class="w-16 h-16 rounded-full bg-purple-100 text-purple-700 mx-auto flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition">
+                            <i class="fa-solid fa-bed"></i>
+                        </div>
+                        <h3 class="font-bold text-sm text-amazon-text">غرف النوم والفخامة</h3>
+                        <span class="text-xs text-amazon-link mt-1 block">اكتشف التشكيلة</span>
+                    </div>
+                    <div onclick="filterByDept('umbrellas')" class="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition cursor-pointer border border-gray-200 text-center group">
+                        <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 mx-auto flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition">
+                            <i class="fa-solid fa-umbrella"></i>
+                        </div>
+                        <h3 class="font-bold text-sm text-amazon-text">المظلات والشماسي</h3>
+                        <span class="text-xs text-amazon-link mt-1 block">اكتشف التشكيلة</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Product Grid with Sidebar Filters -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6">
+                <div class="flex flex-col lg:flex-row gap-8">
+                    <!-- Filters Sidebar -->
+                    <div class="w-full lg:w-64 flex-shrink-0 bg-white p-6 rounded-xl shadow-sm border border-gray-200 h-fit space-y-6">
+                        <h3 class="font-bold text-base text-amazon-dark pb-3 border-b border-gray-200 flex items-center">
+                            <i class="fa-solid fa-filter ml-2 text-amazon-yellow"></i>
+                            تصفية النتائج
+                        </h3>
+                        <div>
+                            <h4 class="text-xs font-bold text-gray-700 mb-3 uppercase tracking-wider">الأقسام</h4>
+                            <div class="space-y-2 text-xs font-medium">
+                                <button onclick="filterByDept('all')" class="block w-full text-right py-1.5 px-2 rounded hover:bg-gray-100 text-amazon-link">كل الأقسام</button>
+                                <button onclick="filterByDept('rattan')" class="block w-full text-right py-1.5 px-2 rounded hover:bg-gray-100 text-gray-700">أثاث رتان وحدائق</button>
+                                <button onclick="filterByDept('living')" class="block w-full text-right py-1.5 px-2 rounded hover:bg-gray-100 text-gray-700">الصالونات وغرف المعيشة</button>
+                                <button onclick="filterByDept('bedroom')" class="block w-full text-right py-1.5 px-2 rounded hover:bg-gray-100 text-gray-700">غرف النوم الفاخرة</button>
+                                <button onclick="filterByDept('umbrellas')" class="block w-full text-right py-1.5 px-2 rounded hover:bg-gray-100 text-gray-700">المظلات والشماسي</button>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-gray-700 mb-3 uppercase tracking-wider">ترتيب حسب السعر</h4>
+                            <div class="space-y-2 text-xs">
+                                <button onclick="sortProducts('low-high')" class="block w-full text-right py-1.5 px-2 rounded hover:bg-gray-100 text-gray-700">الأقل إلى الأعلى سعراً</button>
+                                <button onclick="sortProducts('high-low')" class="block w-full text-right py-1.5 px-2 rounded hover:bg-gray-100 text-gray-700">الأعلى إلى الأقل سعراً</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Products Display Area -->
+                    <div class="flex-grow">
+                        <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                            <h2 id="catalog-title" class="text-lg font-black text-amazon-dark">جميع المنتجات المعروضة</h2>
+                            <span id="product-count-badge" class="text-xs text-gray-500 font-bold">عرض 0 منتج</span>
+                        </div>
+                        <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: TODAY'S DEALS -->
+        <section id="tab-deals" class="tab-content hidden max-w-7xl mx-auto px-4 sm:px-6 py-8">
+            <div class="bg-amber-50 border-2 border-amazon-yellow p-6 sm:p-8 rounded-2xl mb-8 flex items-center justify-between">
+                <div>
+                    <span class="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest inline-block mb-3">عروض حصرية لفترة محدودة</span>
+                    <h2 class="text-2xl sm:text-3xl font-black text-amazon-dark">تخفيضات اليوم الكبرى (Today's Deals)</h2>
+                    <p class="text-gray-600 text-xs sm:text-sm mt-1">وفر حتى 30% على تشكيلات طقم الحدائق وغرف المعيشة المصنوعة في مصنعنا بأشمون.</p>
+                </div>
+                <div class="hidden sm:block text-4xl text-amazon-yellow font-black">
+                    <i class="fa-solid fa-tags"></i>
+                </div>
+            </div>
+            <div id="deals-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Populated by JavaScript -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- CART MODAL -->
+    <div id="cart-modal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-amazon-dark text-white p-4 flex justify-between items-center">
+                <h3 class="text-lg font-bold flex items-center">
+                    <i class="fa-solid fa-cart-shopping ml-2 text-amazon-yellow"></i>
+                    سلة المشتريات
+                </h3>
+                <button onclick="closeCartModal()" class="text-gray-300 hover:text-white text-xl p-1"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="cart-items-container" class="flex-grow overflow-y-auto p-6 space-y-4">
+                <!-- Cart items populated by JS -->
+            </div>
+            <div class="bg-gray-100 p-6 border-t border-gray-200 space-y-4">
+                <div class="flex justify-between items-center text-lg font-black">
+                    <span>الإجمالي الكلي:</span>
+                    <span id="cart-total-price" class="text-amazon-link text-xl">0 ج.م</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button onclick="openCheckoutModal()" class="amazon-btn font-bold text-amazon-dark py-3.5 text-sm shadow flex items-center justify-center">
+                        <i class="fa-solid fa-bag-shopping ml-2"></i>
+                        <span>إتمام الطلب (الدفع والتوصيل)</span>
+                    </button>
+                    <button onclick="checkoutWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-lg text-sm shadow flex items-center justify-center transition">
+                        <i class="fa-brands fa-whatsapp text-lg ml-2"></i>
+                        <span>إرسال الطلب عبر واتساب</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHECKOUT & ADDRESS MODAL -->
+    <div id="checkout-modal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div class="bg-amazon-dark text-white p-4 flex justify-between items-center">
+                <h3 class="text-lg font-bold">بيانات الشحن وتأكيد الطلب</h3>
+                <button onclick="closeCheckoutModal()" class="text-gray-300 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="processOrder(event)" class="p-6 space-y-4 overflow-y-auto flex-grow text-xs sm:text-sm">
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">الاسم الكريم</label>
+                    <input type="text" id="chk-name" required class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amazon-yellow">
+                </div>
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">رقم الهاتف الأساسي (للتواصل)</label>
+                    <input type="tel" id="chk-phone" required class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amazon-yellow" placeholder="010xxxxxxxx">
+                </div>
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">المحافظة</label>
+                    <select id="chk-gov" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amazon-yellow">
+                        <option value="المنوفية">المنوفية (أشمون - مقر المصنع)</option>
+                        <option value="القاهرة">القاهرة</option>
+                        <option value="الجيزة">الجيزة</option>
+                        <option value="الإسكندرية">الإسكندرية</option>
+                        <option value="القليوبية">القليوبية</option>
+                        <option value="الغربية">الغربية</option>
+                        <option value="الشرقية">الشرقية</option>
+                        <option value="محافظة أخرى">محافظة أخرى</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">العنوان التفصيلي (المدينة، الشارع، علامة مميزة)</label>
+                    <textarea id="chk-address" rows="2" required class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amazon-yellow" placeholder="أدخل العنوان بالتفصيل لضمان سرعة التوصيل..."></textarea>
+                </div>
+                <div>
+                    <label class="block font-bold text-gray-700 mb-2">طريقة الدفع</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="border border-gray-300 p-3 rounded-lg flex items-center space-x-2 space-x-reverse cursor-pointer bg-gray-50">
+                            <input type="radio" name="payment" value="cod" checked class="text-amazon-dark focus:ring-0">
+                            <span class="font-bold">الدفع عند الاستلام</span>
+                        </label>
+                        <label class="border border-gray-300 p-3 rounded-lg flex items-center space-x-2 space-x-reverse cursor-pointer bg-gray-50">
+                            <input type="radio" name="payment" value="card" class="text-amazon-dark focus:ring-0">
+                            <span class="font-bold">بطاقة ائتمان (اونلاين)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="card-section" class="hidden p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
+                    <h4 class="font-bold text-xs text-gray-700">محاكاة دفع آمن بالبطاقة</h4>
+                    <input type="text" placeholder="رقم البطاقة (16 رقم)" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" placeholder="MM/YY" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs">
+                        <input type="password" placeholder="CVV" maxlength="4" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs">
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full amazon-btn py-3.5 font-bold text-amazon-dark text-base shadow mt-4">
+                    تأكيد الطلب نهائياً
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ORDER TRACKER MODAL -->
+    <div id="tracker-modal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden p-6 space-y-6">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-lg font-bold text-amazon-dark flex items-center">
+                    <i class="fa-solid fa-truck-fast ml-2 text-amazon-yellow"></i>
+                    تتبع طلباتك السابقة
+                </h3>
+                <button onclick="closeTrackerModal()" class="text-gray-500 hover:text-black text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-4 max-h-[60vh] overflow-y-auto" id="tracker-orders-list">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- PRODUCT DETAIL & REVIEWS MODAL -->
+    <div id="product-detail-modal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div class="bg-amazon-dark text-white p-4 flex justify-between items-center">
+                <h3 id="modal-prod-title" class="text-lg font-bold">تفاصيل المنتج والتقييمات</h3>
+                <button onclick="closeProductDetailModal()" class="text-gray-300 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="modal-prod-content" class="p-6 overflow-y-auto flex-grow space-y-6">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN LOGIN MODAL -->
+    <div id="admin-login-modal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-lg font-bold text-amazon-dark">تسجيل دخول لوحة التحكم (الإدارة)</h3>
+                <button onclick="closeAdminLoginModal()" class="text-gray-500 hover:text-black text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">اسم المستخدم</label>
+                    <input type="text" id="admin-user" required class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm" placeholder="admin">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">كلمة المرور</label>
+                    <input type="password" id="admin-pass" required class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm" placeholder="123456">
+                </div>
+                <button type="submit" class="w-full amazon-btn py-3 font-bold text-amazon-dark text-sm shadow">دخول لوحة التحكم</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ADMIN DASHBOARD MODAL -->
+    <div id="admin-panel-modal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-6">
+        <div class="bg-white w-full max-w-6xl rounded-2xl shadow-2xl overflow-hidden max-h-[95vh] flex flex-col">
+            <div class="bg-amazon-dark text-white p-4 flex justify-between items-center">
+                <h3 class="text-lg font-bold flex items-center">
+                    <i class="fa-solid fa-gears ml-2 text-amazon-yellow"></i>
+                    لوحة تحكم المتحدة للرتان والأثاث
+                </h3>
+                <button onclick="closeAdminPanel()" class="text-gray-300 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="flex space-x-2 space-x-reverse bg-gray-100 p-3 border-b">
+                <button onclick="switchAdminTab('products')" id="adm-btn-prod" class="px-5 py-2 rounded-lg font-bold text-xs bg-amazon-yellow text-amazon-dark shadow">إدارة المنتجات</button>
+                <button onclick="switchAdminTab('orders')" id="adm-btn-ord" class="px-5 py-2 rounded-lg font-bold text-xs bg-white text-gray-700 border">الطلبات الواردة (<span id="adm-orders-count">0</span>)</button>
+            </div>
+            <div id="adm-tab-products" class="p-6 overflow-y-auto flex-grow space-y-4">
+                <div class="flex justify-between items-center">
+                    <h4 class="font-bold text-gray-800">قائمة منتجات المعرض</h4>
+                    <button onclick="openAddProductModal()" class="amazon-btn px-4 py-2 font-bold text-amazon-dark text-xs flex items-center">
+                        <i class="fa-solid fa-plus ml-1"></i> إضافة منتج جديد
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-xs">
+                        <thead class="bg-gray-100 text-gray-700 uppercase border-b">
+                            <tr>
+                                <th class="p-3">الصورة</th>
+                                <th class="p-3">اسم المنتج</th>
+                                <th class="p-3">القسم</th>
+                                <th class="p-3">السعر</th>
+                                <th class="p-3 text-center">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-products-tbody" class="divide-y">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="adm-tab-orders" class="p-6 overflow-y-auto flex-grow space-y-4 hidden">
+                <div id="admin-orders-container" class="space-y-4">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD/EDIT PRODUCT MODAL -->
+    <div id="product-form-modal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <h3 id="prod-form-title" class="text-lg font-bold text-amazon-dark">إضافة منتج جديد</h3>
+            <form onsubmit="saveProductData(event)" class="space-y-4 text-xs sm:text-sm">
+                <input type="hidden" id="edit-prod-id">
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">اسم المنتج</label>
+                    <input type="text" id="p-name" required class="w-full border rounded-lg px-3 py-2">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">السعر (ج.م)</label>
+                        <input type="number" id="p-price" required class="w-full border rounded-lg px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">القسم</label>
+                        <select id="p-dept" class="w-full border rounded-lg px-3 py-2">
+                            <option value="rattan">أثاث رتان وحدائق</option>
+                            <option value="living">الصالونات وغرف المعيشة</option>
+                            <option value="bedroom">غرف النوم الفاخرة</option>
+                            <option value="umbrellas">المظلات والشماسي</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">رابط الصورة (URL)</label>
+                    <input type="url" id="p-img" required class="w-full border rounded-lg px-3 py-2" placeholder="https://placehold.co/...">
+                </div>
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">وصف المنتج</label>
+                    <textarea id="p-desc" rows="3" required class="w-full border rounded-lg px-3 py-2"></textarea>
+                </div>
+                <div class="flex space-x-2 space-x-reverse pt-2">
+                    <button type="submit" class="flex-grow amazon-btn py-3 font-bold text-amazon-dark shadow">حفظ المنتج</button>
+                    <button type="button" onclick="closeProductFormModal()" class="px-5 py-3 bg-gray-200 rounded-lg font-bold text-gray-700">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Notification Box (No Alert) -->
+    <div id="notification-modal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center space-y-4">
+            <div id="notif-icon" class="w-14 h-14 rounded-full bg-amazon-yellow text-amazon-dark mx-auto flex items-center justify-center text-2xl font-bold">
+                <i class="fa-solid fa-check"></i>
+            </div>
+            <h3 id="notif-title" class="text-lg font-bold text-amazon-dark">تم بنجاح</h3>
+            <p id="notif-msg" class="text-xs text-gray-600">تمت العملية بنجاح.</p>
+            <button onclick="closeNotification()" class="w-full amazon-btn py-2.5 font-bold text-amazon-dark text-sm shadow">حسناً</button>
+        </div>
+    </div>
+
+    <!-- Amazon Footer -->
+    <footer class="bg-amazon-dark text-white mt-auto border-t border-gray-800">
+        <div onclick="window.scrollTo({top:0, behavior:'smooth'})" class="bg-[#37475a] hover:bg-[#485769] text-center py-3 text-xs font-bold cursor-pointer transition">
+            العودة إلى أعلى الصفحة <i class="fa-solid fa-arrow-up mr-1"></i>
+        </div>
+        <div class="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-4 gap-8 text-xs text-gray-300">
+            <div>
+                <h4 class="font-bold text-white text-sm mb-3">عن المتحدة للرتان والأثاث</h4>
+                <p class="leading-relaxed">رواد صناعة الأثاث المصنوع من الرتان الطبيعي والصناعي المعالج وأحدث صالونات وغرف النوم الفاخرة في مصر.</p>
+            </div>
+            <div>
+                <h4 class="font-bold text-white text-sm mb-3">خدمة العملاء</h4>
+                <ul class="space-y-2">
+                    <li><a href="#" onclick="openTrackerModal()" class="hover:underline">تتبع طلباتك</a></li>
+                    <li><a href="#" onclick="switchTab('deals')" class="hover:underline">عروض اليوم التخفيضية</a></li>
+                    <li><a href="https://wa.me/201000000000" target="_blank" class="hover:underline">التواصل عبر واتساب</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold text-white text-sm mb-3">مقر المصنع والمعرض</h4>
+                <p class="leading-relaxed">محافظة المنوفية - مركز أشمون - طريق أشمون كوبري الغريب قبل صوامع القمح.</p>
+            </div>
+            <div>
+                <h4 class="font-bold text-white text-sm mb-3">ساعات العمل</h4>
+                <p class="leading-relaxed">يومياً من الساعة 9:00 صباحاً حتى 10:00 مساءً طوال أيام الأسبوع.</p>
+            </div>
+        </div>
+        <div class="bg-[#0f1111] py-6 text-center text-[10px] text-gray-400 border-t border-gray-800">
+            جميع الحقوق محفوظة © 2026 المتحدة للرتان والأثاث | تصميم بمواصفات متجر أمازون العالمي
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Initial High-End Rattan & Furniture Catalog
+        const initialProducts = [
+            {
+                id: 1,
+                name: "طقم جاردن رتان ملكي فاخر 5 قطع",
+                category: "rattan",
+                price: 8500,
+                oldPrice: 10500,
+                image: "https://placehold.co/600x400/232f3e/febd69?text=Luxury+Rattan+Garden+Set",
+                description: "طقم حديقة رتان طبيعي معالج ضد الشمس والرطوبة، مزود بوسائد قطنية إسفنجية عالية الكثافة ومريحة للغاية.",
+                rating: 4.8,
+                reviewsCount: 128
+            },
+            {
+                id: 2,
+                name: "ترابيزة رتان دائرية مع 4 كراسي مودرن",
+                category: "rattan",
+                price: 5200,
+                oldPrice: 6200,
+                image: "https://placehold.co/600x400/232f3e/febd69?text=Round+Rattan+Table+Set",
+                description: "تصميم عصري يناسب الشرفات والحدائق والروف، متين للغاية وخفيف الوزن.",
+                rating: 4.6,
+                reviewsCount: 94
+            },
+            {
+                id: 3,
+                name: "صالون مودرن مطلي ذهبي فاخر",
+                category: "living",
+                price: 18500,
+                oldPrice: 21000,
+                image: "https://placehold.co/600x400/232f3e/febd69?text=Modern+Golden+Salon",
+                description: "صالون مصمم بأقمشة قطيفة مستوردة وأخشاب زان أحمر طبيعي مع تطعيمات لون ذهبي ملكي أنيق.",
+                rating: 4.9,
+                reviewsCount: 215
+            },
+            {
+                id: 4,
+                name: "انتريه رتان معيشة بوهيمي أنيق",
+                category: "living",
+                price: 12000,
+                oldPrice: 14500,
+                image: "https://placehold.co/600x400/232f3e/febd69?text=Rattan+Living+Set",
+                description: "دمج فريد بين فخامة الرتان العصري والأقمشة القطنية المريحة لإضفاء طابع بوهيمي راقي بمنزلك.",
+                rating: 4.7,
+                reviewsCount: 83
+            },
+            {
+                id: 5,
+                name: "غرفة نوم ماستر كلاسيكية متكاملة",
+                category: "bedroom",
+                price: 32000,
+                oldPrice: 36000,
+                image: "https://placehold.co/600x400/232f3e/febd69?text=Classic+Master+Bedroom",
+                description: "غرفة نوم كاملة (دولاب كبير، سرير كينج، تسريحة بمرآة، 2 كومود) مصنوعة من أجود خشب الزان الأبيض.",
+                rating: 5.0,
+                reviewsCount: 310
+            },
+            {
+                id: 6,
+                name: "مرجيحة رتان معلقة كروزل دائرية",
+                category: "rattan",
+                price: 3800,
+                oldPrice: 4500,
+                image: "https://placehold.co/600x400/232f3e/febd69?text=Rattan+Hanging+Swing",
+                description: "مرجيحة معلقة مريحة للغاية للحدائق وغرف المعيشة وغرف النوم، هيكل معدني مغطى بالرتان المعالج.",
+                rating: 4.8,
+                reviewsCount: 162
+            },
+            {
+                id: 7,
+                name: "شمسية حديقة كبيرة قابلة للطي 3 متر",
+                category: "umbrellas",
+                price: 2900,
+                oldPrice: 3400,
+                image: "https://placehold.co/600x400/232f3e/febd69?text=Garden+Umbrella+3m",
+                description: "شمسية حمام سباحة وحدائق مقاومة للأشعة فوق البنفسجية والرياح مع قاعدة تثبيت معدنية متينة.",
+                rating: 4.5,
+                reviewsCount: 77
+            },
+            {
+                id: 8,
+                name: "ترابيزة طعام رتان مع 6 كراسي للمصايف",
+                category: "rattan",
+                price: 11500,
+                oldPrice: 13000,
+                image: "https://placehold.co/600x400/232f3e/febd69?text=Rattan+Dining+Set+6+Chairs",
+                description: "طقم سفرة متكامل مصمم خصيصاً للحدائق والقرى السياحية والفلل، متانة فائقة ومقاومة للمياه.",
+                rating: 4.9,
+                reviewsCount: 104
+            }
+        ];
+
+        // Application State
+        let products = JSON.parse(localStorage.getItem('um_amazon_products')) || initialProducts;
+        let cart = JSON.parse(localStorage.getItem('um_amazon_cart')) || [];
+        let orders = JSON.parse(localStorage.getItem('um_amazon_orders')) || [];
+        let currentDeptFilter = 'all';
+        let searchQuery = '';
+
+        // Initialize on Window Load
+        window.onload = function() {
+            renderProductsGrid();
+            renderDealsGrid();
+            updateCartBadge();
+
+            // Payment radio toggle
+            document.querySelectorAll('input[name="payment"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    const cardSec = document.getElementById('card-section');
+                    if (e.target.value === 'card') {
+                        cardSec.classList.remove('hidden');
+                    } else {
+                        cardSec.classList.add('hidden');
+                    }
+                });
+            });
+        };
+
+        // Tab Switching Logic
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            if (tabId === 'home') {
+                document.getElementById('tab-home').classList.remove('hidden');
+                currentDeptFilter = 'all';
+                renderProductsGrid();
+            } else if (tabId === 'deals') {
+                document.getElementById('tab-deals').classList.remove('hidden');
+                renderDealsGrid();
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Filter by Department
+        function filterByDept(dept) {
+            currentDeptFilter = dept;
+            switchTab('home');
+            const deptNames = {
+                'all': 'جميع المنتجات المعروضة',
+                'rattan': 'أثاث رتان وحدائق',
+                'living': 'الصالونات وغرف المعيشة',
+                'bedroom': 'غرف النوم الفاخرة',
+                'umbrellas': 'المظلات والشماسي'
+            };
+            document.getElementById('catalog-title').textContent = deptNames[dept] || 'نتائج البحث';
+            renderProductsGrid();
+        }
+
+        // Search Input Handling
+        function handleSearchInput(val) {
+            searchQuery = val.trim().toLowerCase();
+            renderProductsGrid();
+        }
+
+        function executeSearch() {
+            const selectVal = document.getElementById('search-category-select').value;
+            currentDeptFilter = selectVal;
+            renderProductsGrid();
+            switchTab('home');
+        }
+
+        // Render Products Grid
+        function renderProductsGrid() {
+            const grid = document.getElementById('products-grid');
+            if (!grid) return;
+
+            let filtered = products;
+            if (currentDeptFilter !== 'all') {
+                filtered = filtered.filter(p => p.category === currentDeptFilter);
+            }
+            if (searchQuery) {
+                filtered = filtered.filter(p => p.name.toLowerCase().includes(searchQuery) || p.description.toLowerCase().includes(searchQuery));
+            }
+
+            document.getElementById('product-count-badge').textContent = `عرض ${filtered.length} منتج`;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-16 bg-white rounded-xl shadow-sm p-8">
+                        <i class="fa-solid fa-box-open text-4xl text-gray-400 mb-3"></i>
+                        <h4 class="font-bold text-base text-gray-700">لم يتم العثور على منتجات مطابقة لبحثك.</h4>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(p => `
+                <div class="bg-white rounded-xl shadow-sm hover:shadow-md border border-gray-200 overflow-hidden flex flex-col group transition">
+                    <div class="h-56 overflow-hidden relative cursor-pointer bg-gray-100" onclick="openProductDetail(${p.id})">
+                        <img src="${p.image}" alt="${p.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.src='https://placehold.co/600x400/232f3e/febd69?text=United+Furniture'">
+                        ${p.oldPrice ? `<span class="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2.5 py-1 rounded">عرض خاص</span>` : ''}
+                    </div>
+                    <div class="p-4 flex flex-col flex-grow">
+                        <h3 onclick="openProductDetail(${p.id})" class="font-bold text-sm text-amazon-text mb-2 hover:text-amazon-link cursor-pointer line-clamp-2">${p.name}</h3>
+                        
+                        <!-- Rating Stars -->
+                        <div class="flex items-center space-x-1 space-x-reverse mb-2 text-amber-500 text-xs">
+                            ${renderStars(p.rating || 4.8)}
+                            <span class="text-gray-500 text-[10px] mr-1">(${p.reviewsCount || 100})</span>
+                        </div>
+
+                        <div class="mb-3">
+                            <span class="text-lg font-black text-amazon-text">${p.price.toLocaleString()} <span class="text-xs font-normal">ج.م</span></span>
+                            ${p.oldPrice ? `<span class="text-xs text-gray-400 line-through mr-2">${p.oldPrice.toLocaleString()} ج.م</span>` : ''}
+                        </div>
+
+                        <div class="mt-auto space-y-2">
+                            <button onclick="addToCart(${p.id})" class="w-full amazon-btn py-2 text-xs font-bold text-amazon-dark shadow">
+                                <i class="fa-solid fa-cart-plus ml-1"></i> أضف إلى السلة
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Render Deals Grid
+        function renderDealsGrid() {
+            const grid = document.getElementById('deals-grid');
+            if (!grid) return;
+
+            const deals = products.filter(p => p.oldPrice);
+            grid.innerHTML = deals.map(p => `
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+                    <div class="h-52 overflow-hidden relative bg-gray-100">
+                        <img src="${p.image}" alt="" class="w-full h-full object-cover">
+                        <span class="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">خصم حصري</span>
+                    </div>
+                    <div class="p-4 flex flex-col flex-grow">
+                        <h3 class="font-bold text-sm mb-2 text-amazon-text">${p.name}</h3>
+                        <div class="mb-3">
+                            <span class="text-lg font-black text-red-600">${p.price.toLocaleString()} ج.م</span>
+                            <span class="text-xs text-gray-400 line-through mr-2">${p.oldPrice.toLocaleString()} ج.م</span>
+                        </div>
+                        <button onclick="addToCart(${p.id})" class="mt-auto w-full amazon-btn py-2 text-xs font-bold text-amazon-dark">
+                            أضف إلى السلة
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Sort Products
+        function sortProducts(type) {
+            if (type === 'low-high') {
+                products.sort((a, b) => a.price - b.price);
+            } else if (type === 'high-low') {
+                products.sort((a, b) => b.price - a.price);
+            }
+            renderProductsGrid();
+        }
+
+        // Star Rating Generator Helper
+        function renderStars(rating) {
+            let html = '';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= Math.floor(rating)) {
+                    html += '<i class="fa-solid fa-star"></i>';
+                } else if (i - rating < 1 && i - rating > 0) {
+                    html += '<i class="fa-solid fa-star-half-stroke"></i>';
+                } else {
+                    html += '<i class="fa-regular fa-star"></i>';
+                }
+            }
+            return html;
+        }
+
+        // Product Detail & Customer Reviews Modal
+        function openProductDetail(id) {
+            const p = products.find(item => item.id === id);
+            if (!p) return;
+
+            document.getElementById('modal-prod-title').textContent = p.name;
+            const content = document.getElementById('modal-prod-content');
+            content.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="h-72 rounded-xl overflow-hidden bg-gray-100 border">
+                        <img src="${p.image}" alt="" class="w-full h-full object-cover">
+                    </div>
+                    <div class="space-y-4">
+                        <span class="bg-gray-100 text-gray-800 text-xs font-bold px-3 py-1 rounded">القسم: ${p.category}</span>
+                        <h4 class="text-xl font-black text-amazon-text">${p.name}</h4>
+                        <div class="flex items-center space-x-1 space-x-reverse text-amber-500 text-sm">
+                            ${renderStars(p.rating || 4.8)}
+                            <span class="text-gray-600 text-xs mr-2">(${p.reviewsCount || 100} تقييم عميل)</span>
+                        </div>
+                        <div class="text-2xl font-black text-amazon-text">
+                            ${p.price.toLocaleString()} <span class="text-sm font-normal">ج.م</span>
+                        </div>
+                        <p class="text-xs text-gray-600 leading-relaxed">${p.description}</p>
+                        <button onclick="addToCart(${p.id}); closeProductDetailModal();" class="w-full amazon-btn py-3 font-bold text-amazon-dark shadow">
+                            <i class="fa-solid fa-cart-plus ml-1"></i> إضافة إلى السلة
+                        </button>
+                    </div>
+                </div>
+                <div class="border-t pt-6 mt-6 space-y-4">
+                    <h5 class="font-bold text-sm text-amazon-text">آراء وتقييمات العملاء السابقين</h5>
+                    <div class="space-y-3 text-xs">
+                        <div class="bg-gray-50 p-3 rounded-lg border">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-bold text-gray-800">أحمد محمد (القاهرة)</span>
+                                <span class="text-amber-500"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></span>
+                            </div>
+                            <p class="text-gray-600">الخامات ممتازة جداً ومطابقة للصور، والتوصيل كان في الميعاد المحدد. شكراً لمصنع المتحدة بأشمون.</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-lg border">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-bold text-gray-800">محمود إبراهيم (المنوفية)</span>
+                                <span class="text-amber-500"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></span>
+                            </div>
+                            <p class="text-gray-600">متانة عالية وتصميم راقي جداً يضيف فخامة للحديقة. أنصح بالتعامل معهم بشدة.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('product-detail-modal').classList.remove('hidden');
+        }
+
+        function closeProductDetailModal() {
+            document.getElementById('product-detail-modal').classList.add('hidden');
+        }
+
+        // Cart Management
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+            const existing = cart.find(i => i.id === productId);
+            if (existing) {
+                existing.qty += 1;
+            } else {
+                cart.push({ ...product, qty: 1 });
+            }
+            saveCart();
+            updateCartBadge();
+            showNotification('تمت الإضافة للسلة', `تم إضافة "${product.name}" بنجاح.`);
+        }
+
+        function removeFromCart(productId) {
+            cart = cart.filter(i => i.id !== productId);
+            saveCart();
+            updateCartBadge();
+            renderCartModal();
+        }
+
+        function updateCartQty(productId, delta) {
+            const item = cart.find(i => i.id === productId);
+            if (item) {
+                item.qty += delta;
+                if (item.qty <= 0) {
+                    removeFromCart(productId);
+                } else {
+                    saveCart();
+                    updateCartBadge();
+                    renderCartModal();
+                }
+            }
+        }
+
+        function saveCart() {
+            localStorage.setItem('um_amazon_cart', JSON.stringify(cart));
+        }
+
+        function updateCartBadge() {
+            const badge = document.getElementById('cart-badge');
+            if (badge) {
+                const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
+                badge.textContent = totalQty;
+            }
+        }
+
+        function openCartModal() {
+            renderCartModal();
+            document.getElementById('cart-modal').classList.remove('hidden');
+        }
+
+        function closeCartModal() {
+            document.getElementById('cart-modal').classList.add('hidden');
+        }
+
+        function renderCartModal() {
+            const container = document.getElementById('cart-items-container');
+            const totalEl = document.getElementById('cart-total-price');
+            if (!container) return;
+
+            if (cart.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-gray-500 text-xs">
+                        <i class="fa-solid fa-cart-shopping text-4xl mb-3 text-gray-300"></i>
+                        <p>سلة المشتريات فارغة حالياً.</p>
+                    </div>
+                `;
+                if (totalEl) totalEl.textContent = '0 ج.م';
+                return;
+            }
+
+            let total = 0;
+            container.innerHTML = cart.map(item => {
+                const itemTotal = item.price * item.qty;
+                total += itemTotal;
+                return `
+                    <div class="flex items-center justify-between bg-gray-50 p-3 rounded-xl border gap-4">
+                        <img src="${item.image}" alt="" class="w-14 h-14 object-cover rounded-lg border">
+                        <div class="flex-grow">
+                            <h4 class="font-bold text-xs text-amazon-text">${item.name}</h4>
+                            <span class="text-[10px] text-gray-500">${item.price.toLocaleString()} ج.م للقطعة</span>
+                        </div>
+                        <div class="flex items-center space-x-1 space-x-reverse">
+                            <button onclick="updateCartQty(${item.id}, -1)" class="w-6 h-6 bg-white border rounded font-bold text-xs">-</button>
+                            <span class="text-xs font-bold px-2">${item.qty}</span>
+                            <button onclick="updateCartQty(${item.id}, 1)" class="w-6 h-6 bg-white border rounded font-bold text-xs">+</button>
+                        </div>
+                        <div class="text-xs font-bold text-amazon-text w-20 text-left">${itemTotal.toLocaleString()} ج.م</div>
+                        <button onclick="removeFromCart(${item.id})" class="text-red-500 hover:text-red-700 p-1"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+            }).join('');
+
+            if (totalEl) totalEl.textContent = total.toLocaleString() + ' ج.م';
+        }
+
+        function openCheckoutModal() {
+            if (cart.length === 0) {
+                showNotification('السلة فارغة', 'يرجى إضافة منتجات أولاً.', 'exclamation');
+                return;
+            }
+            closeCartModal();
+            document.getElementById('checkout-modal').classList.remove('hidden');
+        }
+
+        function closeCheckoutModal() {
+            document.getElementById('checkout-modal').classList.add('hidden');
+        }
+
+        function processOrder(e) {
+            e.preventDefault();
+            const name = document.getElementById('chk-name').value;
+            const phone = document.getElementById('chk-phone').value;
+            const gov = document.getElementById('chk-gov').value;
+            const address = document.getElementById('chk-address').value;
+            const payment = document.querySelector('input[name="payment"]:checked').value;
+
+            const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const newOrder = {
+                id: 'AMZ-' + Math.floor(100000 + Math.random() * 900000),
+                date: new Date().toLocaleString('ar-EG'),
+                customer: { name, phone, gov, address },
+                items: [...cart],
+                total: total,
+                payment: payment === 'card' ? 'بطاقة ائتمان اونلاين' : 'الدفع عند الاستلام',
+                status: 'قيد التجهيز والشحن'
+            };
+
+            orders.push(newOrder);
+            localStorage.setItem('um_amazon_orders', JSON.stringify(orders));
+
+            cart = [];
+            saveCart();
+            updateCartBadge();
+            closeCheckoutModal();
+
+            showNotification('تم استلام طلبك بنجاح!', `رقم الطلب الخاص بك: ${newOrder.id}. سنتواصل معك قريباً للتوصيل.`);
+        }
+
+        function checkoutWhatsApp() {
+            if (cart.length === 0) {
+                showNotification('السلة فارغة', 'يرجى إضافة منتجات أولاً.', 'exclamation');
+                return;
+            }
+            let text = "السلام عليكم، أرغب في طلب المنتجات التالية من متجر المتحدة للرتان والأثاث:\n\n";
+            let total = 0;
+            cart.forEach((i, idx) => {
+                text += `${idx + 1}. ${i.name} (عدد: ${i.qty}) - السعر: ${i.price * i.qty} ج.م\n`;
+                total += i.price * i.qty;
+            });
+            text += `\n*الإجمالي الكلي: ${total.toLocaleString()} ج.م*\n\nيرجى تأكيد التوصيل.`;
+            window.open(`https://wa.me/201000000000?text=${encodeURIComponent(text)}`, '_blank');
+        }
+
+        // Order Tracker Modal
+        function openTrackerModal() {
+            const container = document.getElementById('tracker-orders-list');
+            if (orders.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-gray-500 text-xs">لا توجد طلبات سابقة مسجلة في هذا المتصفح.</div>`;
+            } else {
+                container.innerHTML = orders.map(ord => `
+                    <div class="bg-gray-50 p-4 rounded-xl border space-y-2 text-xs">
+                        <div class="flex justify-between font-bold border-b pb-2">
+                            <span class="text-amazon-link">${ord.id}</span>
+                            <span class="text-emerald-600">${ord.status}</span>
+                        </div>
+                        <p><strong>العميل:</strong> ${ord.customer.name} - ${ord.customer.phone}</p>
+                        <p><strong>العنوان:</strong> ${ord.customer.gov} - ${ord.customer.address}</p>
+                        <p><strong>الإجمالي:</strong> ${ord.total.toLocaleString()} ج.م (${ord.payment})</p>
+                        <div class="text-[10px] text-gray-500 pt-1">تاريخ الطلب: ${ord.date}</div>
+                    </div>
+                `).join('');
+            }
+            document.getElementById('tracker-modal').classList.remove('hidden');
+        }
+
+        function closeTrackerModal() {
+            document.getElementById('tracker-modal').classList.add('hidden');
+        }
+
+        // Admin Panel & Authentication
+        function openAdminLoginModal() {
+            document.getElementById('admin-login-modal').classList.remove('hidden');
+        }
+
+        function closeAdminLoginModal() {
+            document.getElementById('admin-login-modal').classList.add('hidden');
+        }
+
+        function handleAdminLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('admin-user').value;
+            const p = document.getElementById('admin-pass').value;
+            if (u === 'admin' && p === '123456') {
+                closeAdminLoginModal();
+                openAdminPanel();
+            } else {
+                showNotification('خطأ في البيانات', 'اسم المستخدم أو كلمة المرور غير صحيحة.', 'exclamation');
+            }
+        }
+
+        function openAdminPanel() {
+            document.getElementById('admin-panel-modal').classList.remove('hidden');
+            renderAdminProducts();
+            renderAdminOrders();
+        }
+
+        function closeAdminPanel() {
+            document.getElementById('admin-panel-modal').classList.add('hidden');
+        }
+
+        function switchAdminTab(tab) {
+            if (tab === 'products') {
+                document.getElementById('adm-tab-products').classList.remove('hidden');
+                document.getElementById('adm-tab-orders').classList.add('hidden');
+                document.getElementById('adm-btn-prod').className = "px-5 py-2 rounded-lg font-bold text-xs bg-amazon-yellow text-amazon-dark shadow";
+                document.getElementById('adm-btn-ord').className = "px-5 py-2 rounded-lg font-bold text-xs bg-white text-gray-700 border";
+            } else {
+                document.getElementById('adm-tab-products').classList.add('hidden');
+                document.getElementById('adm-tab-orders').classList.remove('hidden');
+                document.getElementById('adm-btn-ord').className = "px-5 py-2 rounded-lg font-bold text-xs bg-amazon-yellow text-amazon-dark shadow";
+                document.getElementById('adm-btn-prod').className = "px-5 py-2 rounded-lg font-bold text-xs bg-white text-gray-700 border";
+            }
+        }
+
+        function renderAdminProducts() {
+            const tbody = document.getElementById('admin-products-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = products.map(p => `
+                <tr class="hover:bg-gray-50 border-b">
+                    <td class="p-2"><img src="${p.image}" class="w-10 h-10 object-cover rounded border"></td>
+                    <td class="p-2 font-bold text-amazon-text">${p.name}</td>
+                    <td class="p-2 text-gray-600">${p.category}</td>
+                    <td class="p-2 font-bold text-amazon-link">${p.price.toLocaleString()} ج.م</td>
+                    <td class="p-2 text-center space-x-1 space-x-reverse">
+                        <button onclick="editProduct(${p.id})" class="p-1.5 bg-gray-100 rounded text-blue-600" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteProduct(${p.id})" class="p-1.5 bg-gray-100 rounded text-red-600" title="حذف"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openAddProductModal() {
+            document.getElementById('prod-form-title').textContent = "إضافة منتج جديد";
+            document.getElementById('edit-prod-id').value = "";
+            document.getElementById('p-name').value = "";
+            document.getElementById('p-price').value = "";
+            document.getElementById('p-dept').value = "rattan";
+            document.getElementById('p-img').value = "";
+            document.getElementById('p-desc').value = "";
+            document.getElementById('product-form-modal').classList.remove('hidden');
+        }
+
+        function editProduct(id) {
+            const p = products.find(i => i.id === id);
+            if (!p) return;
+            document.getElementById('prod-form-title').textContent = "تعديل المنتج";
+            document.getElementById('edit-prod-id').value = p.id;
+            document.getElementById('p-name').value = p.name;
+            document.getElementById('p-price').value = p.price;
+            document.getElementById('p-dept').value = p.category;
+            document.getElementById('p-img').value = p.image;
+            document.getElementById('p-desc').value = p.description;
+            document.getElementById('product-form-modal').classList.remove('hidden');
+        }
+
+        function closeProductFormModal() {
+            document.getElementById('product-form-modal').classList.add('hidden');
+        }
+
+        function saveProductData(e) {
+            e.preventDefault();
+            const editId = document.getElementById('edit-prod-id').value;
+            const name = document.getElementById('p-name').value;
+            const price = parseFloat(document.getElementById('p-price').value);
+            const category = document.getElementById('p-dept').value;
+            const image = document.getElementById('p-img').value;
+            const description = document.getElementById('p-desc').value;
+
+            if (editId) {
+                const p = products.find(i => i.id == editId);
+                if (p) {
+                    p.name = name;
+                    p.price = price;
+                    p.category = category;
+                    p.image = image;
+                    p.description = description;
+                }
+            } else {
+                const newId = products.length > 0 ? Math.max(...products.map(i => i.id)) + 1 : 1;
+                products.push({ id: newId, name, price, category, image, description, rating: 5.0, reviewsCount: 1 });
+            }
+
+            localStorage.setItem('um_amazon_products', JSON.stringify(products));
+            closeProductFormModal();
+            renderAdminProducts();
+            renderProductsGrid();
+            renderDealsGrid();
+            showNotification('تم الحفظ', 'تم حفظ بيانات المنتج بنجاح.');
+        }
+
+        function deleteProduct(id) {
+            products = products.filter(i => i.id !== id);
+            localStorage.setItem('um_amazon_products', JSON.stringify(products));
+            renderAdminProducts();
+            renderProductsGrid();
+            renderDealsGrid();
+            showNotification('تم الحذف', 'تم حذف المنتج بنجاح.');
+        }
+
+        function renderAdminOrders() {
+            const container = document.getElementById('admin-orders-container');
+            const countEl = document.getElementById('adm-orders-count');
+            if (!container) return;
+            if (countEl) countEl.textContent = orders.length;
+
+            if (orders.length === 0) {
+                container.innerHTML = `<div class="text-center py-12 text-gray-500 text-xs">لا توجد طلبات واردة حتى الآن.</div>`;
+                return;
+            }
+
+            container.innerHTML = orders.map(ord => `
+                <div class="bg-gray-50 p-4 rounded-xl border space-y-2 text-xs">
+                    <div class="flex justify-between font-bold border-b pb-2">
+                        <span class="text-amazon-link">${ord.id} (${ord.date})</span>
+                        <span class="text-emerald-600">${ord.status}</span>
+                    </div>
+                    <p><strong>العميل:</strong> ${ord.customer.name} - ${ord.customer.phone}</p>
+                    <p><strong>العنوان:</strong> ${ord.customer.gov} - ${ord.customer.address}</p>
+                    <p><strong>الإجمالي:</strong> ${ord.total.toLocaleString()} ج.م | <strong>الدفع:</strong> ${ord.payment}</p>
+                </div>
+            `).join('');
+        }
+
+        // Custom Notification Box
+        function showNotification(title, msg, type = 'check') {
+            const modal = document.getElementById('notification-modal');
+            document.getElementById('notif-title').textContent = title;
+            document.getElementById('notif-msg').textContent = msg;
+            const icon = document.getElementById('notif-icon');
+            if (type === 'exclamation') {
+                icon.innerHTML = '<i class="fa-solid fa-exclamation"></i>';
+            } else {
+                icon.innerHTML = '<i class="fa-solid fa-check"></i>';
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function closeNotification() {
+            document.getElementById('notification-modal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
