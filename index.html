@@ -1490,16 +1490,191 @@ async function handleAdminLogin(e) {
         }
 
         async function saveProductFromEditor(e) {
-            e.preventDefault();
-            const imageFile = document.getElementById('product-editor-image').files[0];
-            let uploadedImage = 'https://placehold.co/600x450/171717/F39C12?text=منتج';
-            if (imageFile) {
-                uploadedImage = await new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result);
-                    reader.readAsDataURL(imageFile);
-                });
+    e.preventDefault();
+
+    const imageFile =
+        document.getElementById('product-editor-image').files[0];
+
+    const token =
+        sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
+
+    if (!token) {
+        alert('انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.');
+        switchView('admin-login');
+        return;
+    }
+
+    try {
+
+        const saveButton =
+            e.submitter || document.querySelector(
+                '#product-editor-form button[type="submit"]'
+            );
+
+        if (saveButton) {
+            saveButton.disabled = true;
+            saveButton.innerHTML = 'جاري حفظ المنتج...';
+        }
+
+        // =========================
+        // رفع صورة المنتج
+        // =========================
+
+        let uploadedImage = '';
+
+        if (imageFile) {
+
+            const base64 = await new Promise((resolve, reject) => {
+
+                const reader = new FileReader();
+
+                reader.onload = () => resolve(reader.result);
+
+                reader.onerror = () =>
+                    reject(new Error('فشل قراءة الصورة'));
+
+                reader.readAsDataURL(imageFile);
+            });
+
+            const imageResponse = await fetch('/api/upload-image', {
+                method: 'POST',
+
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+
+                body: JSON.stringify({
+                    fileName: imageFile.name,
+                    contentType: imageFile.type,
+                    base64: base64
+                })
+            });
+
+            const imageData =
+                await imageResponse.json();
+
+            if (!imageResponse.ok || !imageData.success) {
+                throw new Error(
+                    imageData?.error || 'فشل رفع صورة المنتج'
+                );
             }
+
+            uploadedImage = imageData.url;
+        }
+
+        // =========================
+        // تجهيز بيانات المنتج
+        // =========================
+
+        const product = {
+
+            id: 'prod-' + Date.now(),
+
+            name:
+                document
+                    .getElementById('product-editor-title')
+                    .value
+                    .trim(),
+
+            category:
+                document
+                    .getElementById('product-editor-category')
+                    .value,
+
+            price:
+                Number(
+                    document
+                        .getElementById('product-editor-price')
+                        .value
+                ) || 0,
+
+            description:
+                document
+                    .getElementById('product-editor-description')
+                    .value
+                    .trim(),
+
+            dimensions:
+                document
+                    .getElementById('product-editor-dimensions')
+                    .value
+                    .trim(),
+
+            specifications: '',
+
+            chair_count:
+                Number(
+                    document
+                        .getElementById('product-editor-chair-count')
+                        .value
+                ) || 1,
+
+            image_url: uploadedImage,
+
+            visible: true,
+
+            featured: false
+        };
+
+        // =========================
+        // إرسال المنتج إلى Supabase
+        // =========================
+
+        const response = await fetch('/api/products', {
+
+            method: 'POST',
+
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+
+            body: JSON.stringify(product)
+        });
+
+        const data =
+            await response.json();
+
+        if (!response.ok || !data.success) {
+
+            throw new Error(
+                data?.error || 'فشل حفظ المنتج في قاعدة البيانات'
+            );
+        }
+
+        alert('تمت إضافة المنتج بنجاح وحفظه في قاعدة البيانات.');
+
+        // تحديث المنتجات الموجودة في الموقع
+        await loadProductsFromDatabase();
+
+        closeProductEditor();
+
+    } catch (error) {
+
+        console.error(
+            'SAVE PRODUCT ERROR:',
+            error
+        );
+
+        alert(
+            error?.message ||
+            'حدث خطأ أثناء إضافة المنتج.'
+        );
+
+    } finally {
+
+        const saveButton =
+            e.submitter || document.querySelector(
+                '#product-editor-form button[type="submit"]'
+            );
+
+        if (saveButton) {
+            saveButton.disabled = false;
+            saveButton.innerHTML = 'حفظ المنتج';
+        }
+    }
+}
             const product = {
                 id: 'prod-' + Date.now(),
                 title: document.getElementById('product-editor-title').value.trim(),
@@ -1614,11 +1789,42 @@ async function handleAdminLogin(e) {
             // Read AI response aloud
             speakText(aiReply);
         }
+async function loadProductsFromDatabase() {
+    try {
+        const response = await fetch('/api/products');
+        const data = await response.json();
 
-        window.onload = function() {
-            renderAllViews();
-            switchView('store');
-        };
+        if (!response.ok || !data.success) {
+            throw new Error(data?.error || 'فشل تحميل المنتجات');
+        }
+
+        appState.products = (data.products || []).map(p => ({
+            id: p.id,
+            title: p.name,
+            category: p.category,
+            price: Number(p.price) || 0,
+            images: p.image_url ? [p.image_url] : [],
+            description: p.description || '',
+            dimensions: p.dimensions || '',
+            specifications: p.specifications || '',
+            chairCount: Number(p.chair_count) || 1,
+            isChairProduct: Number(p.chair_count) > 0,
+            visible: p.visible !== false,
+            featured: p.featured === true
+        }));
+
+        renderAllViews();
+
+    } catch (error) {
+        console.error('LOAD PRODUCTS ERROR:', error);
+    }
+}
+
+window.onload = async function() {
+    renderAllViews();
+    switchView('store');
+    await loadProductsFromDatabase();
+};
     </script>
 </body>
 </html>
