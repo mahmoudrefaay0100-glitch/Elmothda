@@ -1952,20 +1952,32 @@ function openEditProduct(productId) {
             // Read AI response aloud
             speakText(aiReply);
         }
-async function loadProductsFromDatabase() {
+async function loadStoreDataFromDatabase() {
     try {
-        const response = await fetch('/api/products');
+        const response = await fetch('/api/store', {
+            method: 'GET',
+            cache: 'no-store'
+        });
+
         const data = await response.json();
 
         if (!response.ok || !data.success) {
-            throw new Error(data?.error || 'فشل تحميل المنتجات');
+            throw new Error(
+                data?.error || 'فشل تحميل بيانات المتجر'
+            );
         }
+
+        // =========================
+        // المنتجات
+        // =========================
 
         appState.products = (data.products || []).map(p => ({
             id: p.id,
-            title: p.name,
-            category: p.category,
+            title: p.name || '',
+            category: p.category || '',
             price: Number(p.price) || 0,
+            oldPrice: Number(p.old_price) || 0,
+            sku: p.sku || '',
             images: p.image_url ? [p.image_url] : [],
             description: p.description || '',
             dimensions: p.dimensions || '',
@@ -1976,18 +1988,93 @@ async function loadProductsFromDatabase() {
             featured: p.featured === true
         }));
 
+        // =========================
+        // الأقسام
+        // =========================
+
+        if (Array.isArray(data.categories)) {
+            appState.categories = data.categories.map(cat => ({
+                ...cat,
+                name: cat.name || ''
+            }));
+        }
+
+        // =========================
+        // إعدادات الموقع
+        // =========================
+
+        if (
+            data.siteSettings &&
+            typeof data.siteSettings === 'object'
+        ) {
+            appState.siteSettings = {
+                ...appState.siteSettings,
+                ...data.siteSettings
+            };
+        }
+
+        // =========================
+        // خيارات الشحن
+        // =========================
+
+        if (Array.isArray(data.shippingOptions)) {
+            appState.shippingOptions = data.shippingOptions;
+        }
+
+        // =========================
+        // أنواع التنجيد
+        // =========================
+
+        if (Array.isArray(data.upholsteryTypes)) {
+            appState.upholsteryTypes = data.upholsteryTypes;
+        }
+
+        // =========================
+        // ألوان التنجيد
+        // =========================
+
+        if (Array.isArray(data.cushionColors)) {
+            appState.cushionColors = data.cushionColors;
+        }
+
+        // =========================
+        // ألوان الوتَر
+        // =========================
+
+        if (Array.isArray(data.wickerColors)) {
+            appState.wickerColors = data.wickerColors;
+        }
+
+        // =========================
+        // ألوان الخشب
+        // =========================
+
+        if (Array.isArray(data.woodColors)) {
+            appState.woodColors = data.woodColors;
+        }
+
+        // =========================
+        // إعادة رسم الموقع
+        // =========================
+
         renderAllViews();
 
+        console.log('تم تحميل بيانات المتجر من Supabase بنجاح');
+
     } catch (error) {
-        console.error('LOAD PRODUCTS ERROR:', error);
+
+        console.error(
+            'LOAD STORE DATA ERROR:',
+            error
+        );
+
     }
 }
 
 window.onload = async function() {
-    renderAllViews();
     switchView('store');
-    await loadProductsFromDatabase();
-};
-    </script>
+
+    await loadStoreDataFromDatabase();
+};    </script>
 </body>
 </html>
