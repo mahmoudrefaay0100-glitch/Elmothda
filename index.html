@@ -312,35 +312,89 @@
             </div>
         </section>
 
-        <!-- ADMIN LOGIN VIEW -->
-        <section id="view-admin-login" class="hidden max-w-md mx-auto px-4 py-20">
-            <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 space-y-6 shadow-2xl relative overflow-hidden">
-                <div class="absolute top-0 right-0 left-0 h-2 wine-gradient"></div>
-                <div class="text-center space-y-2">
-                    <div class="w-14 h-14 wine-gradient rounded-full mx-auto flex items-center justify-center text-brand-amber text-2xl border border-brand-amber/30">
-                        <i class="fas fa-user-lock"></i>
-                    </div>
-                    <h2 class="text-2xl font-black text-white">تسجيل دخول لوحة التحكم</h2>
-                    <p class="text-xs text-gray-400">خاص بإدارة المتحدة للرتان والأثاث فقط</p>
-                </div>
-                <form onsubmit="handleAdminLogin(event)" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-300 mb-1">اسم المستخدم (Username)</label>
-                        <input type="text" id="admin-user-input" required class="w-full bg-black border border-neutral-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-brand-amber">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-300 mb-1">كلمة المرور (Password)</label>
-                        <input type="password" id="admin-pass-input" required class="w-full bg-black border border-neutral-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-brand-amber">
-                    </div>
-                    <button type="submit" class="w-full wine-gradient hover:opacity-90 text-white font-bold py-3.5 rounded-xl border border-brand-amber/30 transition shadow-lg text-sm">
-                        دخول النظام الإداري <i class="fas fa-sign-in-alt mr-2"></i>
-                    </button>
-                </form>
-                <div class="text-center pt-2">
-                    <button onclick="switchView('store')" class="text-xs text-gray-400 hover:text-white"><i class="fas fa-arrow-right ml-1"></i> العودة للمتجر الرئيسية</button>
-                </div>
+        ```html
+<!-- ADMIN LOGIN VIEW -->
+<section id="view-admin-login" class="hidden max-w-md mx-auto px-4 py-20">
+    <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 space-y-6 shadow-2xl relative overflow-hidden">
+
+        <div class="absolute top-0 right-0 left-0 h-2 wine-gradient"></div>
+
+        <div class="text-center space-y-2">
+            <div class="w-14 h-14 wine-gradient rounded-full mx-auto flex items-center justify-center text-brand-amber text-2xl border border-brand-amber/30">
+                <i class="fas fa-user-lock"></i>
             </div>
-        </section>
+
+            <h2 class="text-2xl font-black text-white">
+                تسجيل دخول لوحة التحكم
+            </h2>
+
+            <p class="text-xs text-gray-400">
+                خاص بإدارة المتحدة للرتان والأثاث فقط
+            </p>
+        </div>
+
+        <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+
+            <div>
+                <label class="block text-xs font-bold text-gray-300 mb-1">
+                    البريد الإلكتروني
+                </label>
+
+                <input
+                    type="email"
+                    id="admin-user-input"
+                    value="admin@elmothda.com"
+                    readonly
+                    required
+                    autocomplete="username"
+                    class="w-full bg-black border border-neutral-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-brand-amber"
+                >
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-300 mb-1">
+                    كلمة المرور
+                </label>
+
+                <input
+                    type="password"
+                    id="admin-pass-input"
+                    required
+                    autocomplete="current-password"
+                    placeholder="اكتب كلمة المرور"
+                    class="w-full bg-black border border-neutral-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-brand-amber"
+                >
+            </div>
+
+            <button
+                id="admin-login-btn"
+                type="submit"
+                class="w-full wine-gradient hover:opacity-90 text-white font-bold py-3.5 rounded-xl border border-brand-amber/30 transition shadow-lg text-sm"
+            >
+                دخول النظام الإداري
+                <i class="fas fa-sign-in-alt mr-2"></i>
+            </button>
+
+        </form>
+
+        <div
+            id="admin-login-message"
+            class="hidden text-center text-sm rounded-xl px-4 py-3"
+        ></div>
+
+        <div class="text-center pt-2">
+            <button
+                onclick="switchView('store')"
+                class="text-xs text-gray-400 hover:text-white"
+            >
+                <i class="fas fa-arrow-right ml-1"></i>
+                العودة للمتجر الرئيسية
+            </button>
+        </div>
+
+    </div>
+</section>
+```
 
         <!-- ADMIN PRODUCT EDITOR VIEW -->
         <section id="view-admin-product-editor" class="hidden max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -1266,17 +1320,99 @@
             `;
         }
 
-        function handleAdminLogin(e) {
-            e.preventDefault();
-            const user = document.getElementById('admin-user-input').value.trim();
-            const pass = document.getElementById('admin-pass-input').value;
-            if (user === appState.adminAuth.username && pass === appState.adminAuth.passwordHash) {
-                sessionStorage.setItem('OSCAR_ADMIN_AUTH', 'true');
-                document.getElementById('current-admin-display-name').innerText = user;
-                switchView('admin-dashboard');
-            } else { alert("خطأ في اسم المستخدم أو كلمة المرور."); }
+       ```javascript
+async function handleAdminLogin(e) {
+    e.preventDefault();
+
+    const user = document.getElementById('admin-user-input').value.trim();
+    const pass = document.getElementById('admin-pass-input').value;
+
+    const loginBtn = document.getElementById('admin-login-btn');
+    const message = document.getElementById('admin-login-message');
+
+    if (!user || !pass) {
+        alert("اكتب كلمة المرور.");
+        return;
+    }
+
+    try {
+        loginBtn.disabled = true;
+        loginBtn.innerHTML = `
+            جاري تسجيل الدخول...
+            <i class="fas fa-spinner fa-spin mr-2"></i>
+        `;
+
+        const response = await fetch('/api/admin-login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                email: user,
+                password: pass
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data?.error || "بيانات الدخول غير صحيحة."
+            );
         }
 
+        // حفظ جلسة الأدمن محليًا
+        sessionStorage.setItem(
+            'OSCAR_ADMIN_AUTH',
+            'true'
+        );
+
+        // حفظ Access Token لاستخدامه مع API المحمي لاحقًا
+        sessionStorage.setItem(
+            'OSCAR_ADMIN_ACCESS_TOKEN',
+            data.access_token
+        );
+
+        sessionStorage.setItem(
+            'OSCAR_ADMIN_USER',
+            data.user?.email || user
+        );
+
+        const adminDisplay =
+            document.getElementById(
+                'current-admin-display-name'
+            );
+
+        if (adminDisplay) {
+            adminDisplay.innerText =
+                data.user?.email || user;
+        }
+
+        switchView('admin-dashboard');
+
+    } catch (error) {
+
+        console.error(
+            'ADMIN LOGIN ERROR:',
+            error
+        );
+
+        alert(
+            error?.message ||
+            "حدث خطأ أثناء تسجيل الدخول."
+        );
+
+    } finally {
+
+        loginBtn.disabled = false;
+
+        loginBtn.innerHTML = `
+            دخول النظام الإداري
+            <i class="fas fa-sign-in-alt mr-2"></i>
+        `;
+    }
+}
+```
         function handleAdminLogout() {
             sessionStorage.removeItem('OSCAR_ADMIN_AUTH');
             switchView('store');
