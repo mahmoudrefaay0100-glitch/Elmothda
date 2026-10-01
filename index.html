@@ -1452,22 +1452,88 @@ async function handleAdminLogin(e) {
                 </tr>
             `).join('');
         }
+async function deleteProductFromDatabase(productId) {
+    const token = sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
 
-        function renderAdminProducts() {
-            const container = document.getElementById('admin-products-list-grid');
-            if (!container) return;
-            container.innerHTML = appState.products.map(p => `
-                <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex justify-between items-start text-xs">
-                    <div>
-                        <h4 class="font-bold text-white">${p.title}</h4>
-                        <p class="text-gray-400">القسم: ${p.category}</p>
-                        <p class="text-brand-amber font-extrabold text-sm">${p.price.toLocaleString()} ج.م</p>
-                    </div>
-                    <button onclick="appState.products = appState.products.filter(item => item.id !== '${p.id}'); saveState();" class="text-red-500"><i class="fas fa-trash"></i></button>
-                </div>
-            `).join('');
+    if (!token) {
+        alert('انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.');
+        switchView('admin-login');
+        return;
+    }
+
+    if (!confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `/api/products?id=${encodeURIComponent(productId)}`,
+            {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data?.error || 'فشل حذف المنتج من قاعدة البيانات'
+            );
         }
 
+        appState.products = appState.products.filter(
+            item => item.id !== productId
+        );
+
+        renderAllViews();
+
+        alert('تم حذف المنتج بنجاح.');
+        
+    } catch (error) {
+        console.error('DELETE PRODUCT ERROR:', error);
+        alert(error?.message || 'حدث خطأ أثناء حذف المنتج.');
+    }
+}
+
+function renderAdminProducts() {
+    const container = document.getElementById('admin-products-list-grid');
+
+    if (!container) return;
+
+    container.innerHTML = appState.products.map(p => `
+        <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex justify-between items-start text-xs">
+            
+            <div>
+                <h4 class="font-bold text-white">
+                    ${p.title}
+                </h4>
+
+                <p class="text-gray-400">
+                    القسم: ${p.category}
+                </p>
+
+                <p class="text-brand-amber font-extrabold text-sm">
+                    ${p.price.toLocaleString()} ج.م
+                </p>
+            </div>
+
+            <div class="flex items-center gap-3">
+                
+                <button
+                    onclick="deleteProductFromDatabase('${p.id}')"
+                    class="text-red-500 hover:text-red-400"
+                    title="حذف المنتج">
+                    <i class="fas fa-trash"></i>
+                </button>
+
+            </div>
+
+        </div>
+    `).join('');
+}
         function renderAdminCategories() {
             const container = document.getElementById('admin-categories-manage-grid');
             if (!container) return;
