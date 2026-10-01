@@ -1320,7 +1320,6 @@
             `;
         }
 
-       javascript
 async function handleAdminLogin(e) {
     e.preventDefault();
 
@@ -1334,13 +1333,11 @@ async function handleAdminLogin(e) {
         alert("اكتب كلمة المرور.");
         return;
     }
-
+    
     try {
         loginBtn.disabled = true;
-        loginBtn.innerHTML = `
-            جاري تسجيل الدخول
-            <i class="fas fa-spinner fa-spin mr-2"></i>
-        `;
+      loginBtn.innerHTML = "جاري تسجيل الدخول...";
+          
 
         const response = await fetch('/api/admin-login', {
             method: 'POST',
@@ -1406,13 +1403,10 @@ async function handleAdminLogin(e) {
 
         loginBtn.disabled = false;
 
-        loginBtn.innerHTML = `
-            دخول النظام الإداري
-            <i class="fas fa-sign-in-alt mr-2"></i>
-        `;
+       loginBtn.innerHTML = "دخول النظام الإداري";
     }
 }
-```
+        
         function handleAdminLogout() {
             sessionStorage.removeItem('OSCAR_ADMIN_AUTH');
             switchView('store');
