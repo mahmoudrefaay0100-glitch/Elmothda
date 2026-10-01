@@ -201,7 +201,71 @@ export default async function handler(req, res) {
                     payload
             });
         }
+if (req.method === "PUT") {
+    const isAdmin = await verifyAdmin();
 
+    if (!isAdmin) {
+        return res.status(401).json({
+            success: false,
+            error: "غير مصرح. يجب تسجيل الدخول كأدمن."
+        });
+    }
+
+    const product = req.body || {};
+    const productId = product.id;
+
+    if (!productId) {
+        return res.status(400).json({
+            success: false,
+            error: "Product ID is required"
+        });
+    }
+
+    const payload = {
+        name: product.name || "منتج",
+        category: product.category || "",
+        price: Number(product.price || 0),
+        old_price: Number(product.old_price || 0),
+        sku: product.sku || "",
+        description: product.description || "",
+        specifications: product.specifications || "",
+        dimensions: product.dimensions || "",
+        chair_count: Number(product.chair_count || 0),
+        image_url: product.image_url || "",
+        visible: product.visible !== false,
+        featured: product.featured === true,
+        updated_at: new Date().toISOString()
+    };
+
+    const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/products?id=eq.${encodeURIComponent(productId)}`,
+        {
+            method: "PATCH",
+            headers: dbHeaders,
+            body: JSON.stringify(payload)
+        }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        return res.status(response.status).json({
+            success: false,
+            error:
+                data?.message ||
+                data?.hint ||
+                "Failed to update product"
+        });
+    }
+
+    return res.status(200).json({
+        success: true,
+        product: data?.[0] || {
+            id: productId,
+            ...payload
+        }
+    });
+}
         // =========================
         // حذف منتج
         // =========================
