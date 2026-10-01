@@ -1669,30 +1669,12 @@ async function handleAdminLogin(e) {
                 '#product-editor-form button[type="submit"]'
             );
 
-        if (saveButton) {
-            saveButton.disabled = false;
-            saveButton.innerHTML = 'حفظ المنتج';
-        }
-    }
+if (saveButton) {
+    saveButton.disabled = false;
+    saveButton.innerHTML = 'حفظ المنتج';
 }
-            const product = {
-                id: 'prod-' + Date.now(),
-                title: document.getElementById('product-editor-title').value.trim(),
-                category: document.getElementById('product-editor-category').value,
-                price: Number(document.getElementById('product-editor-price').value) || 0,
-                images: [uploadedImage],
-                description: document.getElementById('product-editor-description').value.trim(),
-                dimensions: document.getElementById('product-editor-dimensions').value.trim(),
-                isChairProduct: true,
-                chairCount: Number(document.getElementById('product-editor-chair-count').value) || 1,
-                visible: true
-            };
-            appState.products.unshift(product);
-            saveState();
-            alert('تمت إضافة المنتج بنجاح وظهر للعملاء فوراً.');
-            closeProductEditor();
-        }
-
+}       
+            
         // ================= AI VOICE ASSISTANT WIDGET =================
         function toggleAIChatModal(open) {
             const modal = document.getElementById('ai-chat-modal');
