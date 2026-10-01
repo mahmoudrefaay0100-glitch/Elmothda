@@ -1521,7 +1521,14 @@ function renderAdminProducts() {
             </div>
 
             <div class="flex items-center gap-3">
-                
+
+                <button
+                    onclick="openEditProduct('${p.id}')"
+                    class="text-brand-amber hover:opacity-80"
+                    title="تعديل المنتج">
+                    <i class="fas fa-edit"></i>
+                </button>
+
                 <button
                     onclick="deleteProductFromDatabase('${p.id}')"
                     class="text-red-500 hover:text-red-400"
@@ -1545,17 +1552,95 @@ function renderAdminProducts() {
         }
 
         function openProductModal() {
-            switchView('admin-product-editor');
-            document.getElementById('product-editor-form').reset();
-            const select = document.getElementById('product-editor-category');
-            select.innerHTML = appState.categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-        }
 
+    // مهم: فتح إضافة منتج جديد يلغي وضع التعديل
+    editingProductId = null;
+
+    switchView('admin-product-editor');
+
+    document.getElementById('product-editor-form').reset();
+
+    const select =
+        document.getElementById('product-editor-category');
+
+    select.innerHTML =
+        appState.categories
+            .map(c => `
+                <option value="${c.name}">
+                    ${c.name}
+                </option>
+            `)
+            .join('');
+
+    const saveButton =
+        document.querySelector(
+            '#product-editor-form button[type="submit"]'
+        );
+
+    if (saveButton) {
+        saveButton.innerHTML = 'حفظ المنتج';
+    }
+}
+let editingProductId = null;
+
+function openEditProduct(productId) {
+    const product = appState.products.find(
+        p => p.id === productId
+    );
+
+    if (!product) {
+        alert('لم يتم العثور على المنتج.');
+        return;
+    }
+
+    editingProductId = productId;
+
+    switchView('admin-product-editor');
+
+    const form = document.getElementById('product-editor-form');
+    if (form) form.reset();
+
+    const select = document.getElementById('product-editor-category');
+
+    select.innerHTML = appState.categories
+        .map(c => `
+            <option value="${c.name}">
+                ${c.name}
+            </option>
+        `)
+        .join('');
+
+    document.getElementById('product-editor-title').value =
+        product.title || '';
+
+    document.getElementById('product-editor-category').value =
+        product.category || '';
+
+    document.getElementById('product-editor-price').value =
+        product.price || '';
+
+    document.getElementById('product-editor-description').value =
+        product.description || '';
+
+    document.getElementById('product-editor-dimensions').value =
+        product.dimensions || '';
+
+    document.getElementById('product-editor-chair-count').value =
+        product.chairCount || 1;
+
+    const saveButton = document.querySelector(
+        '#product-editor-form button[type="submit"]'
+    );
+
+    if (saveButton) {
+        saveButton.innerHTML = 'تحديث المنتج';
+    }
+}
         function closeProductEditor() {
             switchView('admin-dashboard');
         }
 
-        async function saveProductFromEditor(e) {
+       async function saveProductFromEditor(e) {
     e.preventDefault();
 
     const imageFile =
@@ -1571,9 +1656,9 @@ function renderAdminProducts() {
     }
 
     try {
-
         const saveButton =
-            e.submitter || document.querySelector(
+            e.submitter ||
+            document.querySelector(
                 '#product-editor-form button[type="submit"]'
             );
 
@@ -1581,17 +1666,15 @@ function renderAdminProducts() {
             saveButton.disabled = true;
             saveButton.innerHTML = 'جاري حفظ المنتج...';
         }
-            
+
         // =========================
-        // رفع صورة المنتج
+        // رفع الصورة إذا تم اختيار صورة
         // =========================
 
         let uploadedImage = '';
 
         if (imageFile) {
-
             const base64 = await new Promise((resolve, reject) => {
-
                 const reader = new FileReader();
 
                 reader.onload = () => resolve(reader.result);
@@ -1604,12 +1687,10 @@ function renderAdminProducts() {
 
             const imageResponse = await fetch('/api/upload-image', {
                 method: 'POST',
-
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-
                 body: JSON.stringify({
                     fileName: imageFile.name,
                     contentType: imageFile.type,
@@ -1617,8 +1698,7 @@ function renderAdminProducts() {
                 })
             });
 
-            const imageData =
-                await imageResponse.json();
+            const imageData = await imageResponse.json();
 
             if (!imageResponse.ok || !imageData.success) {
                 throw new Error(
@@ -1630,89 +1710,122 @@ function renderAdminProducts() {
         }
 
         // =========================
-        // تجهيز بيانات المنتج
+        // بيانات المنتج
         // =========================
 
-        const product = {
+        const productData = {
+            name: document
+                .getElementById('product-editor-title')
+                .value
+                .trim(),
 
-            id: 'prod-' + Date.now(),
+            category: document
+                .getElementById('product-editor-category')
+                .value,
 
-            name:
-                document
-                    .getElementById('product-editor-title')
-                    .value
-                    .trim(),
+            price: Number(
+                document.getElementById('product-editor-price').value
+            ) || 0,
 
-            category:
-                document
-                    .getElementById('product-editor-category')
-                    .value,
+            description: document
+                .getElementById('product-editor-description')
+                .value
+                .trim(),
 
-            price:
-                Number(
-                    document
-                        .getElementById('product-editor-price')
-                        .value
-                ) || 0,
+            dimensions: document
+                .getElementById('product-editor-dimensions')
+                .value
+                .trim(),
 
-            description:
-                document
-                    .getElementById('product-editor-description')
-                    .value
-                    .trim(),
-
-            dimensions:
-                document
-                    .getElementById('product-editor-dimensions')
-                    .value
-                    .trim(),
-
-            specifications: '',
-
-            chair_count:
-                Number(
-                    document
-                        .getElementById('product-editor-chair-count')
-                        .value
-                ) || 1,
-
-            image_url: uploadedImage,
+            chair_count: Number(
+                document.getElementById('product-editor-chair-count').value
+            ) || 1,
 
             visible: true,
-
             featured: false
         };
 
         // =========================
-        // إرسال المنتج إلى Supabase
+        // تعديل منتج موجود
         // =========================
 
-        const response = await fetch('/api/products', {
+        if (editingProductId) {
 
-            method: 'POST',
-
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-
-            body: JSON.stringify(product)
-        });
-
-        const data =
-            await response.json();
-
-        if (!response.ok || !data.success) {
-
-            throw new Error(
-                data?.error || 'فشل حفظ المنتج في قاعدة البيانات'
+            const oldProduct = appState.products.find(
+                p => p.id === editingProductId
             );
+
+            productData.id = editingProductId;
+
+            productData.image_url =
+                uploadedImage ||
+                oldProduct?.images?.[0] ||
+                '';
+
+            const response = await fetch('/api/products', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(productData)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(
+                    data?.error ||
+                    'فشل تحديث المنتج في قاعدة البيانات'
+                );
+            }
+
+            alert('تم تعديل المنتج بنجاح.');
+
+        } else {
+
+            // =========================
+            // إضافة منتج جديد
+            // =========================
+
+            productData.id =
+                'prod-' +
+                Date.now() +
+                '-' +
+                Math.random()
+                    .toString(36)
+                    .substring(2, 8);
+
+            productData.image_url = uploadedImage || '';
+
+            const response = await fetch('/api/products', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(productData)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(
+                    data?.error ||
+                    'فشل إضافة المنتج إلى قاعدة البيانات'
+                );
+            }
+
+            alert('تمت إضافة المنتج بنجاح.');
         }
 
-        alert('تمت إضافة المنتج بنجاح وحفظه في قاعدة البيانات.');
+        // =========================
+        // إعادة تحميل المنتجات
+        // =========================
 
-        // تحديث المنتجات الموجودة في الموقع
         await loadProductsFromDatabase();
+
+        editingProductId = null;
 
         closeProductEditor();
 
@@ -1725,22 +1838,23 @@ function renderAdminProducts() {
 
         alert(
             error?.message ||
-            'حدث خطأ أثناء إضافة المنتج.'
+            'حدث خطأ أثناء حفظ المنتج.'
         );
 
     } finally {
 
         const saveButton =
-            e.submitter || document.querySelector(
+            e.submitter ||
+            document.querySelector(
                 '#product-editor-form button[type="submit"]'
             );
 
-if (saveButton) {
-    saveButton.disabled = false;
-    saveButton.innerHTML = 'حفظ المنتج';
-       }
+        if (saveButton) {
+            saveButton.disabled = false;
+            saveButton.innerHTML = 'حفظ المنتج';
+        }
     }
-}       
+}
             
         // ================= AI VOICE ASSISTANT WIDGET =================
         function toggleAIChatModal(open) {
