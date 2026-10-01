@@ -1,175 +1,284 @@
 export default async function handler(req, res) {
-  try {
-    const {
-      SUPABASE_URL,
-      SUPABASE_SERVICE_ROLE_KEY
-    } = process.env;
+    try {
+        const {
+            SUPABASE_URL,
+            SUPABASE_SERVICE_ROLE_KEY
+        } = process.env;
 
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      return res.status(500).json({
-        success: false,
-        error: "Supabase environment variables are missing"
-      });
-    }
-
-    const headers = {
-      apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      "Content-Type": "application/json",
-      Prefer: "return=representation"
-    };
-
-    // جلب المنتجات
-    if (req.method === "GET") {
-      const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/products?select=*&order=created_at.desc`,
-        {
-          headers
+        if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+            return res.status(500).json({
+                success: false,
+                error: "Supabase environment variables are missing"
+            });
         }
-      );
 
-      const data = await response.json();
+        // =========================
+        // التحقق من الأدمن
+        // =========================
 
-      if (!response.ok) {
-        return res.status(response.status).json({
-          success: false,
-          error: data?.message || "Failed to load products"
-        });
-      }
+        async function verifyAdmin() {
 
-      return res.status(200).json({
-        success: true,
-        products: data || []
-      });
-    }
+            const authHeader =
+                req.headers.authorization || "";
 
-    // إضافة أو تعديل منتج
-    if (req.method === "POST") {
-      const product = req.body || {};
+            const token =
+                authHeader.replace(/^Bearer\s+/i, "").trim();
 
-      if (!product.id) {
-        product.id =
-          "prod-" +
-          Date.now() +
-          "-" +
-          Math.random()
-            .toString(36)
-            .substring(2, 8);
-      }
+            if (!token) {
+                return false;
+            }
 
-      const payload = {
-        id: String(product.id),
-        name: product.name || product.title || "منتج جديد",
-        category: product.category || "",
-        price: Number(product.price || 0),
-        old_price: Number(
-          product.old_price ||
-          product.oldPrice ||
-          0
-        ),
-        sku: product.sku || "",
-        description: product.description || "",
-        specifications:
-          product.specifications || "",
-        dimensions:
-          product.dimensions || "",
-        chair_count:
-          Number(
-            product.chair_count ||
-            product.chairCount ||
-            0
-          ),
-        image_url:
-          product.image_url ||
-          product.imageUrl ||
-          "",
-        visible:
-          product.visible !== false,
-        featured:
-          product.featured === true,
-        updated_at:
-          new Date().toISOString()
-      };
+            const response = await fetch(
+                `${SUPABASE_URL}/auth/v1/user`,
+                {
+                    method: "GET",
+                    headers: {
+                        apikey: SUPABASE_SERVICE_ROLE_KEY,
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
 
-      const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/products?on_conflict=id`,
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify(payload)
+            return response.ok;
         }
-      );
 
-      const data = await response.json();
+        // =========================
+        // Headers الخاصة بقاعدة البيانات
+        // =========================
 
-      if (!response.ok) {
-        return res.status(response.status).json({
-          success: false,
-          error:
-            data?.message ||
-            data?.hint ||
-            "Failed to save product"
-        });
-      }
+        const dbHeaders = {
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            Authorization:
+                `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            "Content-Type": "application/json",
+            Prefer: "return=representation"
+        };
 
-      return res.status(200).json({
-        success: true,
-        product: data?.[0] || payload
-      });
-    }
+        // =========================
+        // جلب المنتجات
+        // =========================
 
-    // حذف منتج
-    if (req.method === "DELETE") {
-      const id =
-        req.query?.id ||
-        req.body?.id;
+        if (req.method === "GET") {
 
-      if (!id) {
-        return res.status(400).json({
-          success: false,
-          error: "Product ID is required"
-        });
-      }
+            const response = await fetch(
+                `${SUPABASE_URL}/rest/v1/products?select=*&order=created_at.desc`,
+                {
+                    method: "GET",
+                    headers: dbHeaders
+                }
+            );
 
-      const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/products?id=eq.${encodeURIComponent(id)}`,
-        {
-          method: "DELETE",
-          headers
+            const data = await response.json();
+
+            if (!response.ok) {
+                return res.status(response.status).json({
+                    success: false,
+                    error:
+                        data?.message ||
+                        "Failed to load products"
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                products: data || []
+            });
         }
-      );
 
-      if (!response.ok) {
-        const data = await response.json();
+        // =========================
+        // إضافة / تعديل منتج
+        // =========================
 
-        return res.status(response.status).json({
-          success: false,
-          error:
-            data?.message ||
-            "Failed to delete product"
+        if (req.method === "POST") {
+
+            const isAdmin =
+                await verifyAdmin();
+
+            if (!isAdmin) {
+                return res.status(401).json({
+                    success: false,
+                    error:
+                        "غير مصرح. يجب تسجيل الدخول كأدمن."
+                });
+            }
+
+            const product =
+                req.body || {};
+
+            if (!product.id) {
+                product.id =
+                    "prod-" +
+                    Date.now() +
+                    "-" +
+                    Math.random()
+                        .toString(36)
+                        .substring(2, 8);
+            }
+
+            const payload = {
+
+                id:
+                    String(product.id),
+
+                name:
+                    product.name ||
+                    product.title ||
+                    "منتج جديد",
+
+                category:
+                    product.category || "",
+
+                price:
+                    Number(product.price || 0),
+
+                old_price:
+                    Number(
+                        product.old_price ||
+                        product.oldPrice ||
+                        0
+                    ),
+
+                sku:
+                    product.sku || "",
+
+                description:
+                    product.description || "",
+
+                specifications:
+                    product.specifications || "",
+
+                dimensions:
+                    product.dimensions || "",
+
+                chair_count:
+                    Number(
+                        product.chair_count ||
+                        product.chairCount ||
+                        0
+                    ),
+
+                image_url:
+                    product.image_url ||
+                    product.imageUrl ||
+                    "",
+
+                visible:
+                    product.visible !== false,
+
+                featured:
+                    product.featured === true,
+
+                updated_at:
+                    new Date().toISOString()
+            };
+
+            const response = await fetch(
+                `${SUPABASE_URL}/rest/v1/products?on_conflict=id`,
+                {
+                    method: "POST",
+                    headers: dbHeaders,
+                    body: JSON.stringify(payload)
+                }
+            );
+
+            const data =
+                await response.json();
+
+            if (!response.ok) {
+                return res.status(response.status).json({
+                    success: false,
+                    error:
+                        data?.message ||
+                        data?.hint ||
+                        "Failed to save product"
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                product:
+                    data?.[0] ||
+                    payload
+            });
+        }
+
+        // =========================
+        // حذف منتج
+        // =========================
+
+        if (req.method === "DELETE") {
+
+            const isAdmin =
+                await verifyAdmin();
+
+            if (!isAdmin) {
+                return res.status(401).json({
+                    success: false,
+                    error:
+                        "غير مصرح. يجب تسجيل الدخول كأدمن."
+                });
+            }
+
+            const id =
+                req.query?.id ||
+                req.body?.id;
+
+            if (!id) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        "Product ID is required"
+                });
+            }
+
+            const response = await fetch(
+                `${SUPABASE_URL}/rest/v1/products?id=eq.${encodeURIComponent(id)}`,
+                {
+                    method: "DELETE",
+                    headers: dbHeaders
+                }
+            );
+
+            if (!response.ok) {
+
+                const data =
+                    await response.json();
+
+                return res.status(response.status).json({
+                    success: false,
+                    error:
+                        data?.message ||
+                        "Failed to delete product"
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                deleted: id
+            });
+        }
+
+        // =========================
+        // Method غير مسموح
+        // =========================
+
+        return res.status(405).json({
+            success: false,
+            error: "Method not allowed"
         });
-      }
 
-      return res.status(200).json({
-        success: true,
-        deleted: id
-      });
+    } catch (error) {
+
+        console.error(
+            "PRODUCTS API ERROR:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            error:
+                error?.message ||
+                "Server error"
+        });
     }
-
-    return res.status(405).json({
-      success: false,
-      error: "Method not allowed"
-    });
-
-  } catch (error) {
-
-    console.error("PRODUCTS API ERROR:", error);
-
-    return res.status(500).json({
-      success: false,
-      error:
-        error?.message ||
-        "Server error"
-    });
-  }
 }
