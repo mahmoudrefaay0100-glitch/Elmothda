@@ -123,6 +123,61 @@ export default async function handler(req, res) {
             });
         }
 
+        // =========================
+        // حذف قسم
+        // =========================
+        if (req.method === "DELETE") {
+
+            const { id } = req.query;
+
+            if (!id) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Category ID is required"
+                });
+            }
+
+            const response = await fetch(
+                `${SUPABASE_URL}/rest/v1/categories?id=eq.${encodeURIComponent(id)}`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        ...headers,
+                        Prefer: "return=representation"
+                    }
+                }
+            );
+
+            const responseText = await response.text();
+
+            let data = [];
+
+            try {
+                data = responseText
+                    ? JSON.parse(responseText)
+                    : [];
+            } catch (e) {
+                data = [];
+            }
+
+            if (!response.ok) {
+                throw new Error(
+                    data?.message ||
+                    data?.error ||
+                    responseText ||
+                    "Failed to delete category"
+                );
+            }
+
+            return res.status(200).json({
+                success: true,
+                category: data?.[0] || null
+            });
+        }
+
+        // =========================
+        // أي طلب غير مدعوم
+        // =========================
         return res.status(405).json({
             success: false,
             error: "Method not allowed"
