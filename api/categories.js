@@ -18,7 +18,64 @@ export default async function handler(req, res) {
             "Content-Type": "application/json"
         };
 
+        // =========================
+        // إضافة قسم جديد
+        // =========================
+        if (req.method === "POST") {
+
+            const {
+                name,
+                image_url,
+                sort_order,
+                visible
+            } = req.body || {};
+
+            if (!name || !name.trim()) {
+                return res.status(400).json({
+                    success: false,
+                    error: "اسم القسم مطلوب"
+                });
+            }
+
+            const response = await fetch(
+                `${SUPABASE_URL}/rest/v1/categories`,
+                {
+                    method: "POST",
+                    headers: {
+                        ...headers,
+                        Prefer: "return=representation"
+                    },
+                    body: JSON.stringify({
+                        id: "cat-" + Date.now(),
+                        name: name.trim(),
+                        image_url: image_url || "",
+                        sort_order: Number(sort_order) || 1,
+                        visible: visible !== false
+                    })
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data?.message ||
+                    data?.error ||
+                    "Failed to add category"
+                );
+            }
+
+            return res.status(200).json({
+                success: true,
+                category: data?.[0] || null
+            });
+        }
+
+        // =========================
+        // تحديث صورة القسم
+        // =========================
         if (req.method === "PUT") {
+
             const { id } = req.query;
             const { image_url } = req.body || {};
 
@@ -45,8 +102,7 @@ export default async function handler(req, res) {
                         Prefer: "return=representation"
                     },
                     body: JSON.stringify({
-                        image_url,
-                        updated_at: new Date().toISOString()
+                        image_url
                     })
                 }
             );
