@@ -1722,7 +1722,16 @@ async function changeCategoryImage(categoryId, input) {
             })
         });
 
-        const uploadData = await uploadResponse.json();
+        const uploadText = await uploadResponse.text();
+
+let uploadData;
+
+try {
+    uploadData = JSON.parse(uploadText);
+} catch (e) {
+    console.error('UPLOAD SERVER RESPONSE:', uploadText);
+    throw new Error('السيرفر رجّع خطأ أثناء رفع الصورة: ' + uploadText);
+}
 
         if (!uploadResponse.ok || !uploadData.success) {
             throw new Error(
