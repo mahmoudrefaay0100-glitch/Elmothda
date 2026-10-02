@@ -1632,7 +1632,7 @@ function renderAdminProducts() {
         </div>
     `).join('');
 }
-       function renderAdminCategories() {
+      function renderAdminCategories() {
     const container = document.getElementById('admin-categories-manage-grid');
 
     if (!container) return;
@@ -1674,6 +1674,15 @@ function renderAdminProducts() {
                 >
 
             </label>
+
+            <button
+                type="button"
+                onclick="deleteCategoryFromDatabase('${cat.id}')"
+                class="w-full bg-red-900/30 hover:bg-red-900/50 border border-red-700/50 text-red-400 py-2 rounded-lg transition"
+            >
+                <i class="fas fa-trash ml-1"></i>
+                حذف القسم
+            </button>
 
         </div>
     `).join('');
