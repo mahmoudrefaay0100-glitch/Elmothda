@@ -1065,6 +1065,54 @@
         let sunbrellaChecked = false;
         let customizerQty = 1;
 
+      async function openCategoryModal() {
+    const name = prompt('اكتب اسم القسم الجديد:');
+
+    if (!name || !name.trim()) {
+        return;
+    }
+
+    const token = sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
+
+    if (!token) {
+        alert('انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.');
+        switchView('admin-login');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/categories', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                name: name.trim(),
+                image_url: '',
+                sort_order: appState.categories.length + 1,
+                visible: true
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data?.error || 'فشل إضافة القسم'
+            );
+        }
+
+        await loadStoreDataFromDatabase();
+
+        alert('تم إضافة القسم بنجاح ✅');
+
+    } catch (error) {
+        console.error('ADD CATEGORY ERROR:', error);
+        alert(error?.message || 'حدث خطأ أثناء إضافة القسم');
+    }
+}
+        
         function openCustomizerModal(productId) {
             const product = appState.products.find(p => p.id === productId);
             if (!product) return;
