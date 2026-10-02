@@ -1,126 +1,97 @@
-```js
-async function changeCategoryImage(categoryId, input) {
-    const file = input?.files?.[0];
-
-    if (!file) {
-        alert('من فضلك اختر صورة أولاً.');
-        return;
-    }
-
-    const token = sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
-
-    if (!token) {
-        alert('انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.');
-        switchView('admin-login');
-        return;
+export default async function handler(req, res) {
+    if (req.method !== "POST") {
+        return res.status(405).json({
+            success: false,
+            error: "Method not allowed"
+        });
     }
 
     try {
-        // =========================
-        // تحويل الصورة إلى Base64
-        // =========================
+        const token = req.headers.authorization?.replace("Bearer ", "");
 
-        const base64 = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = () => reject(
-                new Error('فشل قراءة الصورة')
-            );
-
-            reader.readAsDataURL(file);
-        });
-
-        // =========================
-        // رفع الصورة
-        // =========================
-
-        const uploadResponse = await fetch('/api/upload-image', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                fileName: file.name,
-                contentType: file.type,
-                base64: base64
-            })
-        });
-
-        const uploadData = await uploadResponse.json();
-
-        if (!uploadResponse.ok || !uploadData.success) {
-            throw new Error(
-                uploadData?.error || 'فشل رفع الصورة'
-            );
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                error: "غير مصرح"
+            });
         }
 
-        const imageUrl = uploadData.url;
+        const SUPABASE_URL = process.env.SUPABASE_URL;
+        const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-        if (!imageUrl) {
-            throw new Error(
-                'تم رفع الصورة ولكن لم يتم الحصول على رابط الصورة'
-            );
+        if (!SUPABASE_URL || !SERVICE_KEY) {
+            return res.status(500).json({
+                success: false,
+                error: "إعدادات Supabase غير موجودة في Vercel"
+            });
         }
 
-        // =========================
-        // تحديث صورة القسم في قاعدة البيانات
-        // =========================
+        const body = req.body || {};
 
-        const response = await fetch(
-            `/api/categories?id=${encodeURIComponent(categoryId)}`,
+        const {
+            fileName,
+            contentType,
+            base64
+        } = body;
+
+        if (!fileName || !contentType || !base64) {
+            return res.status(400).json({
+                success: false,
+                error: "بيانات الصورة ناقصة"
+            });
+        }
+
+        const cleanBase64 = base64.includes(",")
+            ? base64.split(",")[1]
+            : base64;
+
+        const buffer = Buffer.from(cleanBase64, "base64");
+
+        const safeName = fileName
+            .replace(/[^a-zA-Z0-9._-]/g, "-");
+
+        const path = `categories/${Date.now()}-${safeName}`;
+
+        const uploadResponse = await fetch(
+            `${SUPABASE_URL}/storage/v1/object/product-images/${path}`,
             {
-                method: 'PUT',
+                method: "POST",
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    "Authorization": `Bearer ${SERVICE_KEY}`,
+                    "apikey": SERVICE_KEY,
+                    "Content-Type": contentType,
+                    "x-upsert": "true"
                 },
-                body: JSON.stringify({
-                    image_url: imageUrl
-                })
+                body: buffer
             }
         );
 
-        const data = await response.json();
+        const uploadText = await uploadResponse.text();
 
-        if (!response.ok || !data.success) {
-            throw new Error(
-                data?.error || 'فشل تحديث صورة القسم'
-            );
+        if (!uploadResponse.ok) {
+            console.error("SUPABASE UPLOAD ERROR:", uploadText);
+
+            return res.status(500).json({
+                success: false,
+                error: "فشل رفع الصورة إلى Supabase",
+                details: uploadText
+            });
         }
 
-        // =========================
-        // تحديث الصورة مباشرة
-        // =========================
+        const publicUrl =
+            `${SUPABASE_URL}/storage/v1/object/public/product-images/${path}`;
 
-        const category = appState.categories.find(
-            c => c.id === categoryId
-        );
-
-        if (category) {
-            category.image_url = imageUrl;
-        }
-
-        renderCategoriesGrid();
-        renderAdminCategories();
-
-        alert('تم تغيير صورة القسم بنجاح ✅');
+        return res.status(200).json({
+            success: true,
+            url: publicUrl
+        });
 
     } catch (error) {
-        console.error(
-            'CHANGE CATEGORY IMAGE ERROR:',
-            error
-        );
+        console.error("UPLOAD IMAGE ERROR:", error);
 
-        alert(
-            error?.message ||
-            'حدث خطأ أثناء تغيير صورة القسم'
-        );
-
-        if (input) {
-            input.value = '';
-        }
+        return res.status(500).json({
+            success: false,
+            error: error?.message || "حدث خطأ في السيرفر"
+        });
     }
 }
-```
