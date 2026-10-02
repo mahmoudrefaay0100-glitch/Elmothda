@@ -1634,11 +1634,14 @@ function renderAdminProducts() {
 
         </div>
     `).join('');
-}
+}```js
 async function changeCategoryImage(categoryId, input) {
     const file = input?.files?.[0];
 
-    if (!file) return;
+    if (!file) {
+        alert('من فضلك اختر صورة أولاً.');
+        return;
+    }
 
     const token = sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
 
@@ -1649,10 +1652,16 @@ async function changeCategoryImage(categoryId, input) {
     }
 
     try {
-        // رفع الصورة
-        const formData = new FormData();
-        formData.append('image', file);
+        // التأكد أن الملف صورة
+        if (!file.type || !file.type.startsWith('image/')) {
+            throw new Error('الملف المختار ليس صورة.');
+        }
 
+        // تجهيز الصورة للرفع
+        const formData = new FormData();
+        formData.append('image', file, file.name);
+
+        // رفع الصورة
         const uploadResponse = await fetch('/api/upload-image', {
             method: 'POST',
             headers: {
@@ -1661,7 +1670,15 @@ async function changeCategoryImage(categoryId, input) {
             body: formData
         });
 
-        const uploadData = await uploadResponse.json();
+        const uploadText = await uploadResponse.text();
+
+        let uploadData;
+
+        try {
+            uploadData = JSON.parse(uploadText);
+        } catch {
+            throw new Error('السيرفر لم يرجع بيانات صحيحة أثناء رفع الصورة.');
+        }
 
         if (!uploadResponse.ok || !uploadData.success) {
             throw new Error(
@@ -1670,6 +1687,10 @@ async function changeCategoryImage(categoryId, input) {
         }
 
         const imageUrl = uploadData.url;
+
+        if (!imageUrl) {
+            throw new Error('تم رفع الصورة ولكن لم يرجع السيرفر رابط الصورة.');
+        }
 
         // تحديث صورة القسم في قاعدة البيانات
         const response = await fetch(
@@ -1686,7 +1707,15 @@ async function changeCategoryImage(categoryId, input) {
             }
         );
 
-        const data = await response.json();
+        const text = await response.text();
+
+        let data;
+
+        try {
+            data = JSON.parse(text);
+        } catch {
+            throw new Error('السيرفر لم يرجع بيانات صحيحة أثناء تحديث القسم.');
+        }
 
         if (!response.ok || !data.success) {
             throw new Error(
@@ -1694,7 +1723,7 @@ async function changeCategoryImage(categoryId, input) {
             );
         }
 
-        // تحديث الصورة مباشرة على الموقع
+        // تحديث البيانات الموجودة في الصفحة
         const category = appState.categories.find(
             c => c.id === categoryId
         );
@@ -1711,8 +1740,15 @@ async function changeCategoryImage(categoryId, input) {
     } catch (error) {
         console.error('CHANGE CATEGORY IMAGE ERROR:', error);
         alert(error?.message || 'حدث خطأ أثناء تغيير صورة القسم');
+
+        // إعادة اختيار الملف للسماح بالمحاولة مرة أخرى
+        if (input) {
+            input.value = '';
+        }
     }
 }
+```
+
         function openProductModal() {
 
     // مهم: فتح إضافة منتج جديد يلغي وضع التعديل
