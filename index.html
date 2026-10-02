@@ -987,7 +987,7 @@
             container.innerHTML = visibleCategories.map(cat => `
                 <div onclick="filterCategory('${cat.name}')" class="group bg-neutral-900 border border-neutral-800 hover:border-brand-amber rounded-2xl p-3 text-center cursor-pointer transition transform hover:-translate-y-1 shadow-md">
                     <div class="w-14 h-14 mx-auto rounded-full overflow-hidden mb-2 border border-brand-amber/30 p-0.5">
-                        <img src="${cat.image}" alt="${cat.name}" class="w-full h-full object-cover rounded-full group-hover:scale-110 transition">
+                        <img src="${cat.image_url || ''}" alt="${cat.name}" class="w-full h-full object-cover rounded-full group-hover:scale-110 transition">
                     </div>
                     <h4 class="text-xs font-bold text-gray-200 group-hover:text-brand-amber transition line-clamp-1">${cat.name}</h4>
                 </div>
@@ -1541,16 +1541,130 @@ function renderAdminProducts() {
         </div>
     `).join('');
 }
-        function renderAdminCategories() {
-            const container = document.getElementById('admin-categories-manage-grid');
-            if (!container) return;
-            container.innerHTML = appState.categories.map(cat => `
-                <div class="bg-black border border-neutral-800 p-3 rounded-xl flex items-center justify-between text-xs">
-                    <span class="font-bold text-white">${cat.name}</span>
+       function renderAdminCategories() {
+    const container = document.getElementById('admin-categories-manage-grid');
+
+    if (!container) return;
+
+    container.innerHTML = appState.categories.map(cat => `
+        <div class="bg-black border border-neutral-800 p-4 rounded-xl text-xs space-y-3">
+
+            <div class="flex items-center justify-between gap-3">
+
+                <div>
+                    <span class="font-bold text-white block">
+                        ${cat.name}
+                    </span>
+
+                    <span class="text-gray-500 text-[10px]">
+                        صورة القسم
+                    </span>
                 </div>
-            `).join('');
+
+                <img
+                    src="${cat.image_url || ''}"
+                    class="w-16 h-16 rounded-xl object-cover border border-neutral-700"
+                    onerror="this.style.display='none'"
+                >
+
+            </div>
+
+            <label class="block">
+
+                <span class="block text-gray-400 mb-2">
+                    تغيير صورة القسم
+                </span>
+
+                <input
+                    type="file"
+                    accept="image/*"
+                    class="w-full text-xs text-gray-400"
+                    onchange="changeCategoryImage('${cat.id}', this)"
+                >
+
+            </label>
+
+        </div>
+    `).join('');
+}
+async function changeCategoryImage(categoryId, input) {
+    const file = input?.files?.[0];
+
+    if (!file) return;
+
+    const token = sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
+
+    if (!token) {
+        alert('انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.');
+        switchView('admin-login');
+        return;
+    }
+
+    try {
+        // رفع الصورة
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const uploadResponse = await fetch('/api/upload-image', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+
+        const uploadData = await uploadResponse.json();
+
+        if (!uploadResponse.ok || !uploadData.success) {
+            throw new Error(
+                uploadData?.error || 'فشل رفع الصورة'
+            );
         }
 
+        const imageUrl = uploadData.url;
+
+        // تحديث صورة القسم في قاعدة البيانات
+        const response = await fetch(
+            `/api/categories?id=${encodeURIComponent(categoryId)}`,
+            {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    image_url: imageUrl
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data?.error || 'فشل تحديث صورة القسم'
+            );
+        }
+
+        // تحديث الصورة مباشرة على الموقع
+        const category = appState.categories.find(
+            c => c.id === categoryId
+        );
+
+        if (category) {
+            category.image_url = imageUrl;
+        }
+
+        renderCategoriesGrid();
+        renderAdminCategories();
+
+        alert('تم تغيير صورة القسم بنجاح ✅');
+
+    } catch (error) {
+        console.error('CHANGE CATEGORY IMAGE ERROR:', error);
+        alert(error?.message || 'حدث خطأ أثناء تغيير صورة القسم');
+    }
+}
         function openProductModal() {
 
     // مهم: فتح إضافة منتج جديد يلغي وضع التعديل
