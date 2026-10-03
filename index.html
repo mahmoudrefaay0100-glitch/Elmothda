@@ -2516,7 +2516,7 @@ async function loadStoreDataFromDatabase() {
         // إعادة رسم الموقع
         // =========================
 
-        renderAllViews();
+              renderAllViews();
 
         console.log('تم تحميل بيانات المتجر من Supabase بنجاح');
 
@@ -2530,10 +2530,81 @@ async function loadStoreDataFromDatabase() {
     }
 }
 
+
+// ================================
+// إضافة نوع تنجيد جديد
+// ================================
+async function addUpholsteryTypePrompt() {
+
+    const name = prompt('اكتب اسم نوع التنجيد:');
+
+    if (!name || !name.trim()) {
+        return;
+    }
+
+    const token =
+        sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
+
+    if (!token) {
+        alert('انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.');
+        switchView('admin-login');
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            '/api/upholstery-types',
+            {
+                method: 'POST',
+
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+
+                body: JSON.stringify({
+                    name: name.trim(),
+                    enabled: true
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data?.error ||
+                'فشل إضافة نوع التنجيد'
+            );
+        }
+
+        alert('تمت إضافة نوع التنجيد بنجاح.');
+
+        await loadStoreDataFromDatabase();
+
+    } catch (error) {
+
+        console.error(
+            'ADD UPHOLSTERY TYPE ERROR:',
+            error
+        );
+
+        alert(
+            error?.message ||
+            'حدث خطأ أثناء إضافة نوع التنجيد.'
+        );
+    }
+}
+
+
 window.onload = async function() {
+
     switchView('store');
 
     await loadStoreDataFromDatabase();
-};    </script>
+
+};
+</script>
 </body>
 </html>
