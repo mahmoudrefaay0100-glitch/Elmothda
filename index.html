@@ -2073,7 +2073,7 @@ function openEditProduct(productId) {
         return;
     }
 
-           let uploadedImage = '';
+         let uploadedImage = '';
 
 if (imageFile) {
     const uploadFormData = new FormData();
@@ -2081,7 +2081,7 @@ if (imageFile) {
     uploadFormData.append('file', imageFile);
 
     const uploadResponse = await fetch(
-        '/api/upload-product-image',
+        '/api/upload-image',
         {
             method: 'POST',
             headers: {
