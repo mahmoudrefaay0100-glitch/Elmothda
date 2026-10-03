@@ -2193,7 +2193,7 @@ async function changeCategoryImage(categoryId, input) {
         renderCategoriesGrid();
         renderAdminCategories();
 
-        alert('تم تغيير صورة القسم بنجاح ✅');
+        showToast('تم تغيير صورة القسم بنجاح ✅');
 
     } catch (error) {
 
@@ -2202,10 +2202,11 @@ async function changeCategoryImage(categoryId, input) {
             error
         );
 
-        alert(
-            error?.message ||
-            'حدث خطأ أثناء تغيير صورة القسم.'
-        );
+       showToast(
+    error?.message ||
+    'حدث خطأ أثناء تغيير صورة القسم.',
+    'error'
+);
 
         if (input) {
             input.value = '';
@@ -2785,10 +2786,12 @@ console.log('تم تحميل بيانات المتجر من Supabase بنجاح'
         error
     );
 
-    showToast(
+       showToast(
         error?.message || 'فشل تحديث بيانات الموقع',
         'error'
     );
+}
+
 }
 
 function showToast(message, type = 'success') {
