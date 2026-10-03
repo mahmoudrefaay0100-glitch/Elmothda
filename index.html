@@ -910,10 +910,8 @@
                 { id: "cat-4", name: "شماسي", image: "https://images.unsplash.com/photo-1590523741831-ab7e8b8f9c7f?auto=format&fit=crop&w=400&q=80", visible: true, order: 4 },
                 { id: "cat-5", name: "مراجيح", image: "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?auto=format&fit=crop&w=400&q=80", visible: true, order: 5 }
             ],
-            upholsteryTypes: [
-                { id: "uph-1", name: "Waterproof (مقاوم للماء والشمس)", extraFeePerUnit: 150 },
-                { id: "uph-2", name: "قطيفة معالج عالي الكثافة", extraFeePerUnit: 100 }
-            ],
+           upholsteryTypes: [],
+            
             cushionColors: [
                 { name: "أوف وايت", hex: "#FDFBF7" },
                 { name: "بيج داكن", hex: "#C4A482" },
@@ -1229,14 +1227,28 @@
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-300 mb-1.5">نوع قماش التنجيد:</label>
-                            <div class="space-y-1.5">
-                                ${appState.upholsteryTypes.map(uph => `
-                                    <label onclick="selectUpholstery('${uph.id}')" class="flex items-center justify-between p-2.5 rounded-xl border text-xs cursor-pointer ${selectedUpholsteryId === uph.id ? 'border-brand-amber bg-neutral-800 text-white font-bold' : 'border-neutral-800 bg-black text-gray-400'}">
-                                        <span>${uph.name}</span>
-                                        <span class="text-brand-amber font-bold">${uph.extraFeePerUnit > 0 ? `+${uph.extraFeePerUnit} ج.م` : 'أساسي'}</span>
-                                    </label>
-                                `).join('')}
-                            </div>
+                          <div class="space-y-1.5">
+    ${appState.upholsteryTypes.map(uph => `
+        <label
+            onclick="selectUpholstery('${uph.id}')"
+            class="flex items-center justify-between p-2.5 rounded-xl border text-xs cursor-pointer ${
+                selectedUpholsteryId === uph.id
+                    ? 'border-brand-amber bg-neutral-800 text-white font-bold'
+                    : 'border-neutral-800 bg-black text-gray-400'
+            }"
+        >
+            <span>${uph.name}</span>
+
+            <span class="text-brand-amber font-bold">
+                ${
+                    Number(uph.price) > 0
+                        ? `+${Number(uph.price)} ج.م`
+                        : 'أساسي'
+                }
+            </span>
+        </label>
+    `).join('')}
+</div>
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-300 mb-1.5">لون التنجيد: <span class="text-brand-amber font-bold">${selectedCushionColor}</span></label>
@@ -2484,9 +2496,15 @@ async function loadStoreDataFromDatabase() {
         // أنواع التنجيد
         // =========================
 
-        if (Array.isArray(data.upholsteryTypes)) {
-            appState.upholsteryTypes = data.upholsteryTypes;
-        }
+      if (Array.isArray(data.upholsteryTypes)) {
+    appState.upholsteryTypes = data.upholsteryTypes.map(uph => ({
+        id: uph.id,
+        name: uph.name || '',
+        price: Number(uph.price) || 0,
+        extraFeePerUnit: Number(uph.price) || 0,
+        enabled: uph.enabled !== false
+    }));
+}
 
         // =========================
         // ألوان التنجيد
