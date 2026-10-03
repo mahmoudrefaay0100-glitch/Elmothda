@@ -1668,8 +1668,75 @@ async function handleAdminLogin(e) {
     `).join('');
 }
 
-        function deleteUpholsteryType(id) {
-    showToast('حذف نوع التنجيد سيتم تفعيله لاحقًا.', 'error');
+       async function deleteUpholsteryType(id) {
+    const token = sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
+
+    if (!token) {
+        showToast(
+            'انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.',
+            'error'
+        );
+        switchView('admin-login');
+        return;
+    }
+
+    if (!confirm('هل أنت متأكد من حذف نوع التنجيد؟')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `/api/upholstery-types?id=${encodeURIComponent(id)}`,
+            {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                }
+            }
+        );
+
+        const text = await response.text();
+
+        let data = {};
+
+        try {
+            data = text ? JSON.parse(text) : {};
+        } catch {
+            data = {
+                error: text
+            };
+        }
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data?.error ||
+                'فشل حذف نوع التنجيد'
+            );
+        }
+
+        appState.upholsteryTypes =
+            appState.upholsteryTypes.filter(
+                item => item.id !== id
+            );
+
+        renderAdminUpholsteryTypes();
+        renderAllViews();
+
+        showToast('تم حذف نوع التنجيد بنجاح.');
+
+    } catch (error) {
+
+        console.error(
+            'DELETE UPHOLSTERY TYPE ERROR:',
+            error
+        );
+
+        showToast(
+            error?.message ||
+            'حدث خطأ أثناء حذف نوع التنجيد.',
+            'error'
+        );
+    }
 }
 
 function renderAdminColors() {
