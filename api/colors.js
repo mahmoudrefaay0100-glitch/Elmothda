@@ -1,5 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-
 export default async function handler(req, res) {
 
     try {
@@ -9,17 +7,15 @@ export default async function handler(req, res) {
             SUPABASE_SERVICE_ROLE_KEY
         } = process.env;
 
-        if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+        if (
+            !SUPABASE_URL ||
+            !SUPABASE_SERVICE_ROLE_KEY
+        ) {
             return res.status(500).json({
                 success: false,
                 error: 'بيانات Supabase غير موجودة في Vercel'
             });
         }
-
-        const supabase = createClient(
-            SUPABASE_URL,
-            SUPABASE_SERVICE_ROLE_KEY
-        );
 
         // =========================
         // التحقق من تسجيل الدخول
@@ -40,15 +36,37 @@ export default async function handler(req, res) {
             });
         }
 
-        const {
-            data: userData,
-            error: userError
-        } = await supabase.auth.getUser(token);
+        // التحقق من التوكن عن طريق Supabase REST API
+        const userResponse = await fetch(
+            `${SUPABASE_URL}/auth/v1/user`,
+            {
+                method: 'GET',
+                headers: {
+                    apikey:
+                        SUPABASE_SERVICE_ROLE_KEY,
+                    Authorization:
+                        'Bearer ' + token
+                }
+            }
+        );
+
+        const userText =
+            await userResponse.text();
+
+        let userData = {};
+
+        try {
+            userData = userText
+                ? JSON.parse(userText)
+                : {};
+        } catch {
+            userData = {};
+        }
 
         if (
-            userError ||
+            !userResponse.ok ||
             !userData ||
-            !userData.user
+            !userData.id
         ) {
             return res.status(401).json({
                 success: false,
@@ -62,19 +80,41 @@ export default async function handler(req, res) {
 
         if (req.method === 'GET') {
 
-            const {
-                data,
-                error
-            } = await supabase
-                .from('store_colors')
-                .select('*')
-                .eq('enabled', true)
-                .order('id', {
-                    ascending: true
-                });
+            const response = await fetch(
+                `${SUPABASE_URL}/rest/v1/store_colors?select=*&enabled=eq.true&order=id.asc`,
+                {
+                    method: 'GET',
+                    headers: {
+                        apikey:
+                            SUPABASE_SERVICE_ROLE_KEY,
+                        Authorization:
+                            'Bearer ' +
+                            SUPABASE_SERVICE_ROLE_KEY,
+                        'Content-Type':
+                            'application/json'
+                    }
+                }
+            );
 
-            if (error) {
-                throw error;
+            const text =
+                await response.text();
+
+            let data = [];
+
+            try {
+                data = text
+                    ? JSON.parse(text)
+                    : [];
+            } catch {
+                data = [];
+            }
+
+            if (!response.ok) {
+                throw new Error(
+                    data?.message ||
+                    data?.error ||
+                    'فشل جلب الألوان'
+                );
             }
 
             return res.status(200).json({
@@ -137,49 +177,190 @@ export default async function handler(req, res) {
                 });
             }
 
-            // منع تكرار نفس اللون في نفس القسم
-            const {
-                data: existingColor,
-                error: duplicateError
-            } = await supabase
-                .from('store_colors')
-                .select('id')
-                .eq('type', type)
-                .eq('name', cleanName)
-                .maybeSingle();
+            // =========================
+            // التأكد من عدم التكرار
+            // =========================
 
-            if (duplicateError) {
-                throw duplicateError;
+            const duplicateResponse =
+                await fetch(
+                    `${SUPABASE_URL}/rest/v1/store_colors?select=id&type=eq.${encodeURIComponent(type)}&name=eq.${encodeURIComponent(cleanName)}&limit=1`,
+                    {
+                        method: 'GET',
+                        headers: {
+                            apikey:
+                                SUPABASE_SERVICE_ROLE_KEY,
+                            Authorization:
+                                'Bearer ' +
+                                SUPABASE_SERVICE_ROLE_KEY,
+                            'Content-Type':
+                                'application/json'
+                        }
+                    }
+                );
+
+            const duplicateText =
+                await duplicateResponse.text();
+
+            let existingColors = [];
+
+            try {
+                existingColors =
+                    duplicateText
+                        ? JSON.parse(
+                            duplicateText
+                        )
+                        : [];
+            } catch {
+                existingColors = [];
             }
 
-            if (existingColor) {
+            if (!duplicateResponse.ok) {
+                throw new Error(
+                    existingColors?.message ||
+                    existingColors?.error ||
+                    'فشل التحقق من اللون'
+                );
+            }
+
+            if (
+                Array.isArray(existingColors) &&
+                existingColors.length > 0
+            ) {
                 return res.status(409).json({
                     success: false,
                     error: 'هذا اللون موجود بالفعل'
                 });
             }
 
-            const {
-                data,
-                error
-            } = await supabase
-                .from('store_colors')
-                .insert({
-                    type: type,
-                    name: cleanName,
-                    hex: cleanHex,
-                    enabled: enabled !== false
-                })
-                .select()
-                .single();
+            // =========================
+            // إضافة اللون
+            // =========================
 
-            if (error) {
-                throw error;
+            const insertResponse =
+                await fetch(
+                    `${SUPABASE_URL}/rest/v1/store_colors`,
+                    {
+                        method: 'POST',
+
+                        headers: {
+                            apikey:
+                                SUPABASE_SERVICE_ROLE_KEY,
+
+                            Authorization:
+                                'Bearer ' +
+                                SUPABASE_SERVICE_ROLE_KEY,
+
+                            'Content-Type':
+                                'application/json',
+
+                            Prefer:
+                                'return=representation'
+                        },
+
+                        body: JSON.stringify({
+                            type: type,
+                            name: cleanName,
+                            hex: cleanHex,
+                            enabled:
+                                enabled !== false
+                        })
+                    }
+                );
+
+            const insertText =
+                await insertResponse.text();
+
+            let insertedData = [];
+
+            try {
+                insertedData =
+                    insertText
+                        ? JSON.parse(insertText)
+                        : [];
+            } catch {
+                insertedData = [];
+            }
+
+            if (!insertResponse.ok) {
+                throw new Error(
+                    insertedData?.message ||
+                    insertedData?.error ||
+                    'فشل إضافة اللون إلى قاعدة البيانات'
+                );
             }
 
             return res.status(201).json({
                 success: true,
-                color: data
+                color:
+                    Array.isArray(insertedData)
+                        ? insertedData[0] || null
+                        : insertedData
+            });
+        }
+
+        // =========================
+        // DELETE - حذف لون
+        // =========================
+
+        if (req.method === 'DELETE') {
+
+            const id =
+                req.query?.id;
+
+            if (!id) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'رقم اللون غير موجود'
+                });
+            }
+
+            const deleteResponse =
+                await fetch(
+                    `${SUPABASE_URL}/rest/v1/store_colors?id=eq.${encodeURIComponent(id)}`,
+                    {
+                        method: 'DELETE',
+
+                        headers: {
+                            apikey:
+                                SUPABASE_SERVICE_ROLE_KEY,
+
+                            Authorization:
+                                'Bearer ' +
+                                SUPABASE_SERVICE_ROLE_KEY,
+
+                            'Content-Type':
+                                'application/json'
+                        }
+                    }
+                );
+
+            const deleteText =
+                await deleteResponse.text();
+
+            if (!deleteResponse.ok) {
+
+                let deleteData = {};
+
+                try {
+                    deleteData =
+                        deleteText
+                            ? JSON.parse(
+                                deleteText
+                            )
+                            : {};
+                } catch {
+                    deleteData = {};
+                }
+
+                throw new Error(
+                    deleteData?.message ||
+                    deleteData?.error ||
+                    'فشل حذف اللون'
+                );
+            }
+
+            return res.status(200).json({
+                success: true
             });
         }
 
