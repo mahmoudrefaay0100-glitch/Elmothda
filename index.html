@@ -2630,11 +2630,13 @@ async function addUpholsteryTypePrompt() {
             );
         }
 
-        alert(
-            'تمت إضافة نوع التنجيد بنجاح.'
-        );
+       alert(
+    'تمت إضافة نوع التنجيد بنجاح.'
+);
 
-        await loadStoreDataFromDatabase();
+await loadStoreDataFromDatabase();
+
+renderAllViews();
 
     } catch (error) {
 
