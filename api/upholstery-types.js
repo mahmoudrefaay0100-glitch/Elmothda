@@ -79,7 +79,6 @@ export default async function handler(req, res) {
             }
 
             // إضافة الصف الجديد
-            // لا نرسل id لأن Supabase يولده تلقائياً
             const response = await fetch(
                 `${SUPABASE_URL}/rest/v1/upholstery_types`,
                 {
@@ -186,6 +185,76 @@ export default async function handler(req, res) {
             return res.status(200).json({
                 success: true,
                 upholsteryTypes:
+                    Array.isArray(data)
+                        ? data
+                        : []
+            });
+        }
+
+
+        // ========================================
+        // حذف نوع تنجيد
+        // ========================================
+        if (req.method === "DELETE") {
+
+            const id = req.query?.id;
+
+            if (!id) {
+                return res.status(400).json({
+                    success: false,
+                    error: "معرف نوع التنجيد مطلوب"
+                });
+            }
+
+            const response = await fetch(
+                `${SUPABASE_URL}/rest/v1/upholstery_types?id=eq.${encodeURIComponent(id)}`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        ...headers,
+                        Prefer: "return=representation"
+                    }
+                }
+            );
+
+            const text =
+                await response.text();
+
+            let data = {};
+
+            try {
+                data = text
+                    ? JSON.parse(text)
+                    : {};
+            } catch {
+                data = {
+                    message: text
+                };
+            }
+
+            if (!response.ok) {
+
+                console.error(
+                    "SUPABASE DELETE UPHOLSTERY ERROR:",
+                    data
+                );
+
+                return res.status(
+                    response.status
+                ).json({
+                    success: false,
+                    error:
+                        data?.message ||
+                        data?.error ||
+                        data?.details ||
+                        "فشل حذف نوع التنجيد"
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                message: "تم حذف نوع التنجيد بنجاح",
+                deleted:
                     Array.isArray(data)
                         ? data
                         : []
