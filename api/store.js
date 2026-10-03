@@ -63,62 +63,102 @@ export default async function handler(req, res) {
             siteSettings,
             shippingOptions,
             upholsteryTypes,
-            cushionColors,
-            wickerColors,
-            woodColors
+            storeColors
         ] = await Promise.all([
 
+            // =========================
+            // المنتجات
+            // =========================
             getTable(
                 "products",
                 "select=*&visible=eq.true&order=created_at.desc"
             ),
 
+            // =========================
+            // الأقسام
+            // =========================
             getTable(
                 "categories",
                 "select=*&visible=eq.true&order=sort_order.asc"
             ),
 
+            // =========================
+            // إعدادات الموقع
+            // =========================
             getTable(
                 "site_settings",
                 "select=*&id=eq.1&limit=1"
             ),
 
+            // =========================
+            // خيارات الشحن
+            // =========================
             getTable(
                 "shipping_options",
                 "select=*&enabled=eq.true"
             ),
 
+            // =========================
+            // أنواع التنجيد
+            // =========================
             getTable(
                 "upholstery_types",
-                "select=*&enabled=eq.true"
+                "select=*&enabled=eq.true&order=id.asc"
             ),
 
+            // =========================
+            // جميع الألوان
+            // =========================
             getTable(
-                "cushion_colors",
-                "select=*&enabled=eq.true"
-            ),
-
-            getTable(
-                "wicker_colors",
-                "select=*&enabled=eq.true"
-            ),
-
-            getTable(
-                "wood_colors",
-                "select=*&enabled=eq.true"
+                "store_colors",
+                "select=*&enabled=eq.true&order=id.asc"
             )
         ]);
 
+        // =========================
+        // تقسيم الألوان حسب النوع
+        // =========================
+
+        const cushionColors = (storeColors || []).filter(
+            color => color.type === "cushion"
+        );
+
+        const wickerColors = (storeColors || []).filter(
+            color => color.type === "wicker"
+        );
+
+        const woodColors = (storeColors || []).filter(
+            color => color.type === "wood"
+        );
+
+        // =========================
+        // إرسال بيانات المتجر
+        // =========================
+
         return res.status(200).json({
             success: true,
+
             products: products || [],
+
             categories: categories || [],
-            siteSettings: siteSettings?.[0] || {},
-            shippingOptions: shippingOptions || [],
-            upholsteryTypes: upholsteryTypes || [],
-            cushionColors: cushionColors || [],
-            wickerColors: wickerColors || [],
-            woodColors: woodColors || []
+
+            siteSettings:
+                siteSettings?.[0] || {},
+
+            shippingOptions:
+                shippingOptions || [],
+
+            upholsteryTypes:
+                upholsteryTypes || [],
+
+            cushionColors:
+                cushionColors,
+
+            wickerColors:
+                wickerColors,
+
+            woodColors:
+                woodColors
         });
 
     } catch (error) {
