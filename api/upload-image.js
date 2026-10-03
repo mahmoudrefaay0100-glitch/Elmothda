@@ -1,3 +1,4 @@
+```js
 export default async function handler(req, res) {
     if (req.method !== "POST") {
         return res.status(405).json({
@@ -9,15 +10,24 @@ export default async function handler(req, res) {
     try {
         const {
             SUPABASE_URL,
+            SUPABASE_ANON_KEY,
             SUPABASE_SERVICE_ROLE_KEY
         } = process.env;
 
-        if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+        if (
+            !SUPABASE_URL ||
+            !SUPABASE_ANON_KEY ||
+            !SUPABASE_SERVICE_ROLE_KEY
+        ) {
             return res.status(500).json({
                 success: false,
                 error: "Supabase environment variables are missing"
             });
         }
+
+        // =========================
+        // التحقق من جلسة الأدمن
+        // =========================
 
         const authHeader =
             req.headers.authorization || "";
@@ -39,22 +49,36 @@ export default async function handler(req, res) {
             {
                 method: "GET",
                 headers: {
-                    apikey: SUPABASE_SERVICE_ROLE_KEY,
+                    apikey: SUPABASE_ANON_KEY,
                     Authorization: `Bearer ${token}`
                 }
             }
         );
 
+        const verifyData =
+            await verifyResponse.json();
+
         if (!verifyResponse.ok) {
+            console.error(
+                "SUPABASE USER VERIFY ERROR:",
+                verifyData
+            );
+
             return res.status(401).json({
                 success: false,
                 error: "جلسة الأدمن غير صالحة."
             });
         }
 
-        const formData = await req.formData();
+        // =========================
+        // قراءة الصورة
+        // =========================
 
-        const file = formData.get("file");
+        const formData =
+            await req.formData();
+
+        const file =
+            formData.get("file");
 
         if (!file) {
             return res.status(400).json({
@@ -63,25 +87,37 @@ export default async function handler(req, res) {
             });
         }
 
-        if (!file.type || !file.type.startsWith("image/")) {
+        if (
+            !file.type ||
+            !file.type.startsWith("image/")
+        ) {
             return res.status(400).json({
                 success: false,
                 error: "الملف يجب أن يكون صورة."
             });
         }
 
-        const maxSize = 10 * 1024 * 1024;
+        const maxSize =
+            10 * 1024 * 1024;
 
         if (file.size > maxSize) {
             return res.status(400).json({
                 success: false,
-                error: "حجم الصورة يجب ألا يتجاوز 10 ميجابايت."
+                error:
+                    "حجم الصورة يجب ألا يتجاوز 10 ميجابايت."
             });
         }
 
+        // =========================
+        // اسم الصورة
+        // =========================
+
         const extension =
             file.name.includes(".")
-                ? file.name.split(".").pop().toLowerCase()
+                ? file.name
+                    .split(".")
+                    .pop()
+                    .toLowerCase()
                 : "jpg";
 
         const fileName =
@@ -92,28 +128,41 @@ export default async function handler(req, res) {
         const filePath =
             `products/${fileName}`;
 
+        // =========================
+        // تحويل الصورة إلى Buffer
+        // =========================
+
         const fileBuffer =
             Buffer.from(
                 await file.arrayBuffer()
             );
 
-        const uploadResponse = await fetch(
-            `${SUPABASE_URL}/storage/v1/object/product-images/${filePath}`,
-            {
-                method: "POST",
-                headers: {
-                    apikey:
-                        SUPABASE_SERVICE_ROLE_KEY,
-                    Authorization:
-                        `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-                    "Content-Type":
-                        file.type,
-                    "x-upsert":
-                        "true"
-                },
-                body: fileBuffer
-            }
-        );
+        // =========================
+        // رفع الصورة إلى Supabase
+        // =========================
+
+        const uploadResponse =
+            await fetch(
+                `${SUPABASE_URL}/storage/v1/object/product-images/${filePath}`,
+                {
+                    method: "POST",
+                    headers: {
+                        apikey:
+                            SUPABASE_SERVICE_ROLE_KEY,
+
+                        Authorization:
+                            `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+
+                        "Content-Type":
+                            file.type,
+
+                        "x-upsert":
+                            "true"
+                    },
+
+                    body: fileBuffer
+                }
+            );
 
         const uploadData =
             await uploadResponse.json();
@@ -135,6 +184,10 @@ export default async function handler(req, res) {
             });
         }
 
+        // =========================
+        // رابط الصورة
+        // =========================
+
         const imageUrl =
             `${SUPABASE_URL}/storage/v1/object/public/product-images/${filePath}`;
 
@@ -144,8 +197,9 @@ export default async function handler(req, res) {
         });
 
     } catch (error) {
+
         console.error(
-            "UPLOAD PRODUCT IMAGE ERROR:",
+            "UPLOAD IMAGE ERROR:",
             error
         );
 
@@ -157,3 +211,4 @@ export default async function handler(req, res) {
         });
     }
 }
+
