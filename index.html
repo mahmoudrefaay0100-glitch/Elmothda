@@ -1176,7 +1176,7 @@
 
         await loadStoreDataFromDatabase();
 
-        alert('تم إضافة القسم بنجاح ✅');
+showToast('تم إضافة القسم بنجاح ✅');
 
     } catch (error) {
         console.error('ADD CATEGORY ERROR:', error);
@@ -2481,12 +2481,13 @@ table_count: Number(
         // إعادة تحميل المنتجات
         // =========================
 
-        await loadStoreDataFromDatabase();
+       await loadStoreDataFromDatabase();
 
-        editingProductId = null;
+editingProductId = null;
 
-        closeProductEditor();
+closeProductEditor();
 
+showToast('تم حفظ المنتج بنجاح ✅');
     } catch (error) {
 
         console.error(
@@ -2494,10 +2495,11 @@ table_count: Number(
             error
         );
 
-        alert(
-            error?.message ||
-            'حدث خطأ أثناء حفظ المنتج.'
-        );
+       showToast(
+    error?.message ||
+    'حدث خطأ أثناء حفظ المنتج.',
+    'error'
+);
 
     } finally {
 
@@ -2721,18 +2723,25 @@ async function loadStoreDataFromDatabase() {
         // إعادة رسم الموقع
         // =========================
 
-              renderAllViews();
+             renderAllViews();
 
-        console.log('تم تحميل بيانات المتجر من Supabase بنجاح');
+if (typeof renderAdminDashboard === 'function') {
+    renderAdminDashboard();
+}
 
-    } catch (error) {
+console.log('تم تحميل بيانات المتجر من Supabase بنجاح');
 
-        console.error(
-            'LOAD STORE DATA ERROR:',
-            error
-        );
+   } catch (error) {
 
-    }
+    console.error(
+        'LOAD STORE DATA ERROR:',
+        error
+    );
+
+    showToast(
+        error?.message || 'فشل تحديث بيانات الموقع',
+        'error'
+    );
 }
 
 function showToast(message, type = 'success') {
