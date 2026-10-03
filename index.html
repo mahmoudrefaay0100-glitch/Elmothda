@@ -1845,7 +1845,8 @@ async function deleteCategoryFromDatabase(categoryId) {
         );
     }
 }
-        async function changeCategoryImage(categoryId, input) {
+      ```js
+async function changeCategoryImage(categoryId, input) {
     const file = input?.files?.[0];
 
     if (!file) {
@@ -1853,7 +1854,8 @@ async function deleteCategoryFromDatabase(categoryId) {
         return;
     }
 
-    const token = sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
+    const token =
+        sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
 
     if (!token) {
         alert('انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.');
@@ -1862,51 +1864,38 @@ async function deleteCategoryFromDatabase(categoryId) {
     }
 
     try {
-        // تحويل الصورة إلى Base64
-        const base64 = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
 
-            reader.onload = () => resolve(reader.result);
+        // =========================
+        // رفع الصورة
+        // =========================
 
-            reader.onerror = () => {
-                reject(new Error('فشل قراءة الصورة.'));
-            };
+        const formData = new FormData();
 
-            reader.readAsDataURL(file);
-        });
+        formData.append('file', file);
 
-        // رفع الصورة إلى السيرفر
-        const uploadResponse = await fetch('/api/upload-image', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                fileName: file.name,
-                contentType: file.type,
-                base64: base64
-            })
-        });
+        const uploadResponse = await fetch(
+            '/api/upload-image',
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            }
+        );
 
-        const uploadText = await uploadResponse.text();
-
-let uploadData;
-
-try {
-    uploadData = JSON.parse(uploadText);
-} catch (e) {
-    console.error('UPLOAD SERVER RESPONSE:', uploadText);
-    throw new Error('السيرفر رجّع خطأ أثناء رفع الصورة: ' + uploadText);
-}
+        const uploadData =
+            await uploadResponse.json();
 
         if (!uploadResponse.ok || !uploadData.success) {
             throw new Error(
-                uploadData?.error || 'فشل رفع الصورة'
+                uploadData?.error ||
+                'فشل رفع صورة القسم'
             );
         }
 
-        const imageUrl = uploadData.url;
+        const imageUrl =
+            uploadData.image_url;
 
         if (!imageUrl) {
             throw new Error(
@@ -1914,7 +1903,10 @@ try {
             );
         }
 
+        // =========================
         // تحديث صورة القسم في قاعدة البيانات
+        // =========================
+
         const response = await fetch(
             `/api/categories?id=${encodeURIComponent(categoryId)}`,
             {
@@ -1929,18 +1921,24 @@ try {
             }
         );
 
-        const data = await response.json();
+        const data =
+            await response.json();
 
         if (!response.ok || !data.success) {
             throw new Error(
-                data?.error || 'فشل تحديث صورة القسم'
+                data?.error ||
+                'فشل تحديث صورة القسم'
             );
         }
 
-        // تحديث الصورة مباشرة في الموقع
-        const category = appState.categories.find(
-            c => c.id === categoryId
-        );
+        // =========================
+        // تحديث الصورة مباشرة
+        // =========================
+
+        const category =
+            appState.categories.find(
+                c => c.id === categoryId
+            );
 
         if (category) {
             category.image_url = imageUrl;
@@ -1952,6 +1950,7 @@ try {
         alert('تم تغيير صورة القسم بنجاح ✅');
 
     } catch (error) {
+
         console.error(
             'CHANGE CATEGORY IMAGE ERROR:',
             error
@@ -2060,52 +2059,19 @@ function openEditProduct(productId) {
        async function saveProductFromEditor(e) {
     e.preventDefault();
 
-   const imageFile =
-    document.getElementById('product-editor-image').files[0];
-
-
-    const token =
-        sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
-
-    if (!token) {
-        alert('انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.');
-        switchView('admin-login');
-        return;
-    }
-
-         let uploadedImage = '';
-
-if (imageFile) {
-    const uploadFormData = new FormData();
-
-    uploadFormData.append('file', imageFile);
-
-    const uploadResponse = await fetch(
-        '/api/upload-image',
-        {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: uploadFormData
-        }
-    );
-
-    const uploadData =
-        await uploadResponse.json();
-
-    if (!uploadResponse.ok || !uploadData.success) {
-        throw new Error(
-            uploadData?.error ||
-            'فشل رفع صورة المنتج'
-        );
-    }
-
-    uploadedImage =
-        uploadData.image_url;
-}
-           
     try {
+        const imageFile =
+            document.getElementById('product-editor-image').files[0];
+
+        const token =
+            sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
+
+        if (!token) {
+            alert('انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.');
+            switchView('admin-login');
+            return;
+        }
+
         const saveButton =
             e.submitter ||
             document.querySelector(
@@ -2117,46 +2083,36 @@ if (imageFile) {
             saveButton.innerHTML = 'جاري حفظ المنتج...';
         }
 
-        // =========================
-        // رفع الصورة إذا تم اختيار صورة
-        // =========================
-
         let uploadedImage = '';
 
         if (imageFile) {
-            const base64 = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
+            const uploadFormData = new FormData();
 
-                reader.onload = () => resolve(reader.result);
+            uploadFormData.append('file', imageFile);
 
-                reader.onerror = () =>
-                    reject(new Error('فشل قراءة الصورة'));
+            const uploadResponse = await fetch(
+                '/api/upload-image',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: uploadFormData
+                }
+            );
 
-                reader.readAsDataURL(imageFile);
-            });
+            const uploadData =
+                await uploadResponse.json();
 
-            const imageResponse = await fetch('/api/upload-image', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    fileName: imageFile.name,
-                    contentType: imageFile.type,
-                    base64: base64
-                })
-            });
-
-            const imageData = await imageResponse.json();
-
-            if (!imageResponse.ok || !imageData.success) {
+            if (!uploadResponse.ok || !uploadData.success) {
                 throw new Error(
-                    imageData?.error || 'فشل رفع صورة المنتج'
+                    uploadData?.error ||
+                    'فشل رفع صورة المنتج'
                 );
             }
 
-            uploadedImage = imageData.url;
+            uploadedImage =
+                uploadData.image_url;
         }
 
         // =========================
