@@ -2060,8 +2060,9 @@ function openEditProduct(productId) {
        async function saveProductFromEditor(e) {
     e.preventDefault();
 
-    const imageFile =
-        document.getElementById('product-editor-image').files[0];
+   const imageFile =
+    document.getElementById('product-editor-image').files[0];
+
 
     const token =
         sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
@@ -2072,6 +2073,38 @@ function openEditProduct(productId) {
         return;
     }
 
+           let uploadedImage = '';
+
+if (imageFile) {
+    const uploadFormData = new FormData();
+
+    uploadFormData.append('file', imageFile);
+
+    const uploadResponse = await fetch(
+        '/api/upload-product-image',
+        {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: uploadFormData
+        }
+    );
+
+    const uploadData =
+        await uploadResponse.json();
+
+    if (!uploadResponse.ok || !uploadData.success) {
+        throw new Error(
+            uploadData?.error ||
+            'فشل رفع صورة المنتج'
+        );
+    }
+
+    uploadedImage =
+        uploadData.image_url;
+}
+           
     try {
         const saveButton =
             e.submitter ||
@@ -2178,18 +2211,18 @@ table_count: Number(
         // تعديل منتج موجود
         // =========================
 
-        if (editingProductId) {
+      if (editingProductId) {
 
-            const oldProduct = appState.products.find(
-                p => p.id === editingProductId
-            );
+    const oldProduct = appState.products.find(
+        p => p.id === editingProductId
+    );
 
-            productData.id = editingProductId;
+    productData.id = editingProductId;
 
-            productData.image_url =
-                uploadedImage ||
-                oldProduct?.images?.[0] ||
-                '';
+    productData.image_url =
+        uploadedImage ||
+        oldProduct?.image_url ||
+        '';
 
             const response = await fetch('/api/products', {
                 method: 'PUT',
