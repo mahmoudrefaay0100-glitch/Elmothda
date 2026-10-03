@@ -1668,6 +1668,9 @@ async function handleAdminLogin(e) {
     `).join('');
 }
 
+        function deleteUpholsteryType(id) {
+    showToast('حذف نوع التنجيد سيتم تفعيله لاحقًا.', 'error');
+}
 
 function renderAdminColors() {
 
@@ -1745,26 +1748,6 @@ function renderAdminShipping() {
             </div>
         </div>
     `).join('');
-}
-    if (typeof renderAdminUpholsteryTypes === 'function') {
-        renderAdminUpholsteryTypes();
-    }
-
-    if (typeof renderAdminCushionColors === 'function') {
-        renderAdminCushionColors();
-    }
-
-    if (typeof renderAdminWickerColors === 'function') {
-        renderAdminWickerColors();
-    }
-
-    if (typeof renderAdminWoodColors === 'function') {
-        renderAdminWoodColors();
-    }
-
-    if (typeof renderAdminShippingOptions === 'function') {
-        renderAdminShippingOptions();
-    }
 }
 
         function renderAdminOrders() {
