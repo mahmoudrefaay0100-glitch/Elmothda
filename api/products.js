@@ -26,7 +26,6 @@ export default async function handler(req, res) {
         // =========================
 
         async function verifyAdmin() {
-
             const authHeader =
                 req.headers.authorization || "";
 
@@ -44,7 +43,6 @@ export default async function handler(req, res) {
             }
 
             try {
-
                 const response = await fetch(
                     `${SUPABASE_URL}/auth/v1/user`,
                     {
@@ -61,7 +59,6 @@ export default async function handler(req, res) {
                 );
 
                 if (!response.ok) {
-
                     const errorText =
                         await response.text();
 
@@ -93,7 +90,6 @@ export default async function handler(req, res) {
                 return true;
 
             } catch (error) {
-
                 console.error(
                     "ADMIN VERIFY EXCEPTION:",
                     error
@@ -139,7 +135,6 @@ export default async function handler(req, res) {
                 await response.json();
 
             if (!response.ok) {
-
                 return res.status(
                     response.status
                 ).json({
@@ -167,7 +162,6 @@ export default async function handler(req, res) {
                 await verifyAdmin();
 
             if (!isAdmin) {
-
                 return res.status(401).json({
                     success: false,
                     error:
@@ -178,9 +172,11 @@ export default async function handler(req, res) {
             const product =
                 req.body || {};
 
+            // =========================
             // إنشاء ID تلقائي
-            if (!product.id) {
+            // =========================
 
+            if (!product.id) {
                 product.id =
                     "prod-" +
                     Date.now() +
@@ -189,6 +185,10 @@ export default async function handler(req, res) {
                         .toString(36)
                         .substring(2, 8);
             }
+
+            // =========================
+            // بيانات المنتج
+            // =========================
 
             const payload = {
 
@@ -227,12 +227,47 @@ export default async function handler(req, res) {
                 dimensions:
                     product.dimensions || "",
 
+                // =========================
+                // عدد الكراسي
+                // =========================
+
                 chair_count:
                     Number(
                         product.chair_count ||
                         product.chairCount ||
                         0
                     ),
+
+                // =========================
+                // عدد كنبة 2 مقعد
+                // =========================
+
+                sofa_2_count:
+                    Number(
+                        product.sofa_2_count || 0
+                    ),
+
+                // =========================
+                // عدد كنبة 3 مقعد
+                // =========================
+
+                sofa_3_count:
+                    Number(
+                        product.sofa_3_count || 0
+                    ),
+
+                // =========================
+                // عدد الترابيزات
+                // =========================
+
+                table_count:
+                    Number(
+                        product.table_count || 0
+                    ),
+
+                // =========================
+                // صورة المنتج
+                // =========================
 
                 image_url:
                     product.image_url ||
@@ -248,6 +283,10 @@ export default async function handler(req, res) {
                 updated_at:
                     new Date().toISOString()
             };
+
+            // =========================
+            // حفظ المنتج
+            // =========================
 
             const response = await fetch(
                 `${SUPABASE_URL}/rest/v1/products?on_conflict=id`,
@@ -268,6 +307,10 @@ export default async function handler(req, res) {
                 await response.json();
 
             if (!response.ok) {
+                console.error(
+                    "SAVE PRODUCT ERROR:",
+                    data
+                );
 
                 return res.status(
                     response.status
@@ -276,6 +319,7 @@ export default async function handler(req, res) {
                     error:
                         data?.message ||
                         data?.hint ||
+                        data?.details ||
                         "Failed to save product"
                 });
             }
@@ -299,7 +343,6 @@ export default async function handler(req, res) {
                 await verifyAdmin();
 
             if (!isAdmin) {
-
                 return res.status(401).json({
                     success: false,
                     error:
@@ -314,13 +357,16 @@ export default async function handler(req, res) {
                 product.id;
 
             if (!productId) {
-
                 return res.status(400).json({
                     success: false,
                     error:
                         "Product ID is required"
                 });
             }
+
+            // =========================
+            // بيانات التعديل
+            // =========================
 
             const payload = {
 
@@ -353,11 +399,31 @@ export default async function handler(req, res) {
                 dimensions:
                     product.dimensions || "",
 
+                // عدد الكراسي
                 chair_count:
                     Number(
                         product.chair_count || 0
                     ),
 
+                // عدد كنبة 2 مقعد
+                sofa_2_count:
+                    Number(
+                        product.sofa_2_count || 0
+                    ),
+
+                // عدد كنبة 3 مقعد
+                sofa_3_count:
+                    Number(
+                        product.sofa_3_count || 0
+                    ),
+
+                // عدد الترابيزات
+                table_count:
+                    Number(
+                        product.table_count || 0
+                    ),
+
+                // صورة المنتج
                 image_url:
                     product.image_url || "",
 
@@ -370,6 +436,10 @@ export default async function handler(req, res) {
                 updated_at:
                     new Date().toISOString()
             };
+
+            // =========================
+            // تحديث المنتج
+            // =========================
 
             const response = await fetch(
                 `${SUPABASE_URL}/rest/v1/products?id=eq.${encodeURIComponent(productId)}`,
@@ -390,6 +460,10 @@ export default async function handler(req, res) {
                 await response.json();
 
             if (!response.ok) {
+                console.error(
+                    "UPDATE PRODUCT ERROR:",
+                    data
+                );
 
                 return res.status(
                     response.status
@@ -398,6 +472,7 @@ export default async function handler(req, res) {
                     error:
                         data?.message ||
                         data?.hint ||
+                        data?.details ||
                         "Failed to update product"
                 });
             }
@@ -425,7 +500,6 @@ export default async function handler(req, res) {
                 await verifyAdmin();
 
             if (!isAdmin) {
-
                 return res.status(401).json({
                     success: false,
                     error:
@@ -438,7 +512,6 @@ export default async function handler(req, res) {
                 req.body?.id;
 
             if (!id) {
-
                 return res.status(400).json({
                     success: false,
                     error:
@@ -461,12 +534,18 @@ export default async function handler(req, res) {
                 const data =
                     await response.json();
 
+                console.error(
+                    "DELETE PRODUCT ERROR:",
+                    data
+                );
+
                 return res.status(
                     response.status
                 ).json({
                     success: false,
                     error:
                         data?.message ||
+                        data?.hint ||
                         "Failed to delete product"
                 });
             }
