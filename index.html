@@ -1163,7 +1163,7 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Authorization': 'Bearer ' + token
             },
             body: JSON.stringify({
                 name: name.trim(),
@@ -1652,7 +1652,7 @@ async function deleteProductFromDatabase(productId) {
             {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': 'Bearer ' + token
                 }
             }
         );
@@ -1805,7 +1805,7 @@ async function deleteCategoryFromDatabase(categoryId) {
             {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': 'Bearer ' + token
                 }
             }
         );
@@ -1913,7 +1913,7 @@ async function changeCategoryImage(categoryId, input) {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': 'Bearer ' + token
                 },
                 body: JSON.stringify({
                     image_url: imageUrl
@@ -2225,7 +2225,7 @@ table_count: Number(
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': 'Bearer ' + token
                 },
                 body: JSON.stringify(productData)
             });
@@ -2261,7 +2261,7 @@ table_count: Number(
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': 'Bearer ' + token
                 },
                 body: JSON.stringify(productData)
             });
