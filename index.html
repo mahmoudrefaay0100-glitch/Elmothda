@@ -912,12 +912,7 @@
             ],
            upholsteryTypes: [],
             
-            cushionColors: [
-                { name: "أوف وايت", hex: "#FDFBF7" },
-                { name: "بيج داكن", hex: "#C4A482" },
-                { name: "أسود فاحم", hex: "#1A1A1A" },
-                { name: "كحلي ملكي", hex: "#000080" }
-            ],
+           cushionColors: [],
             wickerColors: [
                 { name: "عسلي طبيعي", hex: "#D4A373" },
                 { name: "أسود رتان", hex: "#222222" },
@@ -1624,11 +1619,153 @@ async function handleAdminLogin(e) {
             document.getElementById(`admin-tab-${tabName}`).classList.remove('hidden');
         }
 
-        function renderAdminDashboard() {
-            renderAdminOrders();
-            renderAdminProducts();
-            renderAdminCategories();
-        }
+     function renderAdminDashboard() {
+    renderAdminOrders();
+    renderAdminProducts();
+    renderAdminCategories();
+
+    renderAdminUpholsteryTypes();
+    renderAdminColors();
+    renderAdminShipping();
+}
+        function renderAdminUpholsteryTypes() {
+    const container = document.getElementById('admin-upholstery-types-list');
+
+    if (!container) return;
+
+    if (!Array.isArray(appState.upholsteryTypes) || appState.upholsteryTypes.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-gray-500 text-sm py-4">
+                لا توجد أنواع تنجيد مضافة حاليًا
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = appState.upholsteryTypes.map(uph => `
+        <div class="flex items-center justify-between gap-3 bg-black border border-neutral-800 rounded-xl p-3">
+            <div>
+                <div class="text-white font-bold text-sm">
+                    ${uph.name || ''}
+                </div>
+
+                <div class="text-brand-amber text-xs mt-1">
+                    ${Number(uph.price) > 0
+                        ? `+${Number(uph.price)} ج.م / كرسي`
+                        : 'أساسي'}
+                </div>
+            </div>
+
+            <button
+                type="button"
+                onclick="deleteUpholsteryType('${uph.id}')"
+                class="text-red-400 hover:text-red-300 text-xs border border-red-900/40 px-3 py-2 rounded-lg"
+            >
+                <i class="fas fa-trash ml-1"></i>
+                حذف
+            </button>
+        </div>
+    `).join('');
+}
+
+
+function renderAdminColors() {
+
+    const cushionContainer =
+        document.getElementById('admin-cushion-colors-dots');
+
+    const wickerContainer =
+        document.getElementById('admin-wicker-colors-dots');
+
+    if (cushionContainer) {
+        cushionContainer.innerHTML =
+            Array.isArray(appState.cushionColors)
+                ? appState.cushionColors.map(color => `
+                    <div
+                        class="w-8 h-8 rounded-full border border-neutral-600"
+                        style="background:${color.hex || color.color || color}"
+                        title="${color.name || color.hex || color}"
+                    ></div>
+                `).join('')
+                : '';
+    }
+
+    if (wickerContainer) {
+        wickerContainer.innerHTML =
+            Array.isArray(appState.wickerColors)
+                ? appState.wickerColors.map(color => `
+                    <div
+                        class="w-8 h-8 rounded-full border border-neutral-600"
+                        style="background:${color.hex || color.color || color}"
+                        title="${color.name || color.hex || color}"
+                    ></div>
+                `).join('')
+                : '';
+    }
+}
+
+
+function renderAdminShipping() {
+
+    const container =
+        document.getElementById('admin-shipping-options-list');
+
+    if (!container) return;
+
+    if (
+        !Array.isArray(appState.shippingOptions) ||
+        appState.shippingOptions.length === 0
+    ) {
+        container.innerHTML = `
+            <div class="text-center text-gray-500 text-sm py-4">
+                لا توجد بيانات شحن مضافة حاليًا
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = appState.shippingOptions.map(option => `
+        <div class="bg-black border border-neutral-800 rounded-xl p-4">
+            <div class="flex items-center justify-between">
+
+                <div>
+                    <div class="text-white font-bold text-sm">
+                        ${option.name || option.title || 'خيار شحن'}
+                    </div>
+
+                    <div class="text-gray-400 text-xs mt-1">
+                        ${option.duration || option.delivery_time || ''}
+                    </div>
+                </div>
+
+                <div class="text-brand-amber font-bold text-sm">
+                    ${Number(option.price || option.cost || 0)} ج.م
+                </div>
+
+            </div>
+        </div>
+    `).join('');
+}
+    if (typeof renderAdminUpholsteryTypes === 'function') {
+        renderAdminUpholsteryTypes();
+    }
+
+    if (typeof renderAdminCushionColors === 'function') {
+        renderAdminCushionColors();
+    }
+
+    if (typeof renderAdminWickerColors === 'function') {
+        renderAdminWickerColors();
+    }
+
+    if (typeof renderAdminWoodColors === 'function') {
+        renderAdminWoodColors();
+    }
+
+    if (typeof renderAdminShippingOptions === 'function') {
+        renderAdminShippingOptions();
+    }
+}
 
         function renderAdminOrders() {
             const tbody = document.getElementById('admin-orders-table-body');
@@ -2686,7 +2823,8 @@ async function addUpholsteryTypePrompt() {
       showToast('تمت إضافة نوع التنجيد بنجاح.');
 
 await loadStoreDataFromDatabase();
-
+renderAdminDashboard();
+        
 renderAllViews();
 
     } catch (error) {
@@ -2699,6 +2837,117 @@ renderAllViews();
         alert(
             error?.message ||
             'حدث خطأ أثناء إضافة نوع التنجيد.'
+        );
+    }
+}
+        async function addColorPrompt(type) {
+
+    const typeNames = {
+        cushion: 'لون قماش التنجيد',
+        wicker: 'لون مشدود الرتان/الرباط',
+        wood: 'لون تركيب الخشب'
+    };
+
+    const typeName = typeNames[type] || 'اللون';
+
+    const name = prompt(`اكتب اسم ${typeName}:`);
+
+    if (!name || !name.trim()) {
+        return;
+    }
+
+    const hex = prompt(
+        `اكتب كود اللون لـ ${name.trim()}:\nمثال: #8B1E2B`
+    );
+
+    if (!hex || !hex.trim()) {
+        return;
+    }
+
+    const color = hex.trim();
+
+    if (!/^#[0-9A-Fa-f]{6}$/.test(color)) {
+        showToast(
+            'اكتب كود لون صحيح مثل #8B1E2B',
+            'error'
+        );
+        return;
+    }
+
+    const token =
+        sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
+
+    if (!token) {
+        showToast(
+            'انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.',
+            'error'
+        );
+
+        switchView('admin-login');
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            '/api/colors',
+            {
+                method: 'POST',
+
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+
+                body: JSON.stringify({
+                    type: type,
+                    name: name.trim(),
+                    hex: color,
+                    enabled: true
+                })
+            }
+        );
+
+        const responseText = await response.text();
+
+        let data = {};
+
+        try {
+            data = responseText
+                ? JSON.parse(responseText)
+                : {};
+        } catch {
+            data = {
+                error: responseText
+            };
+        }
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data?.error ||
+                'فشل إضافة اللون'
+            );
+        }
+
+        showToast(
+            `تمت إضافة ${typeName} بنجاح.`
+        );
+
+        await loadStoreDataFromDatabase();
+
+        renderAdminDashboard();
+
+    } catch (error) {
+
+        console.error(
+            'ADD COLOR ERROR:',
+            error
+        );
+
+        showToast(
+            error?.message ||
+            'حدث خطأ أثناء إضافة اللون.',
+            'error'
         );
     }
 }
