@@ -2853,212 +2853,352 @@ function showToast(message, type = 'success') {
 // ================================
 async function addUpholsteryTypePrompt() {
 
-    const name = prompt(
-        'اكتب اسم نوع التنجيد:\nمثال: صن بيدج Waterproof'
-    );
+    const oldModal = document.getElementById('upholstery-add-modal');
 
-    if (!name || !name.trim()) {
-        return;
+    if (oldModal) {
+        oldModal.remove();
     }
 
-    const priceInput = prompt(
-        'اكتب السعر الإضافي للكرسي بالجنيه:\nمثال: 200'
-    );
+    const modal = document.createElement('div');
 
-    if (priceInput === null) {
-        return;
-    }
+    modal.id = 'upholstery-add-modal';
 
-    const price = Number(priceInput);
+    modal.innerHTML = `
+        <div style="
+            position:fixed;
+            inset:0;
+            background:rgba(0,0,0,.70);
+            z-index:999998;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:20px;
+        ">
 
-    if (!Number.isFinite(price) || price < 0) {
-        alert('من فضلك اكتب سعرًا صحيحًا.');
-        return;
-    }
+            <div style="
+                width:100%;
+                max-width:420px;
+                background:#171717;
+                border:1px solid #333;
+                border-radius:18px;
+                padding:22px;
+                box-shadow:0 20px 60px rgba(0,0,0,.5);
+                direction:rtl;
+            ">
 
-    const token =
-        sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                    margin-bottom:20px;
+                ">
+                    <h3 style="
+                        color:#fff;
+                        font-size:18px;
+                        font-weight:800;
+                        margin:0;
+                    ">
+                        إضافة نوع تنجيد
+                    </h3>
 
-    if (!token) {
-        alert(
-            'انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.'
-        );
-        switchView('admin-login');
-        return;
-    }
+                    <button
+                        type="button"
+                        id="close-upholstery-modal"
+                        style="
+                            background:none;
+                            border:none;
+                            color:#aaa;
+                            font-size:22px;
+                            cursor:pointer;
+                        "
+                    >
+                        ×
+                    </button>
+                </div>
 
-    try {
+                <div style="margin-bottom:15px;">
 
-        const response = await fetch(
-            '/api/upholstery-types',
-            {
-                method: 'POST',
+                    <label style="
+                        display:block;
+                        color:#ddd;
+                        font-size:13px;
+                        font-weight:700;
+                        margin-bottom:7px;
+                    ">
+                        اسم التنجيد
+                    </label>
 
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token
-                },
+                    <input
+                        id="upholstery-name-input"
+                        type="text"
+                        placeholder="مثال: صن بيدج Waterproof"
+                        style="
+                            width:100%;
+                            box-sizing:border-box;
+                            background:#0d0d0d;
+                            color:#fff;
+                            border:1px solid #444;
+                            border-radius:10px;
+                            padding:12px;
+                            outline:none;
+                            font-size:14px;
+                        "
+                    >
 
-                body: JSON.stringify({
-                    name: name.trim(),
-                    price: price,
-                    enabled: true
-                })
-            }
-        );
+                </div>
 
-        const responseText =
-            await response.text();
+                <div style="margin-bottom:20px;">
 
-        let data = {};
+                    <label style="
+                        display:block;
+                        color:#ddd;
+                        font-size:13px;
+                        font-weight:700;
+                        margin-bottom:7px;
+                    ">
+                        السعر الإضافي للكرسي
+                    </label>
 
-        try {
-            data = responseText
-                ? JSON.parse(responseText)
-                : {};
-        } catch {
-            data = {
-                error: responseText
-            };
-        }
+                    <div style="position:relative;">
 
-        if (!response.ok || !data.success) {
-            throw new Error(
-                data?.error ||
-                'فشل إضافة نوع التنجيد'
-            );
-        }
+                        <input
+                            id="upholstery-price-input"
+                            type="number"
+                            min="0"
+                            placeholder="مثال: 200"
+                            style="
+                                width:100%;
+                                box-sizing:border-box;
+                                background:#0d0d0d;
+                                color:#fff;
+                                border:1px solid #444;
+                                border-radius:10px;
+                                padding:12px 55px 12px 12px;
+                                outline:none;
+                                font-size:14px;
+                            "
+                        >
 
-      showToast('تمت إضافة نوع التنجيد بنجاح.');
+                        <span style="
+                            position:absolute;
+                            right:12px;
+                            top:50%;
+                            transform:translateY(-50%);
+                            color:#aaa;
+                            font-size:13px;
+                        ">
+                            ج.م
+                        </span>
 
-await loadStoreDataFromDatabase();
-renderAdminDashboard();
-        
-renderAllViews();
+                    </div>
 
-    } catch (error) {
+                </div>
 
-        console.error(
-            'ADD UPHOLSTERY TYPE ERROR:',
-            error
-        );
+                <div style="
+                    display:flex;
+                    gap:10px;
+                ">
 
-        alert(
-            error?.message ||
-            'حدث خطأ أثناء إضافة نوع التنجيد.'
-        );
-    }
-}
-        async function addColorPrompt(type) {
+                    <button
+                        type="button"
+                        id="cancel-upholstery-modal"
+                        style="
+                            flex:1;
+                            background:#2a2a2a;
+                            color:#fff;
+                            border:1px solid #444;
+                            border-radius:10px;
+                            padding:12px;
+                            font-weight:700;
+                            cursor:pointer;
+                        "
+                    >
+                        إلغاء
+                    </button>
 
-    const typeNames = {
-        cushion: 'لون قماش التنجيد',
-        wicker: 'لون مشدود الرتان/الرباط',
-        wood: 'لون تركيب الخشب'
+                    <button
+                        type="button"
+                        id="save-upholstery-modal"
+                        style="
+                            flex:1;
+                            background:#E87A18;
+                            color:#fff;
+                            border:none;
+                            border-radius:10px;
+                            padding:12px;
+                            font-weight:800;
+                            cursor:pointer;
+                        "
+                    >
+                        إضافة
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const nameInput =
+        document.getElementById('upholstery-name-input');
+
+    const priceInput =
+        document.getElementById('upholstery-price-input');
+
+    const closeModal = () => {
+        modal.remove();
     };
 
-    const typeName = typeNames[type] || 'اللون';
+    document
+        .getElementById('close-upholstery-modal')
+        .onclick = closeModal;
 
-    const name = prompt(`اكتب اسم ${typeName}:`);
+    document
+        .getElementById('cancel-upholstery-modal')
+        .onclick = closeModal;
 
-    if (!name || !name.trim()) {
-        return;
-    }
+    document
+        .getElementById('save-upholstery-modal')
+        .onclick = async function () {
 
-    const hex = prompt(
-        `اكتب كود اللون لـ ${name.trim()}:\nمثال: #8B1E2B`
-    );
+            const name = nameInput.value.trim();
 
-    if (!hex || !hex.trim()) {
-        return;
-    }
+            const price = Number(priceInput.value);
 
-    const color = hex.trim();
+            if (!name) {
 
-    if (!/^#[0-9A-Fa-f]{6}$/.test(color)) {
-        showToast(
-            'اكتب كود لون صحيح مثل #8B1E2B',
-            'error'
-        );
-        return;
-    }
+                showToast(
+                    'اكتب اسم التنجيد أولاً.',
+                    'error'
+                );
 
-    const token =
-        sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
+                nameInput.focus();
 
-    if (!token) {
-        showToast(
-            'انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.',
-            'error'
-        );
-
-        switchView('admin-login');
-        return;
-    }
-
-    try {
-
-        const response = await fetch(
-            '/api/colors',
-            {
-                method: 'POST',
-
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token
-                },
-
-                body: JSON.stringify({
-                    type: type,
-                    name: name.trim(),
-                    hex: color,
-                    enabled: true
-                })
+                return;
             }
-        );
 
-        const responseText = await response.text();
+            if (
+                !Number.isFinite(price) ||
+                price < 0
+            ) {
 
-        let data = {};
+                showToast(
+                    'اكتب سعرًا صحيحًا.',
+                    'error'
+                );
 
-        try {
-            data = responseText
-                ? JSON.parse(responseText)
-                : {};
-        } catch {
-            data = {
-                error: responseText
-            };
-        }
+                priceInput.focus();
 
-        if (!response.ok || !data.success) {
-            throw new Error(
-                data?.error ||
-                'فشل إضافة اللون'
-            );
-        }
+                return;
+            }
 
-        showToast(
-            `تمت إضافة ${typeName} بنجاح.`
-        );
+            const token =
+                sessionStorage.getItem(
+                    'OSCAR_ADMIN_ACCESS_TOKEN'
+                );
 
-        await loadStoreDataFromDatabase();
+            if (!token) {
 
-        renderAdminDashboard();
+                showToast(
+                    'انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.',
+                    'error'
+                );
 
-    } catch (error) {
+                closeModal();
 
-        console.error(
-            'ADD COLOR ERROR:',
-            error
-        );
+                switchView('admin-login');
 
-        showToast(
-            error?.message ||
-            'حدث خطأ أثناء إضافة اللون.',
-            'error'
-        );
-    }
+                return;
+            }
+
+            const saveButton =
+                document.getElementById(
+                    'save-upholstery-modal'
+                );
+
+            saveButton.disabled = true;
+            saveButton.textContent = 'جاري الإضافة...';
+
+            try {
+
+                const response = await fetch(
+                    '/api/upholstery-types',
+                    {
+                        method: 'POST',
+
+                        headers: {
+                            'Content-Type':
+                                'application/json',
+
+                            'Authorization':
+                                'Bearer ' + token
+                        },
+
+                        body: JSON.stringify({
+                            name: name,
+                            price: price,
+                            enabled: true
+                        })
+                    }
+                );
+
+                const responseText =
+                    await response.text();
+
+                let data = {};
+
+                try {
+                    data = responseText
+                        ? JSON.parse(responseText)
+                        : {};
+                } catch {
+                    data = {
+                        error: responseText
+                    };
+                }
+
+                if (
+                    !response.ok ||
+                    !data.success
+                ) {
+                    throw new Error(
+                        data?.error ||
+                        'فشل إضافة نوع التنجيد'
+                    );
+                }
+
+                closeModal();
+
+                showToast(
+                    'تمت إضافة نوع التنجيد بنجاح ✅'
+                );
+
+                await loadStoreDataFromDatabase();
+
+                renderAdminDashboard();
+
+            } catch (error) {
+
+                console.error(
+                    'ADD UPHOLSTERY TYPE ERROR:',
+                    error
+                );
+
+                showToast(
+                    error?.message ||
+                    'حدث خطأ أثناء إضافة نوع التنجيد.',
+                    'error'
+                );
+
+                saveButton.disabled = false;
+                saveButton.textContent = 'إضافة';
+            }
+        };
+
+    nameInput.focus();
 }
 </script>
 </body>
