@@ -7,70 +7,105 @@ export default async function handler(req, res) {
     }
 
     try {
-        const SUPABASE_URL = process.env.SUPABASE_URL;
+        const SUPABASE_URL =
+            process.env.SUPABASE_URL;
+
         const SUPABASE_SERVICE_ROLE_KEY =
             process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-        if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+        if (
+            !SUPABASE_URL ||
+            !SUPABASE_SERVICE_ROLE_KEY
+        ) {
             return res.status(500).json({
                 success: false,
-                error: "متغيرات Supabase غير موجودة في Vercel"
+                error:
+                    "متغيرات Supabase غير موجودة في Vercel"
             });
         }
 
-        const formData = await req.formData();
-        const file = formData.get("file");
+        const {
+            fileName,
+            fileType,
+            fileData
+        } = req.body || {};
 
-        if (!file) {
+        if (!fileData) {
             return res.status(400).json({
                 success: false,
-                error: "لم يتم اختيار صورة"
+                error: "لم يتم إرسال الصورة"
             });
         }
 
-        if (!file.type || !file.type.startsWith("image/")) {
+        if (
+            !fileType ||
+            !fileType.startsWith("image/")
+        ) {
             return res.status(400).json({
                 success: false,
                 error: "الملف يجب أن يكون صورة"
             });
         }
 
-        if (file.size > 10 * 1024 * 1024) {
+        const base64Data =
+            fileData.includes(",")
+                ? fileData.split(",")[1]
+                : fileData;
+
+        const fileBuffer =
+            Buffer.from(base64Data, "base64");
+
+        if (
+            fileBuffer.length >
+            10 * 1024 * 1024
+        ) {
             return res.status(400).json({
                 success: false,
-                error: "حجم الصورة يجب ألا يتجاوز 10 ميجابايت"
+                error:
+                    "حجم الصورة يجب ألا يتجاوز 10 ميجابايت"
             });
         }
 
-        const extension = file.name.includes(".")
-            ? file.name.split(".").pop().toLowerCase()
-            : "jpg";
+        const extension =
+            fileName && fileName.includes(".")
+                ? fileName
+                    .split(".")
+                    .pop()
+                    .toLowerCase()
+                : "jpg";
 
-        const fileName =
+        const newFileName =
             `product-${Date.now()}-${Math.random()
                 .toString(36)
                 .substring(2, 10)}.${extension}`;
 
-        const filePath = `products/${fileName}`;
+        const filePath =
+            `products/${newFileName}`;
 
-        const fileBuffer = Buffer.from(
-            await file.arrayBuffer()
-        );
+        const uploadResponse =
+            await fetch(
+                `${SUPABASE_URL}/storage/v1/object/product-images/${filePath}`,
+                {
+                    method: "POST",
 
-        const uploadResponse = await fetch(
-            `${SUPABASE_URL}/storage/v1/object/product-images/${filePath}`,
-            {
-                method: "POST",
-                headers: {
-                    apikey: SUPABASE_SERVICE_ROLE_KEY,
-                    Authorization:
-                        "Bearer " + SUPABASE_SERVICE_ROLE_KEY,
-                    "Content-Type": file.type,
-                    "x-upsert": "true"
-                },
-                body: fileBuffer
-            }
-        );
+                    headers: {
+                        apikey:
+                            SUPABASE_SERVICE_ROLE_KEY,
+
+                        Authorization:
+                            "Bearer " +
+                            SUPABASE_SERVICE_ROLE_KEY,
+
+                        "Content-Type":
+                            fileType,
+
+                        "x-upsert":
+                            "true"
+                    },
+
+                    body: fileBuffer
+                }
+            );
 
         const responseText =
             await uploadResponse.text();
@@ -78,9 +113,10 @@ export default async function handler(req, res) {
         let uploadData = {};
 
         try {
-            uploadData = responseText
-                ? JSON.parse(responseText)
-                : {};
+            uploadData =
+                responseText
+                    ? JSON.parse(responseText)
+                    : {};
         } catch {
             uploadData = {
                 message: responseText
@@ -93,7 +129,9 @@ export default async function handler(req, res) {
                 uploadData
             );
 
-            return res.status(uploadResponse.status).json({
+            return res.status(
+                uploadResponse.status
+            ).json({
                 success: false,
                 error:
                     uploadData?.message ||
