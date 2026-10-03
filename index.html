@@ -1355,40 +1355,95 @@
 
         function closeCheckoutModal() { document.getElementById('checkout-modal').classList.add('hidden'); }
 
-        function handlePlaceOrder(e) {
-            e.preventDefault();
-            const name = document.getElementById('chk-name').value;
-            const phone = document.getElementById('chk-phone').value;
-            const gov = document.getElementById('chk-gov').value;
-            const city = document.getElementById('chk-city').value;
-            const address = document.getElementById('chk-address').value;
-            const shipVal = document.querySelector('input[name="ship_option"]:checked')?.value;
-            const selectedShip = appState.shippingOptions.find(s => s.id === shipVal) || appState.shippingOptions[0];
+      function handlePlaceOrder(e) {
+    e.preventDefault();
 
-            const subtotal = currentCart.reduce((sum, item) => sum + (item.unitPrice * item.qty), 0);
-            const total = subtotal + selectedShip.price;
+    const name = document.getElementById('chk-name').value;
+    const phone = document.getElementById('chk-phone').value;
+    const gov = document.getElementById('chk-gov').value;
+    const city = document.getElementById('chk-city').value;
+    const address = document.getElementById('chk-address').value;
 
-            const newOrder = {
-                id: "ORD-" + Math.floor(10000 + Math.random() * 90000),
-                date: new Date().toISOString().split('T')[0],
-                customer: { name, phone, gov, city, address },
-                items: currentCart,
-                total: total,
-                shippingMethod: selectedShip.name,
-                paymentMethod: 'الدفع عند الاستلام / تحويل',
-                status: "New"
-            };
+    const shipVal = document.querySelector(
+        'input[name="ship_option"]:checked'
+    )?.value;
 
-            appState.orders.unshift(newOrder);
-            saveState();
-            currentCart = [];
-            updateCartBadge();
-            closeCheckoutModal();
-            alert(`تم تسجيل طلبك بنجاح! 🎉\nرقم الطلب: ${newOrder.id}`);
-            switchView('orders-track');
-            document.getElementById('track-order-id-input').value = newOrder.id;
-            trackOrderSubmit();
-        }
+    const selectedShip =
+        appState.shippingOptions.find(s => s.id === shipVal) ||
+        appState.shippingOptions[0];
+
+    const subtotal = currentCart.reduce(
+        (sum, item) => sum + (item.unitPrice * item.qty),
+        0
+    );
+
+    const total = subtotal + (selectedShip?.price || 0);
+
+    // طريقة الدفع المختارة
+    const selectedPayment =
+        document.querySelector(
+            'input[name="pay_method"]:checked'
+        )?.value || 'card';
+
+    let paymentMethod = '';
+
+    if (selectedPayment === 'card') {
+        paymentMethod = 'Visa / Mastercard';
+    } else if (selectedPayment === 'vodafone') {
+        paymentMethod = 'Vodafone Cash';
+    } else if (selectedPayment === 'instapay') {
+        paymentMethod = 'InstaPay';
+    }
+
+    const newOrder = {
+        id: "ORD-" + Math.floor(10000 + Math.random() * 90000),
+        date: new Date().toISOString().split('T')[0],
+
+        customer: {
+            name,
+            phone,
+            gov,
+            city,
+            address
+        },
+
+        items: currentCart,
+
+        total: total,
+
+        shippingMethod: selectedShip?.name || '',
+
+        paymentMethod: paymentMethod,
+
+        paymentStatus: selectedPayment === 'card'
+            ? 'Pending'
+            : 'Not Required',
+
+        status: "New"
+    };
+
+    appState.orders.unshift(newOrder);
+
+    saveState();
+
+    currentCart = [];
+
+    updateCartBadge();
+
+    closeCheckoutModal();
+
+    alert(
+        `تم تسجيل طلبك بنجاح! 🎉\nرقم الطلب: ${newOrder.id}\nطريقة الدفع: ${paymentMethod}`
+    );
+
+    switchView('orders-track');
+
+    document.getElementById(
+        'track-order-id-input'
+    ).value = newOrder.id;
+
+    trackOrderSubmit();
+}
 
         function trackOrderSubmit() {
             const orderId = document.getElementById('track-order-id-input').value.trim();
