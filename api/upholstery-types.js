@@ -22,11 +22,16 @@ export default async function handler(req, res) {
             "Content-Type": "application/json"
         };
 
-        // إضافة نوع تنجيد
+        // ========================================
+        // إضافة نوع تنجيد جديد
+        // ========================================
         if (req.method === "POST") {
 
-            const { name, enabled } =
-                req.body || {};
+            const {
+                name,
+                price,
+                enabled
+            } = req.body || {};
 
             if (!name || !String(name).trim()) {
                 return res.status(400).json({
@@ -35,6 +40,46 @@ export default async function handler(req, res) {
                 });
             }
 
+            const upholsteryPrice =
+                Number(price) || 0;
+
+            // التحقق من عدم تكرار الاسم
+            const checkResponse = await fetch(
+                `${SUPABASE_URL}/rest/v1/upholstery_types?select=id,name&name=eq.${encodeURIComponent(String(name).trim())}&limit=1`,
+                {
+                    method: "GET",
+                    headers
+                }
+            );
+
+            const checkText =
+                await checkResponse.text();
+
+            let existing = [];
+
+            try {
+                existing = checkText
+                    ? JSON.parse(checkText)
+                    : [];
+            } catch {
+                existing = [];
+            }
+
+            if (
+                checkResponse.ok &&
+                Array.isArray(existing) &&
+                existing.length > 0
+            ) {
+                return res.status(409).json({
+                    success: false,
+                    error:
+                        "نوع التنجيد موجود بالفعل: " +
+                        String(name).trim()
+                });
+            }
+
+            // إضافة الصف الجديد
+            // لا نرسل id لأن Supabase يولده تلقائياً
             const response = await fetch(
                 `${SUPABASE_URL}/rest/v1/upholstery_types`,
                 {
@@ -44,7 +89,12 @@ export default async function handler(req, res) {
                         Prefer: "return=representation"
                     },
                     body: JSON.stringify({
-                        name: String(name).trim(),
+                        name:
+                            String(name).trim(),
+
+                        price:
+                            upholsteryPrice,
+
                         enabled:
                             enabled !== false
                     })
@@ -67,6 +117,7 @@ export default async function handler(req, res) {
             }
 
             if (!response.ok) {
+
                 console.error(
                     "SUPABASE UPHOLSTERY ERROR:",
                     data
@@ -79,12 +130,14 @@ export default async function handler(req, res) {
                     error:
                         data?.message ||
                         data?.error ||
+                        data?.details ||
                         "فشل حفظ نوع التنجيد"
                 });
             }
 
             return res.status(200).json({
                 success: true,
+
                 upholsteryType:
                     Array.isArray(data)
                         ? data[0]
@@ -92,11 +145,14 @@ export default async function handler(req, res) {
             });
         }
 
+
+        // ========================================
         // جلب أنواع التنجيد
+        // ========================================
         if (req.method === "GET") {
 
             const response = await fetch(
-                `${SUPABASE_URL}/rest/v1/upholstery_types?select=*&enabled=eq.true`,
+                `${SUPABASE_URL}/rest/v1/upholstery_types?select=*&enabled=eq.true&order=id.asc`,
                 {
                     method: "GET",
                     headers
@@ -117,6 +173,7 @@ export default async function handler(req, res) {
             }
 
             if (!response.ok) {
+
                 return res.status(
                     response.status
                 ).json({
@@ -128,10 +185,17 @@ export default async function handler(req, res) {
 
             return res.status(200).json({
                 success: true,
-                upholsteryTypes: data
+                upholsteryTypes:
+                    Array.isArray(data)
+                        ? data
+                        : []
             });
         }
 
+
+        // ========================================
+        // طريقة غير مسموحة
+        // ========================================
         return res.status(405).json({
             success: false,
             error: "Method not allowed"
