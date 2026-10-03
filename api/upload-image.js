@@ -7,91 +7,153 @@ export default async function handler(req, res) {
     }
 
     try {
-        const token = req.headers.authorization?.replace("Bearer ", "");
+        const {
+            SUPABASE_URL,
+            SUPABASE_SERVICE_ROLE_KEY
+        } = process.env;
+
+        if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+            return res.status(500).json({
+                success: false,
+                error: "Supabase environment variables are missing"
+            });
+        }
+
+        const authHeader =
+            req.headers.authorization || "";
+
+        const token =
+            authHeader
+                .replace(/^Bearer\s+/i, "")
+                .trim();
 
         if (!token) {
             return res.status(401).json({
                 success: false,
-                error: "غير مصرح"
+                error: "غير مصرح. سجل الدخول أولاً."
             });
         }
 
-        const SUPABASE_URL = process.env.SUPABASE_URL;
-        const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-        if (!SUPABASE_URL || !SERVICE_KEY) {
-            return res.status(500).json({
-                success: false,
-                error: "إعدادات Supabase غير موجودة في Vercel"
-            });
-        }
-
-        const body = req.body || {};
-
-        const {
-            fileName,
-            contentType,
-            base64
-        } = body;
-
-        if (!fileName || !contentType || !base64) {
-            return res.status(400).json({
-                success: false,
-                error: "بيانات الصورة ناقصة"
-            });
-        }
-
-        const cleanBase64 = base64.includes(",")
-            ? base64.split(",")[1]
-            : base64;
-
-        const buffer = Buffer.from(cleanBase64, "base64");
-
-        const safeName = fileName
-            .replace(/[^a-zA-Z0-9._-]/g, "-");
-
-        const path = `categories/${Date.now()}-${safeName}`;
-
-        const uploadResponse = await fetch(
-            `${SUPABASE_URL}/storage/v1/object/product-images/${path}`,
+        const verifyResponse = await fetch(
+            `${SUPABASE_URL}/auth/v1/user`,
             {
-                method: "POST",
+                method: "GET",
                 headers: {
-                    "Authorization": `Bearer ${SERVICE_KEY}`,
-                    "apikey": SERVICE_KEY,
-                    "Content-Type": contentType,
-                    "x-upsert": "true"
-                },
-                body: buffer
+                    apikey: SUPABASE_SERVICE_ROLE_KEY,
+                    Authorization: `Bearer ${token}`
+                }
             }
         );
 
-        const uploadText = await uploadResponse.text();
-
-        if (!uploadResponse.ok) {
-            console.error("SUPABASE UPLOAD ERROR:", uploadText);
-
-            return res.status(500).json({
+        if (!verifyResponse.ok) {
+            return res.status(401).json({
                 success: false,
-                error: "فشل رفع الصورة إلى Supabase",
-                details: uploadText
+                error: "جلسة الأدمن غير صالحة."
             });
         }
 
-        const publicUrl =
-            `${SUPABASE_URL}/storage/v1/object/public/product-images/${path}`;
+        const formData = await req.formData();
+
+        const file = formData.get("file");
+
+        if (!file) {
+            return res.status(400).json({
+                success: false,
+                error: "لم يتم اختيار صورة."
+            });
+        }
+
+        if (!file.type || !file.type.startsWith("image/")) {
+            return res.status(400).json({
+                success: false,
+                error: "الملف يجب أن يكون صورة."
+            });
+        }
+
+        const maxSize = 10 * 1024 * 1024;
+
+        if (file.size > maxSize) {
+            return res.status(400).json({
+                success: false,
+                error: "حجم الصورة يجب ألا يتجاوز 10 ميجابايت."
+            });
+        }
+
+        const extension =
+            file.name.includes(".")
+                ? file.name.split(".").pop().toLowerCase()
+                : "jpg";
+
+        const fileName =
+            `product-${Date.now()}-${Math.random()
+                .toString(36)
+                .substring(2, 10)}.${extension}`;
+
+        const filePath =
+            `products/${fileName}`;
+
+        const fileBuffer =
+            Buffer.from(
+                await file.arrayBuffer()
+            );
+
+        const uploadResponse = await fetch(
+            `${SUPABASE_URL}/storage/v1/object/product-images/${filePath}`,
+            {
+                method: "POST",
+                headers: {
+                    apikey:
+                        SUPABASE_SERVICE_ROLE_KEY,
+                    Authorization:
+                        `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                    "Content-Type":
+                        file.type,
+                    "x-upsert":
+                        "true"
+                },
+                body: fileBuffer
+            }
+        );
+
+        const uploadData =
+            await uploadResponse.json();
+
+        if (!uploadResponse.ok) {
+            console.error(
+                "SUPABASE IMAGE UPLOAD ERROR:",
+                uploadData
+            );
+
+            return res.status(
+                uploadResponse.status
+            ).json({
+                success: false,
+                error:
+                    uploadData?.message ||
+                    uploadData?.error ||
+                    "فشل رفع الصورة إلى Supabase"
+            });
+        }
+
+        const imageUrl =
+            `${SUPABASE_URL}/storage/v1/object/public/product-images/${filePath}`;
 
         return res.status(200).json({
             success: true,
-            url: publicUrl
+            image_url: imageUrl
         });
 
     } catch (error) {
-        console.error("UPLOAD IMAGE ERROR:", error);
+        console.error(
+            "UPLOAD PRODUCT IMAGE ERROR:",
+            error
+        );
 
         return res.status(500).json({
             success: false,
-            error: error?.message || "حدث خطأ في السيرفر"
+            error:
+                error?.message ||
+                "حدث خطأ أثناء رفع الصورة"
         });
     }
 }
