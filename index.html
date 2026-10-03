@@ -2536,9 +2536,26 @@ async function loadStoreDataFromDatabase() {
 // ================================
 async function addUpholsteryTypePrompt() {
 
-    const name = prompt('اكتب اسم نوع التنجيد:');
+    const name = prompt(
+        'اكتب اسم نوع التنجيد:\nمثال: صن بيدج Waterproof'
+    );
 
     if (!name || !name.trim()) {
+        return;
+    }
+
+    const priceInput = prompt(
+        'اكتب السعر الإضافي للكرسي بالجنيه:\nمثال: 200'
+    );
+
+    if (priceInput === null) {
+        return;
+    }
+
+    const price = Number(priceInput);
+
+    if (!Number.isFinite(price) || price < 0) {
+        alert('من فضلك اكتب سعرًا صحيحًا.');
         return;
     }
 
@@ -2546,7 +2563,9 @@ async function addUpholsteryTypePrompt() {
         sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
 
     if (!token) {
-        alert('انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.');
+        alert(
+            'انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.'
+        );
         switchView('admin-login');
         return;
     }
@@ -2565,12 +2584,26 @@ async function addUpholsteryTypePrompt() {
 
                 body: JSON.stringify({
                     name: name.trim(),
+                    price: price,
                     enabled: true
                 })
             }
         );
 
-        const data = await response.json();
+        const responseText =
+            await response.text();
+
+        let data = {};
+
+        try {
+            data = responseText
+                ? JSON.parse(responseText)
+                : {};
+        } catch {
+            data = {
+                error: responseText
+            };
+        }
 
         if (!response.ok || !data.success) {
             throw new Error(
@@ -2579,7 +2612,9 @@ async function addUpholsteryTypePrompt() {
             );
         }
 
-        alert('تمت إضافة نوع التنجيد بنجاح.');
+        alert(
+            'تمت إضافة نوع التنجيد بنجاح.'
+        );
 
         await loadStoreDataFromDatabase();
 
@@ -2596,15 +2631,6 @@ async function addUpholsteryTypePrompt() {
         );
     }
 }
-
-
-window.onload = async function() {
-
-    switchView('store');
-
-    await loadStoreDataFromDatabase();
-
-};
 </script>
 </body>
 </html>
