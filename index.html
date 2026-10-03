@@ -2084,37 +2084,78 @@ function openEditProduct(productId) {
         }
 
         let uploadedImage = '';
+if (imageFile) {
 
-        if (imageFile) {
-            const uploadFormData = new FormData();
+    const fileData = await new Promise((resolve, reject) => {
 
-            uploadFormData.append('file', imageFile);
+        const reader = new FileReader();
 
-            const uploadResponse = await fetch(
-                '/api/upload-image',
-                {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: uploadFormData
-                }
+        reader.onload = function () {
+            resolve(reader.result);
+        };
+
+        reader.onerror = function () {
+            reject(
+                new Error('فشل قراءة الصورة من الجهاز')
             );
+        };
 
-            const uploadData =
-                await uploadResponse.json();
+        reader.readAsDataURL(imageFile);
+    });
 
-            if (!uploadResponse.ok || !uploadData.success) {
-                throw new Error(
-                    uploadData?.error ||
-                    'فشل رفع صورة المنتج'
-                );
-            }
+    const uploadResponse = await fetch(
+        '/api/upload-image',
+        {
+            method: 'POST',
 
-            uploadedImage =
-                uploadData.image_url;
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+
+            body: JSON.stringify({
+                fileName: imageFile.name,
+                fileType: imageFile.type,
+                fileData: fileData
+            })
         }
+    );
 
+    const uploadText =
+        await uploadResponse.text();
+
+    let uploadData = {};
+
+    try {
+        uploadData =
+            uploadText
+                ? JSON.parse(uploadText)
+                : {};
+    } catch {
+        uploadData = {
+            error: uploadText
+        };
+    }
+
+    if (
+        !uploadResponse.ok ||
+        !uploadData.success
+    ) {
+        throw new Error(
+            uploadData?.error ||
+            'فشل رفع صورة المنتج'
+        );
+    }
+
+    uploadedImage =
+        uploadData.image_url;
+
+    if (!uploadedImage) {
+        throw new Error(
+            'تم رفع الصورة ولكن لم يتم الحصول على رابطها'
+        );
+    }
+}
         // =========================
         // بيانات المنتج
         // =========================
