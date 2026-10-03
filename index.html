@@ -439,9 +439,44 @@
                             <input id="product-editor-old-price" type="number" min="0" step="0.01" class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white text-sm">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-300 font-bold mb-2">عدد الكراسي في المنتج</label>
-                            <input id="product-editor-chair-count" type="number" min="0" value="0" class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white text-sm">
-                        </div>
+                         <div>
+    <label class="block text-xs text-gray-300 font-bold mb-2">
+        عدد الكراسي في المنتج
+    </label>
+    <input
+        id="product-editor-chair-count"
+        type="number"
+        min="0"
+        value="0"
+        class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white text-sm"
+    >
+</div>
+
+<div>
+    <label class="block text-xs text-gray-300 font-bold mb-2">
+        عدد كنبة 2 مقعد
+    </label>
+    <input
+        id="product-editor-sofa-2-count"
+        type="number"
+        min="0"
+        value="0"
+        class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white text-sm"
+    >
+</div>
+
+<div>
+    <label class="block text-xs text-gray-300 font-bold mb-2">
+        عدد كنبة 3 مقعد
+    </label>
+    <input
+        id="product-editor-sofa-3-count"
+        type="number"
+        min="0"
+        value="0"
+        class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white text-sm"
+    >
+</div>
                         <div>
                             <label class="block text-xs text-gray-300 font-bold mb-2">عدد الترابيزات في المنتج</label>
                             <input id="product-editor-table-count" type="number" min="0" value="0" class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white text-sm">
@@ -2119,9 +2154,21 @@ function openEditProduct(productId) {
                 .value
                 .trim(),
 
-            chair_count: Number(
-                document.getElementById('product-editor-chair-count').value
-            ) || 1,
+chair_count: Number(
+    document.getElementById('product-editor-chair-count').value
+),
+
+sofa_2_count: Number(
+    document.getElementById('product-editor-sofa-2-count').value
+),
+
+sofa_3_count: Number(
+    document.getElementById('product-editor-sofa-3-count').value
+),
+
+table_count: Number(
+    document.getElementById('product-editor-table-count').value
+),
 
             visible: true,
             featured: false
