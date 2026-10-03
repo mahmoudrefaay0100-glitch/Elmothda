@@ -2548,7 +2548,60 @@ async function loadStoreDataFromDatabase() {
     }
 }
 
+function showToast(message, type = 'success') {
+    const oldToast = document.getElementById('admin-toast');
 
+    if (oldToast) {
+        oldToast.remove();
+    }
+
+    const toast = document.createElement('div');
+
+    toast.id = 'admin-toast';
+
+    toast.innerHTML = `
+        <div style="
+            display:flex;
+            align-items:center;
+            gap:10px;
+            font-size:14px;
+            font-weight:700;
+        ">
+            <span style="font-size:20px;">
+                ${type === 'success' ? '✅' : '❌'}
+            </span>
+            <span>${message}</span>
+        </div>
+    `;
+
+    toast.style.cssText = `
+        position:fixed;
+        top:20px;
+        right:20px;
+        z-index:999999;
+        background:#171717;
+        color:#fff;
+        border:1px solid ${type === 'success' ? '#22c55e' : '#ef4444'};
+        border-radius:12px;
+        padding:13px 18px;
+        min-width:260px;
+        box-shadow:0 10px 30px rgba(0,0,0,.35);
+        animation:adminToastIn .25s ease;
+    `;
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        toast.style.transition = 'all .25s ease';
+
+        setTimeout(() => {
+            toast.remove();
+        }, 250);
+
+    }, 2500);
+}
 // ================================
 // إضافة نوع تنجيد جديد
 // ================================
@@ -2630,9 +2683,7 @@ async function addUpholsteryTypePrompt() {
             );
         }
 
-       alert(
-    'تمت إضافة نوع التنجيد بنجاح.'
-);
+      showToast('تمت إضافة نوع التنجيد بنجاح.');
 
 await loadStoreDataFromDatabase();
 
