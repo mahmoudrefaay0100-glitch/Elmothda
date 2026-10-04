@@ -2848,6 +2848,408 @@ function showToast(message, type = 'success') {
 
     }, 2500);
 }
+
+        async function addColorPrompt(type) {
+
+    const typeNames = {
+        cushion: 'لون التنجيد',
+        wicker: 'لون الرتان',
+        wood: 'لون الخشب'
+    };
+
+    const selectedType = typeNames[type] || 'لون';
+
+    const oldModal = document.getElementById('color-add-modal');
+
+    if (oldModal) {
+        oldModal.remove();
+    }
+
+    const modal = document.createElement('div');
+
+    modal.id = 'color-add-modal';
+
+    modal.innerHTML = `
+        <div style="
+            position:fixed;
+            inset:0;
+            background:rgba(0,0,0,.70);
+            z-index:999998;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:20px;
+        ">
+
+            <div style="
+                width:100%;
+                max-width:420px;
+                background:#171717;
+                border:1px solid #333;
+                border-radius:18px;
+                padding:22px;
+                box-shadow:0 20px 60px rgba(0,0,0,.5);
+                direction:rtl;
+            ">
+
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                    margin-bottom:20px;
+                ">
+
+                    <h3 style="
+                        color:#fff;
+                        font-size:18px;
+                        font-weight:800;
+                        margin:0;
+                    ">
+                        إضافة ${selectedType}
+                    </h3>
+
+                    <button
+                        type="button"
+                        id="close-color-modal"
+                        style="
+                            background:none;
+                            border:none;
+                            color:#aaa;
+                            font-size:22px;
+                            cursor:pointer;
+                        "
+                    >
+                        ×
+                    </button>
+
+                </div>
+
+                <div style="margin-bottom:15px;">
+
+                    <label style="
+                        display:block;
+                        color:#ddd;
+                        font-size:13px;
+                        font-weight:700;
+                        margin-bottom:7px;
+                    ">
+                        اسم اللون
+                    </label>
+
+                    <input
+                        id="color-name-input"
+                        type="text"
+                        placeholder="مثال: كحلي"
+                        style="
+                            width:100%;
+                            box-sizing:border-box;
+                            background:#0d0d0d;
+                            color:#fff;
+                            border:1px solid #444;
+                            border-radius:10px;
+                            padding:12px;
+                            outline:none;
+                            font-size:14px;
+                        "
+                    >
+
+                </div>
+
+                <div style="margin-bottom:20px;">
+
+                    <label style="
+                        display:block;
+                        color:#ddd;
+                        font-size:13px;
+                        font-weight:700;
+                        margin-bottom:7px;
+                    ">
+                        كود اللون HEX
+                    </label>
+
+                    <div style="
+                        display:flex;
+                        gap:10px;
+                        align-items:center;
+                    ">
+
+                        <input
+                            id="color-hex-input"
+                            type="text"
+                            placeholder="#8B1E2B"
+                            maxlength="7"
+                            style="
+                                flex:1;
+                                box-sizing:border-box;
+                                background:#0d0d0d;
+                                color:#fff;
+                                border:1px solid #444;
+                                border-radius:10px;
+                                padding:12px;
+                                outline:none;
+                                font-size:14px;
+                                direction:ltr;
+                                text-align:left;
+                            "
+                        >
+
+                        <input
+                            id="color-preview-input"
+                            type="color"
+                            value="#8B1E2B"
+                            style="
+                                width:48px;
+                                height:44px;
+                                padding:2px;
+                                border:1px solid #444;
+                                border-radius:10px;
+                                background:#0d0d0d;
+                                cursor:pointer;
+                            "
+                        >
+
+                    </div>
+
+                    <div style="
+                        color:#888;
+                        font-size:11px;
+                        margin-top:7px;
+                    ">
+                        مثال: #8B1E2B
+                    </div>
+
+                </div>
+
+                <div style="
+                    display:flex;
+                    gap:10px;
+                ">
+
+                    <button
+                        type="button"
+                        id="cancel-color-modal"
+                        style="
+                            flex:1;
+                            background:#2a2a2a;
+                            color:#fff;
+                            border:1px solid #444;
+                            border-radius:10px;
+                            padding:12px;
+                            font-weight:700;
+                            cursor:pointer;
+                        "
+                    >
+                        إلغاء
+                    </button>
+
+                    <button
+                        type="button"
+                        id="save-color-modal"
+                        style="
+                            flex:1;
+                            background:#E87A18;
+                            color:#fff;
+                            border:none;
+                            border-radius:10px;
+                            padding:12px;
+                            font-weight:800;
+                            cursor:pointer;
+                        "
+                    >
+                        إضافة
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const nameInput =
+        document.getElementById('color-name-input');
+
+    const hexInput =
+        document.getElementById('color-hex-input');
+
+    const previewInput =
+        document.getElementById('color-preview-input');
+
+    const closeModal = () => {
+        modal.remove();
+    };
+
+    document
+        .getElementById('close-color-modal')
+        .onclick = closeModal;
+
+    document
+        .getElementById('cancel-color-modal')
+        .onclick = closeModal;
+
+    previewInput.addEventListener('input', () => {
+        hexInput.value =
+            previewInput.value.toUpperCase();
+    });
+
+    hexInput.addEventListener('input', () => {
+
+        let value =
+            hexInput.value.trim();
+
+        if (
+            !value.startsWith('#') &&
+            value.length > 0
+        ) {
+            value = '#' + value;
+            hexInput.value = value;
+        }
+
+        if (
+            /^#[0-9A-Fa-f]{6}$/.test(value)
+        ) {
+            previewInput.value = value;
+        }
+    });
+
+    document
+        .getElementById('save-color-modal')
+        .onclick = async function () {
+
+            const name =
+                nameInput.value.trim();
+
+            const hex =
+                hexInput.value.trim().toUpperCase();
+
+            if (!name) {
+                showToast(
+                    'اكتب اسم اللون أولاً.',
+                    'error'
+                );
+                nameInput.focus();
+                return;
+            }
+
+            if (
+                !/^#[0-9A-Fa-f]{6}$/.test(hex)
+            ) {
+                showToast(
+                    'اكتب كود لون صحيح مثل #8B1E2B',
+                    'error'
+                );
+                hexInput.focus();
+                return;
+            }
+
+            const token =
+                sessionStorage.getItem(
+                    'OSCAR_ADMIN_ACCESS_TOKEN'
+                );
+
+            if (!token) {
+                showToast(
+                    'انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.',
+                    'error'
+                );
+
+                closeModal();
+                switchView('admin-login');
+                return;
+            }
+
+            const saveButton =
+                document.getElementById(
+                    'save-color-modal'
+                );
+
+            saveButton.disabled = true;
+            saveButton.textContent =
+                'جاري الإضافة...';
+
+            try {
+
+                const response =
+                    await fetch(
+                        '/api/colors',
+                        {
+                            method: 'POST',
+
+                            headers: {
+                                'Content-Type':
+                                    'application/json',
+
+                                'Authorization':
+                                    'Bearer ' + token
+                            },
+
+                            body: JSON.stringify({
+                                type: type,
+                                name: name,
+                                hex: hex,
+                                enabled: true
+                            })
+                        }
+                    );
+
+                const responseText =
+                    await response.text();
+
+                let data = {};
+
+                try {
+                    data = responseText
+                        ? JSON.parse(responseText)
+                        : {};
+                } catch {
+                    data = {
+                        error: responseText
+                    };
+                }
+
+                if (
+                    !response.ok ||
+                    !data.success
+                ) {
+                    throw new Error(
+                        data?.error ||
+                        'فشل إضافة اللون'
+                    );
+                }
+
+                closeModal();
+
+                showToast(
+                    `تمت إضافة ${selectedType} بنجاح ✅`
+                );
+
+                await loadStoreDataFromDatabase();
+
+                renderAdminDashboard();
+
+            } catch (error) {
+
+                console.error(
+                    'ADD COLOR ERROR:',
+                    error
+                );
+
+                showToast(
+                    error?.message ||
+                    'حدث خطأ أثناء إضافة اللون.',
+                    'error'
+                );
+
+                saveButton.disabled = false;
+                saveButton.textContent =
+                    'إضافة';
+            }
+        };
+
+    nameInput.focus();
+}
 // ================================
 // إضافة نوع تنجيد جديد
 // ================================
