@@ -1688,62 +1688,68 @@ showToast('تم إضافة القسم بنجاح ✅');
         return;
     }
 
-    const subtotal =
-        currentCart.reduce(
-            (sum, item) => {
-                const price =
-                    Number(
-                        item.unitPrice ??
-                        item.price ??
-                        0
-                    );
+   const subtotal =
+    currentCart.reduce(
+        (sum, item) => {
+            const price =
+                Number(
+                    item.unitPrice ??
+                    item.price ??
+                    0
+                );
 
-                const qty =
-                    Number(item.qty ?? 0);
+            const qty =
+                Number(item.qty ?? 0);
 
-                return sum + (price * qty);
-            },
-            0
+            return sum + (price * qty);
+        },
+        0
+    );
+
+const selectedShipping =
+    document.querySelector(
+        'input[name="ship_option"]:checked'
+    );
+
+let shippingCost = 0;
+
+if (selectedShipping) {
+
+    const shippingOptions =
+        Array.isArray(appState.shippingOptions)
+            ? appState.shippingOptions
+            : [];
+
+    const shippingOption =
+        shippingOptions.find(
+            option =>
+                String(option.id) ===
+                String(selectedShipping.value)
         );
 
-    const selectedShipping =
-        document.querySelector(
-            'input[name="ship_option"]:checked'
-        );
-
-    let shippingCost = 0;
-
-    if (selectedShipping) {
-
-        const shippingOptions =
-            Array.isArray(appState.shippingOptions)
-                ? appState.shippingOptions
-                : [];
-
-        const shippingOption =
-            shippingOptions.find(
-                option =>
-                    String(option.id) ===
-                    String(selectedShipping.value)
-            );
-
-        if (shippingOption) {
-            shippingCost =
-                Number(shippingOption.price || 0);
-        }
+    if (shippingOption) {
+        shippingCost =
+            Number(shippingOption.price || 0);
     }
-
-    const total =
-        subtotal + shippingCost;
-
-    amountElement.textContent =
-        `${total.toLocaleString('ar-EG')} ج.م`;
 }
-    window.updateTransferAmount = updateTransferAmount;
-        
-        function closeCheckoutModal() { document.getElementById('checkout-modal').classList.add('hidden'); }
 
-        async function submitReceiptOrder() {
+const total =
+    subtotal + shippingCost;
+
+amountElement.textContent =
+    `${total.toLocaleString('ar-EG')} ج.م`;
+}
+
+window.updateTransferAmount =
+    updateTransferAmount;
+
+function closeCheckoutModal() {
+    document
+        .getElementById('checkout-modal')
+        .classList.add('hidden');
+}
+
+async function submitReceiptOrder() {
 
     const confirmButton =
         document.getElementById('confirm-order-btn');
@@ -1756,7 +1762,6 @@ showToast('تم إضافة القسم بنجاح ✅');
     }
 
     try {
-
         await handlePlaceOrder({
             preventDefault: () => {}
         });
