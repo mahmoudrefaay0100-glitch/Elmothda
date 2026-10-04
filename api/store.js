@@ -1,3 +1,4 @@
+```js
 export default async function handler(req, res) {
 
     // =========================
@@ -16,23 +17,65 @@ export default async function handler(req, res) {
     // السماح بـ GET فقط
     // =========================
 
-    if (req.method !== "GET") {
+    if (req.method !== 'GET') {
         return res.status(405).json({
             success: false,
-            error: "Method not allowed"
+            error: 'Method not allowed'
         });
     }
 
     try {
+
         const {
             SUPABASE_URL,
             SUPABASE_SERVICE_ROLE_KEY
         } = process.env;
 
-        if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+        // =========================
+        // التحقق من المتغيرات
+        // =========================
+
+        if (!SUPABASE_URL) {
             return res.status(500).json({
                 success: false,
-                error: "Supabase environment variables are missing"
+                error: 'SUPABASE_URL is missing'
+            });
+        }
+
+        if (!SUPABASE_SERVICE_ROLE_KEY) {
+            return res.status(500).json({
+                success: false,
+                error: 'SUPABASE_SERVICE_ROLE_KEY is missing'
+            });
+        }
+
+        // =========================
+        // تنظيف رابط Supabase
+        // =========================
+
+        const supabaseBaseUrl =
+            SUPABASE_URL
+                .trim()
+                .replace(/\/+$/, '')
+                .replace(/\/rest\/v1$/i, '');
+
+        // =========================
+        // التحقق من شكل الرابط
+        // =========================
+
+        try {
+            const parsedUrl = new URL(supabaseBaseUrl);
+
+            if (!parsedUrl.hostname.endsWith('.supabase.co')) {
+                throw new Error(
+                    'SUPABASE_URL must be your Supabase project URL'
+                );
+            }
+
+        } catch (urlError) {
+            return res.status(500).json({
+                success: false,
+                error: 'Invalid SUPABASE_URL'
             });
         }
 
@@ -40,21 +83,22 @@ export default async function handler(req, res) {
         // جلب بيانات أي جدول
         // =========================
 
-        async function getTable(table, options = "") {
+        async function getTable(table, options = '') {
 
             const url =
-                `${SUPABASE_URL}/rest/v1/${table}?${options}`;
+                `${supabaseBaseUrl}/rest/v1/${table}` +
+                (options ? `?${options}` : '');
 
             const response = await fetch(url, {
-                method: "GET",
+                method: 'GET',
 
                 headers: {
                     apikey: SUPABASE_SERVICE_ROLE_KEY,
 
                     Authorization:
-                        "Bearer " + SUPABASE_SERVICE_ROLE_KEY,
+                        `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
 
-                    "Content-Type": "application/json"
+                    'Content-Type': 'application/json'
                 }
             });
 
@@ -63,7 +107,7 @@ export default async function handler(req, res) {
             let data;
 
             try {
-                data = JSON.parse(text);
+                data = text ? JSON.parse(text) : null;
             } catch {
                 throw new Error(
                     `Supabase returned invalid response for ${table}: ${text}`
@@ -71,6 +115,7 @@ export default async function handler(req, res) {
             }
 
             if (!response.ok) {
+
                 throw new Error(
                     data?.message ||
                     data?.error_description ||
@@ -95,75 +140,57 @@ export default async function handler(req, res) {
             storeColors
         ] = await Promise.all([
 
-            // =========================
             // المنتجات
-            // =========================
-
             getTable(
-                "products",
-                "select=*&visible=eq.true&order=created_at.desc"
+                'products',
+                'select=*&visible=eq.true&order=created_at.desc'
             ),
 
-            // =========================
             // الأقسام
-            // =========================
-
             getTable(
-                "categories",
-                "select=*&visible=eq.true&order=sort_order.asc"
+                'categories',
+                'select=*&visible=eq.true&order=sort_order.asc'
             ),
 
-            // =========================
             // إعدادات الموقع
-            // =========================
-
             getTable(
-                "site_settings",
-                "select=*&id=eq.1&limit=1"
+                'site_settings',
+                'select=*&id=eq.1&limit=1'
             ),
 
-            // =========================
             // خيارات الشحن
-            // =========================
-
             getTable(
-                "shipping_options",
-                "select=*&enabled=eq.true"
+                'shipping_options',
+                'select=*&enabled=eq.true'
             ),
 
-            // =========================
             // أنواع التنجيد
-            // =========================
-
             getTable(
-                "upholstery_types",
-                "select=*&enabled=eq.true&order=id.asc"
+                'upholstery_types',
+                'select=*&enabled=eq.true&order=id.asc'
             ),
 
-            // =========================
-            // جميع الألوان
-            // =========================
-
+            // الألوان
             getTable(
-                "store_colors",
-                "select=*&enabled=eq.true&order=id.asc"
+                'store_colors',
+                'select=*&enabled=eq.true&order=id.asc'
             )
         ]);
 
         // =========================
-        // تقسيم الألوان حسب النوع
+        // تقسيم الألوان
         // =========================
 
         const cushionColors = (storeColors || []).filter(
-            color => color.type === "cushion"
+            color => color.type === 'cushion'
         );
 
         const wickerColors = (storeColors || []).filter(
-            color => color.type === "wicker"
+            color => color.type === 'wicker'
         );
 
         const woodColors = (storeColors || []).filter(
-            color => color.type === "wood"
+            color => color.type === 'wood'
         );
 
         // =========================
@@ -187,20 +214,17 @@ export default async function handler(req, res) {
             upholsteryTypes:
                 upholsteryTypes || [],
 
-            cushionColors:
-                cushionColors,
+            cushionColors,
 
-            wickerColors:
-                wickerColors,
+            wickerColors,
 
-            woodColors:
-                woodColors
+            woodColors
         });
 
     } catch (error) {
 
         console.error(
-            "STORE API ERROR:",
+            'STORE API ERROR:',
             error
         );
 
@@ -208,7 +232,8 @@ export default async function handler(req, res) {
             success: false,
             error:
                 error?.message ||
-                "Failed to load store data"
+                'Failed to load store data'
         });
     }
 }
+```
