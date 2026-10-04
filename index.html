@@ -1035,7 +1035,8 @@
 async function initializeStore() {
     await loadStoreDataFromDatabase();
 }
-
+        
+initializeStore();
         function renderSiteSettings() {
             const s = appState.siteSettings;
             document.getElementById('site-title-text').innerText = s.title;
