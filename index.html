@@ -1025,12 +1025,16 @@
         }
 
         function renderAllViews() {
-            renderSiteSettings();
-            renderCategoriesGrid();
-            renderProductsGrid();
-            renderAdminDashboard();
-            updateCartBadge();
-        }
+    renderSiteSettings();
+    renderCategoriesGrid();
+    renderProductsGrid();
+    renderAdminDashboard();
+    updateCartBadge();
+}
+
+async function initializeStore() {
+    await loadStoreDataFromDatabase();
+}
 
         function renderSiteSettings() {
             const s = appState.siteSettings;
@@ -4099,6 +4103,9 @@ async function addUpholsteryTypePrompt() {
 
     nameInput.focus();
 }
+        // تحميل بيانات المتجر عند فتح الموقع
+loadStoreDataFromDatabase();
+        
 </script>
 </body>
 </html>
