@@ -1,9 +1,5 @@
 export default async function handler(req, res) {
 
-    // =========================
-    // منع التخزين المؤقت
-    // =========================
-
     res.setHeader(
         'Cache-Control',
         'no-store, no-cache, must-revalidate, proxy-revalidate'
@@ -11,10 +7,6 @@ export default async function handler(req, res) {
 
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-
-    // =========================
-    // GET فقط
-    // =========================
 
     if (req.method !== 'GET') {
         return res.status(405).json({
@@ -25,26 +17,8 @@ export default async function handler(req, res) {
 
     try {
 
-        // =========================
-        // Environment Variables
-        // =========================
-
-        const SUPABASE_URL =
-            process.env.SUPABASE_URL;
-
         const SUPABASE_SERVICE_ROLE_KEY =
             process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-        // =========================
-        // التحقق من المتغيرات
-        // =========================
-
-        if (!SUPABASE_URL) {
-            return res.status(500).json({
-                success: false,
-                error: 'SUPABASE_URL is missing'
-            });
-        }
 
         if (!SUPABASE_SERVICE_ROLE_KEY) {
             return res.status(500).json({
@@ -54,353 +28,113 @@ export default async function handler(req, res) {
         }
 
         // =========================
-        // تنظيف رابط Supabase
+        // رابط Supabase ثابت للتجربة
         // =========================
 
-        let supabaseBaseUrl =
-            SUPABASE_URL
-                .trim()
-                .replace(/\/+$/, '');
-
-        // لو الرابط متخزن بالغلط مع /rest/v1
-        supabaseBaseUrl =
-            supabaseBaseUrl.replace(
-                /\/rest\/v1$/i,
-                ''
-            );
+        const SUPABASE_BASE_URL =
+            'https://kxtiqtcxkcwdvljiadfn.supabase.co';
 
         // =========================
-        // التحقق من URL
+        // دالة الاتصال بـ Supabase
         // =========================
 
-        let parsedUrl;
-
-        try {
-
-            parsedUrl =
-                new URL(supabaseBaseUrl);
-
-        } catch {
-
-            return res.status(500).json({
-                success: false,
-                error: 'Invalid SUPABASE_URL'
-            });
-
-        }
-
-        if (
-            !parsedUrl.hostname.endsWith(
-                '.supabase.co'
-            )
-        ) {
-
-            return res.status(500).json({
-                success: false,
-                error:
-                    'SUPABASE_URL must be your Supabase project URL'
-            });
-
-        }
-
-        // =========================
-        // دالة جلب جدول
-        // =========================
-
-        async function getTable(
-            table,
-            options = ''
-        ) {
+        async function getTable(table, query = '') {
 
             const url =
-                `${supabaseBaseUrl}/rest/v1/${table}` +
-                (
-                    options
-                        ? `?${options}`
-                        : ''
-                );
-
-            // =========================
-            // تسجيل الرابط للتشخيص
-            // =========================
+                `${SUPABASE_BASE_URL}/rest/v1/${table}` +
+                (query ? `?${query}` : '');
 
             console.log(
-                '================================'
-            );
-
-            console.log(
-                'SUPABASE TABLE:',
-                table
-            );
-
-            console.log(
-                'SUPABASE REQUEST URL:',
+                'SUPABASE TEST URL:',
                 url
             );
 
-            console.log(
-                '================================'
-            );
-
-            // =========================
-            // طلب Supabase
-            // =========================
-
-            const response =
-                await fetch(url, {
-
-                    method: 'GET',
-
-                    headers: {
-
-                        apikey:
-                            SUPABASE_SERVICE_ROLE_KEY,
-
-                        Authorization:
-                            `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-
-                        Accept:
-                            'application/json'
-                    }
-                });
-
-            // =========================
-            // قراءة الرد
-            // =========================
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    apikey: SUPABASE_SERVICE_ROLE_KEY,
+                    Authorization:
+                        `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                    Accept: 'application/json'
+                }
+            });
 
             const text =
                 await response.text();
 
-            let data = null;
+            console.log(
+                'SUPABASE STATUS:',
+                response.status
+            );
+
+            console.log(
+                'SUPABASE RESPONSE:',
+                text.substring(0, 500)
+            );
+
+            let data;
 
             try {
-
-                data =
-                    text
-                        ? JSON.parse(text)
-                        : null;
-
+                data = JSON.parse(text);
             } catch {
-
                 throw new Error(
-                    `Supabase returned invalid JSON for table "${table}": ${text}`
+                    `Supabase returned non-JSON response: ${text.substring(0, 300)}`
                 );
-
             }
 
-            // =========================
-            // لو Supabase رجع خطأ
-            // =========================
-
             if (!response.ok) {
-
-                console.error(
-                    'SUPABASE ERROR:',
-                    {
-                        table,
-                        status:
-                            response.status,
-                        statusText:
-                            response.statusText,
-                        response:
-                            data
-                    }
-                );
-
                 throw new Error(
                     data?.message ||
                     data?.error_description ||
                     data?.error ||
-                    `Failed to load table "${table}"`
+                    `Supabase error ${response.status}`
                 );
-
             }
-
-            console.log(
-                `TABLE "${table}" LOADED SUCCESSFULLY`
-            );
 
             return data;
         }
 
-        // =====================================================
-        // اختبار الجداول واحد واحد
-        // =====================================================
-
-        let products;
-        let categories;
-        let siteSettings;
-        let shippingOptions;
-        let upholsteryTypes;
-        let storeColors;
-
         // =========================
-        // PRODUCTS
+        // اختبار المنتجات أولاً
         // =========================
 
-        try {
-
-            products =
-                await getTable(
-                    'products',
-                    'select=*&visible=eq.true&order=created_at.desc'
-                );
-
-        } catch (error) {
-
-            return res.status(500).json({
-
-                success: false,
-
-                failed_table:
-                    'products',
-
-                error:
-                    error?.message ||
-                    'Failed to load products'
-            });
-
-        }
+        const products = await getTable(
+            'products',
+            'select=*'
+        );
 
         // =========================
-        // CATEGORIES
+        // اختبار الأقسام
         // =========================
 
-        try {
-
-            categories =
-                await getTable(
-                    'categories',
-                    'select=*&visible=eq.true&order=sort_order.asc'
-                );
-
-        } catch (error) {
-
-            return res.status(500).json({
-
-                success: false,
-
-                failed_table:
-                    'categories',
-
-                error:
-                    error?.message ||
-                    'Failed to load categories'
-            });
-
-        }
+        const categories = await getTable(
+            'categories',
+            'select=*'
+        );
 
         // =========================
-        // SITE SETTINGS
+        // باقي البيانات
         // =========================
 
-        try {
+        const siteSettings = await getTable(
+            'site_settings',
+            'select=*'
+        );
 
-            siteSettings =
-                await getTable(
-                    'site_settings',
-                    'select=*&id=eq.1&limit=1'
-                );
+        const shippingOptions = await getTable(
+            'shipping_options',
+            'select=*'
+        );
 
-        } catch (error) {
+        const upholsteryTypes = await getTable(
+            'upholstery_types',
+            'select=*'
+        );
 
-            return res.status(500).json({
-
-                success: false,
-
-                failed_table:
-                    'site_settings',
-
-                error:
-                    error?.message ||
-                    'Failed to load site settings'
-            });
-
-        }
-
-        // =========================
-        // SHIPPING OPTIONS
-        // =========================
-
-        try {
-
-            shippingOptions =
-                await getTable(
-                    'shipping_options',
-                    'select=*&enabled=eq.true'
-                );
-
-        } catch (error) {
-
-            return res.status(500).json({
-
-                success: false,
-
-                failed_table:
-                    'shipping_options',
-
-                error:
-                    error?.message ||
-                    'Failed to load shipping options'
-            });
-
-        }
-
-        // =========================
-        // UPHOLSTERY TYPES
-        // =========================
-
-        try {
-
-            upholsteryTypes =
-                await getTable(
-                    'upholstery_types',
-                    'select=*&enabled=eq.true&order=id.asc'
-                );
-
-        } catch (error) {
-
-            return res.status(500).json({
-
-                success: false,
-
-                failed_table:
-                    'upholstery_types',
-
-                error:
-                    error?.message ||
-                    'Failed to load upholstery types'
-            });
-
-        }
-
-        // =========================
-        // STORE COLORS
-        // =========================
-
-        try {
-
-            storeColors =
-                await getTable(
-                    'store_colors',
-                    'select=*&enabled=eq.true&order=id.asc'
-                );
-
-        } catch (error) {
-
-            return res.status(500).json({
-
-                success: false,
-
-                failed_table:
-                    'store_colors',
-
-                error:
-                    error?.message ||
-                    'Failed to load store colors'
-            });
-
-        }
+        const storeColors = await getTable(
+            'store_colors',
+            'select=*'
+        );
 
         // =========================
         // تقسيم الألوان
@@ -408,24 +142,21 @@ export default async function handler(req, res) {
 
         const cushionColors =
             (storeColors || []).filter(
-                color =>
-                    color.type === 'cushion'
+                color => color.type === 'cushion'
             );
 
         const wickerColors =
             (storeColors || []).filter(
-                color =>
-                    color.type === 'wicker'
+                color => color.type === 'wicker'
             );
 
         const woodColors =
             (storeColors || []).filter(
-                color =>
-                    color.type === 'wood'
+                color => color.type === 'wood'
             );
 
         // =========================
-        // نجاح
+        // النتيجة
         // =========================
 
         return res.status(200).json({
@@ -447,20 +178,17 @@ export default async function handler(req, res) {
             upholsteryTypes:
                 upholsteryTypes || [],
 
-            cushionColors:
-                cushionColors,
+            cushionColors,
 
-            wickerColors:
-                wickerColors,
+            wickerColors,
 
-            woodColors:
-                woodColors
+            woodColors
         });
 
     } catch (error) {
 
         console.error(
-            'STORE API FATAL ERROR:',
+            'STORE API ERROR:',
             error
         );
 
@@ -472,6 +200,5 @@ export default async function handler(req, res) {
                 error?.message ||
                 'Failed to load store data'
         });
-
     }
 }
