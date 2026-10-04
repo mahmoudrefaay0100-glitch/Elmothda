@@ -1645,30 +1645,33 @@ showToast('تم إضافة القسم بنجاح ✅');
     }
 }
 
-        function updateTransferAmount() {
+     function updateTransferAmount() {
 
     const amountElement =
         document.getElementById('transfer-amount');
 
-    if (!amountElement) return;
+    if (!amountElement) {
+        return;
+    }
 
-    // إجمالي المنتجات
     const subtotal =
         currentCart.reduce(
-            (sum, item) =>
-                sum +
-                (
+            (sum, item) => {
+                const price =
                     Number(
-                        item.unitPrice ||
-                        item.price ||
+                        item.unitPrice ??
+                        item.price ??
                         0
-                    ) *
-                    Number(item.qty || 0)
-                ),
+                    );
+
+                const qty =
+                    Number(item.qty ?? 0);
+
+                return sum + (price * qty);
+            },
             0
         );
 
-    // طريقة الشحن المختارة حاليًا
     const selectedShipping =
         document.querySelector(
             'input[name="ship_option"]:checked'
@@ -1678,29 +1681,102 @@ showToast('تم إضافة القسم بنجاح ✅');
 
     if (selectedShipping) {
 
+        const shippingOptions =
+            Array.isArray(appState.shippingOptions)
+                ? appState.shippingOptions
+                : [];
+
         const shippingOption =
-            (appState.shippingOptions || []).find(
+            shippingOptions.find(
                 option =>
                     String(option.id) ===
                     String(selectedShipping.value)
             );
 
         if (shippingOption) {
-
             shippingCost =
-                Number(
-                    shippingOption.price || 0
-                );
+                Number(shippingOption.price || 0);
         }
     }
 
-    // الإجمالي النهائي
     const total =
         subtotal + shippingCost;
 
     amountElement.textContent =
         `${total.toLocaleString('ar-EG')} ج.م`;
 }
+    
+        confirmButton.disabled = true;
+
+        confirmButton.classList.add(
+            'opacity-50',
+            'cursor-not-allowed'
+        );
+    }
+}
+
+     function updateTransferAmount() {
+
+    const amountElement =
+        document.getElementById('transfer-amount');
+
+    if (!amountElement) {
+        return;
+    }
+
+    const subtotal =
+        currentCart.reduce(
+            (sum, item) => {
+                const price =
+                    Number(
+                        item.unitPrice ??
+                        item.price ??
+                        0
+                    );
+
+                const qty =
+                    Number(item.qty ?? 0);
+
+                return sum + (price * qty);
+            },
+            0
+        );
+
+    const selectedShipping =
+        document.querySelector(
+            'input[name="ship_option"]:checked'
+        );
+
+    let shippingCost = 0;
+
+    if (selectedShipping) {
+
+        const shippingOptions =
+            Array.isArray(appState.shippingOptions)
+                ? appState.shippingOptions
+                : [];
+
+        const shippingOption =
+            shippingOptions.find(
+                option =>
+                    String(option.id) ===
+                    String(selectedShipping.value)
+            );
+
+        if (shippingOption) {
+            shippingCost =
+                Number(shippingOption.price || 0);
+        }
+    }
+
+    const total =
+        subtotal + shippingCost;
+
+    amountElement.textContent =
+        `${total.toLocaleString('ar-EG')} ج.م`;
+}
+    window.updateTransferAmount = updateTransferAmount;
+        
         function closeCheckoutModal() { document.getElementById('checkout-modal').classList.add('hidden'); }
 
     async function handlePlaceOrder(e) {
