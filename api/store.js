@@ -1,4 +1,3 @@
-```js
 export default async function handler(req, res) {
 
     // =========================
@@ -64,6 +63,7 @@ export default async function handler(req, res) {
         // =========================
 
         try {
+
             const parsedUrl = new URL(supabaseBaseUrl);
 
             if (!parsedUrl.hostname.endsWith('.supabase.co')) {
@@ -73,10 +73,12 @@ export default async function handler(req, res) {
             }
 
         } catch (urlError) {
+
             return res.status(500).json({
                 success: false,
                 error: 'Invalid SUPABASE_URL'
             });
+
         }
 
         // =========================
@@ -89,39 +91,65 @@ export default async function handler(req, res) {
                 `${supabaseBaseUrl}/rest/v1/${table}` +
                 (options ? `?${options}` : '');
 
+            // =========================
+            // تشخيص مؤقت
+            // =========================
+
+            console.log(
+                'SUPABASE REQUEST URL:',
+                url
+            );
+
             const response = await fetch(url, {
+
                 method: 'GET',
 
                 headers: {
-                    apikey: SUPABASE_SERVICE_ROLE_KEY,
+
+                    apikey:
+                        SUPABASE_SERVICE_ROLE_KEY,
 
                     Authorization:
                         `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
 
-                    'Content-Type': 'application/json'
+                    'Content-Type':
+                        'application/json'
                 }
             });
 
-            const text = await response.text();
+            const text =
+                await response.text();
 
             let data;
 
             try {
-                data = text ? JSON.parse(text) : null;
+
+                data =
+                    text
+                        ? JSON.parse(text)
+                        : null;
+
             } catch {
+
                 throw new Error(
                     `Supabase returned invalid response for ${table}: ${text}`
                 );
+
             }
 
             if (!response.ok) {
 
                 throw new Error(
+
                     data?.message ||
+
                     data?.error_description ||
+
                     data?.error ||
+
                     `Failed to load ${table}`
                 );
+
             }
 
             return data;
@@ -181,17 +209,23 @@ export default async function handler(req, res) {
         // تقسيم الألوان
         // =========================
 
-        const cushionColors = (storeColors || []).filter(
-            color => color.type === 'cushion'
-        );
+        const cushionColors =
+            (storeColors || []).filter(
+                color =>
+                    color.type === 'cushion'
+            );
 
-        const wickerColors = (storeColors || []).filter(
-            color => color.type === 'wicker'
-        );
+        const wickerColors =
+            (storeColors || []).filter(
+                color =>
+                    color.type === 'wicker'
+            );
 
-        const woodColors = (storeColors || []).filter(
-            color => color.type === 'wood'
-        );
+        const woodColors =
+            (storeColors || []).filter(
+                color =>
+                    color.type === 'wood'
+            );
 
         // =========================
         // إرسال بيانات المتجر
@@ -201,9 +235,11 @@ export default async function handler(req, res) {
 
             success: true,
 
-            products: products || [],
+            products:
+                products || [],
 
-            categories: categories || [],
+            categories:
+                categories || [],
 
             siteSettings:
                 siteSettings?.[0] || {},
@@ -229,11 +265,12 @@ export default async function handler(req, res) {
         );
 
         return res.status(500).json({
+
             success: false,
+
             error:
                 error?.message ||
                 'Failed to load store data'
         });
     }
 }
-```
