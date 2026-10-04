@@ -1462,9 +1462,26 @@ showToast('تم إضافة القسم بنجاح ✅');
                             ${opt.name || 'طريقة الشحن'}
                         </span>
 
-                        <p class="text-[10px] text-gray-400">
-                            ${opt.timeframe || ''}
-                        </p>
+                       <p class="text-[10px] text-gray-400">
+    ${
+        (
+            opt.timeframe &&
+            opt.timeframe !== 'undefined'
+        )
+            ? opt.timeframe
+            : (
+                opt.duration &&
+                opt.duration !== 'undefined'
+            )
+                ? opt.duration
+                : (
+                    opt.delivery_time &&
+                    opt.delivery_time !== 'undefined'
+                )
+                    ? opt.delivery_time
+                    : ''
+    }
+</p>
                     </div>
 
                 </div>
@@ -3255,9 +3272,15 @@ async function loadStoreDataFromDatabase() {
         // =========================
 
         if (Array.isArray(data.shippingOptions)) {
-            appState.shippingOptions = data.shippingOptions;
-        }
-
+    appState.shippingOptions = data.shippingOptions.map(option => ({
+        ...option,
+        timeframe:
+            option.timeframe &&
+            option.timeframe !== 'undefined'
+                ? option.timeframe
+                : ''
+    }));
+}
         // =========================
         // أنواع التنجيد
         // =========================
