@@ -14,122 +14,11 @@ export default async function handler(req, res) {
             });
         }
 
-        // =========================
-        // التحقق من الأدمن
-        // =========================
-
-        const authHeader =
-            req.headers.authorization || '';
-
-        const token =
-            authHeader.startsWith('Bearer ')
-                ? authHeader.substring(7)
-                : '';
-
-        if (!token) {
-            return res.status(401).json({
-                success: false,
-                error: 'غير مصرح'
-            });
-        }
-
-        // =========================
-        // تحديث حالة الطلب
-        // PUT /api/orders?id=ORDER_ID
-        // =========================
-
-        if (req.method === 'PUT') {
-
-            const orderId = req.query?.id;
-
-            if (!orderId) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'رقم الطلب غير موجود'
-                });
-            }
-
-            const { status } =
-                req.body || {};
-
-            const allowedStatuses = [
-                'New',
-                'Confirmed',
-                'Shipped',
-                'Delivered',
-                'Cancelled'
-            ];
-
-            if (!allowedStatuses.includes(status)) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'حالة الطلب غير صحيحة'
-                });
-            }
-
-            const response = await fetch(
-                `${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`,
-                {
-                    method: 'PATCH',
-
-                    headers: {
-                        apikey: SUPABASE_SERVICE_ROLE_KEY,
-                        Authorization:
-                            `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-
-                        'Content-Type':
-                            'application/json',
-
-                        Prefer:
-                            'return=representation'
-                    },
-
-                    body: JSON.stringify({
-                        status: status
-                    })
-                }
-            );
-
-            const text =
-                await response.text();
-
-            let data = [];
-
-            try {
-                data = text
-                    ? JSON.parse(text)
-                    : [];
-            } catch {
-                data = [];
-            }
-
-            if (!response.ok) {
-                return res.status(response.status).json({
-                    success: false,
-                    error:
-                        data?.message ||
-                        data?.error ||
-                        'فشل تحديث حالة الطلب'
-                });
-            }
-
-            if (!Array.isArray(data) || data.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'الطلب غير موجود في قاعدة البيانات'
-                });
-            }
-
-            return res.status(200).json({
-                success: true,
-                order: data[0]
-            });
-        }
-
-        // =========================
+        // =====================================================
         // إنشاء طلب جديد
         // POST /api/orders
-        // =========================
+        // متاح للعميل بدون تسجيل دخول
+        // =====================================================
 
         if (req.method === 'POST') {
 
@@ -149,7 +38,9 @@ export default async function handler(req, res) {
                     method: 'POST',
 
                     headers: {
-                        apikey: SUPABASE_SERVICE_ROLE_KEY,
+                        apikey:
+                            SUPABASE_SERVICE_ROLE_KEY,
+
                         Authorization:
                             `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
 
@@ -193,26 +84,49 @@ export default async function handler(req, res) {
                             order.items || [],
 
                         subtotal:
-                            Number(order.subtotal || order.total || 0),
+                            Number(
+                                order.subtotal ||
+                                order.total ||
+                                0
+                            ),
 
                         shipping_cost:
-                            Number(order.shippingCost || 0),
+                            Number(
+                                order.shippingCost ||
+                                0
+                            ),
 
                         discount:
-                            Number(order.discount || 0),
+                            Number(
+                                order.discount ||
+                                0
+                            ),
 
                         total:
-                            Number(order.total || 0),
+                            Number(
+                                order.total ||
+                                0
+                            ),
 
                         shipping_method:
-                            order.shippingMethod || '',
+                            order.shippingMethod ||
+                            '',
 
                         payment_method:
                             order.paymentMethod ||
                             'Visa / Mastercard',
 
+                        payment_status:
+                            order.paymentStatus ||
+                            'Pending',
+
+                        payment_proof_url:
+                            order.paymentProofUrl ||
+                            '',
+
                         status:
-                            order.status || 'New'
+                            order.status ||
+                            'New'
                     })
                 }
             );
@@ -223,15 +137,24 @@ export default async function handler(req, res) {
             let data = [];
 
             try {
-                data = text
-                    ? JSON.parse(text)
-                    : [];
+                data =
+                    text
+                        ? JSON.parse(text)
+                        : [];
             } catch {
                 data = [];
             }
 
             if (!response.ok) {
-                return res.status(response.status).json({
+
+                console.error(
+                    'SUPABASE CREATE ORDER ERROR:',
+                    data
+                );
+
+                return res.status(
+                    response.status
+                ).json({
                     success: false,
                     error:
                         data?.message ||
@@ -242,6 +165,7 @@ export default async function handler(req, res) {
 
             return res.status(201).json({
                 success: true,
+
                 order:
                     Array.isArray(data)
                         ? data[0]
@@ -249,9 +173,152 @@ export default async function handler(req, res) {
             });
         }
 
+
+        // =====================================================
+        // التحقق من الأدمن
+        // مطلوب فقط لتعديل حالة الطلب
+        // =====================================================
+
+        const authHeader =
+            req.headers.authorization || '';
+
+        const token =
+            authHeader.startsWith('Bearer ')
+                ? authHeader.substring(7)
+                : '';
+
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                error: 'غير مصرح'
+            });
+        }
+
+
+        // =====================================================
+        // تحديث حالة الطلب
+        // PUT /api/orders?id=ORDER_ID
+        // =====================================================
+
+        if (req.method === 'PUT') {
+
+            const orderId =
+                req.query?.id;
+
+            if (!orderId) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        'رقم الطلب غير موجود'
+                });
+            }
+
+            const {
+                status
+            } =
+                req.body || {};
+
+            const allowedStatuses = [
+                'New',
+                'Confirmed',
+                'Shipped',
+                'Delivered',
+                'Cancelled'
+            ];
+
+            if (
+                !allowedStatuses.includes(
+                    status
+                )
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        'حالة الطلب غير صحيحة'
+                });
+            }
+
+            const response =
+                await fetch(
+                    `${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`,
+                    {
+                        method: 'PATCH',
+
+                        headers: {
+                            apikey:
+                                SUPABASE_SERVICE_ROLE_KEY,
+
+                            Authorization:
+                                `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+
+                            'Content-Type':
+                                'application/json',
+
+                            Prefer:
+                                'return=representation'
+                        },
+
+                        body: JSON.stringify({
+                            status:
+                                status
+                        })
+                    }
+                );
+
+            const text =
+                await response.text();
+
+            let data = [];
+
+            try {
+                data =
+                    text
+                        ? JSON.parse(text)
+                        : [];
+            } catch {
+                data = [];
+            }
+
+            if (!response.ok) {
+
+                return res.status(
+                    response.status
+                ).json({
+                    success: false,
+                    error:
+                        data?.message ||
+                        data?.error ||
+                        'فشل تحديث حالة الطلب'
+                });
+            }
+
+            if (
+                !Array.isArray(data) ||
+                data.length === 0
+            ) {
+                return res.status(404).json({
+                    success: false,
+                    error:
+                        'الطلب غير موجود في قاعدة البيانات'
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                order:
+                    data[0]
+            });
+        }
+
+
+        // =====================================================
+        // أي Method آخر
+        // =====================================================
+
         return res.status(405).json({
             success: false,
-            error: 'Method not allowed'
+            error:
+                'Method not allowed'
         });
 
     } catch (error) {
