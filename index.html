@@ -3591,32 +3591,21 @@ function showToast(message, type = 'success') {
 
             try {
 
-                const response =
-                    await fetch(
-                        '/api/colors',
-                        {
-                            method: 'POST',
+               const response = await fetch('/api/shipping-options', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+    },
+    body: JSON.stringify({
+        name: name,
+        price: price,
+        delivery_days: duration,
+        enabled: true
+    })
+});
 
-                            headers: {
-                                'Content-Type':
-                                    'application/json',
-
-                                'Authorization':
-                                    'Bearer ' + token
-                            },
-
-                            body: JSON.stringify({
-                                type: type,
-                                name: name,
-                                hex: hex,
-                                enabled: true
-                            })
-                        }
-                    );
-
-                const responseText =
-                    await response.text();
-
+const responseText = await response.text();
                 let data = {};
 
                 try {
