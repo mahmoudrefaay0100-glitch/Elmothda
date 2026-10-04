@@ -2794,6 +2794,7 @@ console.log('تم تحميل بيانات المتجر من Supabase بنجاح'
 
 }
 
+```html
 function showToast(message, type = 'success') {
     const oldToast = document.getElementById('admin-toast');
 
@@ -2848,7 +2849,12 @@ function showToast(message, type = 'success') {
 
     }, 2500);
 }
-        async function openShippingBulkModal() {
+
+
+// ================================
+// إضافة بيانات الشحن
+// ================================
+async function openShippingBulkModal() {
 
     const oldModal =
         document.getElementById('shipping-bulk-modal');
@@ -3061,40 +3067,28 @@ function showToast(message, type = 'success') {
     document.body.appendChild(modal);
 
     const nameInput =
-        document.getElementById(
-            'shipping-name-input'
-        );
+        document.getElementById('shipping-name-input');
 
     const priceInput =
-        document.getElementById(
-            'shipping-price-input'
-        );
+        document.getElementById('shipping-price-input');
 
     const durationInput =
-        document.getElementById(
-            'shipping-duration-input'
-        );
+        document.getElementById('shipping-duration-input');
 
     const closeModal = () => {
         modal.remove();
     };
 
     document
-        .getElementById(
-            'close-shipping-modal'
-        )
+        .getElementById('close-shipping-modal')
         .onclick = closeModal;
 
     document
-        .getElementById(
-            'cancel-shipping-modal'
-        )
+        .getElementById('cancel-shipping-modal')
         .onclick = closeModal;
 
     document
-        .getElementById(
-            'save-shipping-modal'
-        )
+        .getElementById('save-shipping-modal')
         .onclick = async function () {
 
             const name =
@@ -3107,14 +3101,12 @@ function showToast(message, type = 'success') {
                 durationInput.value.trim();
 
             if (!name) {
-
                 showToast(
                     'اكتب اسم الشحن أولاً.',
                     'error'
                 );
 
                 nameInput.focus();
-
                 return;
             }
 
@@ -3122,26 +3114,22 @@ function showToast(message, type = 'success') {
                 !Number.isFinite(price) ||
                 price < 0
             ) {
-
                 showToast(
                     'اكتب سعر شحن صحيح.',
                     'error'
                 );
 
                 priceInput.focus();
-
                 return;
             }
 
             if (!duration) {
-
                 showToast(
                     'اكتب مدة أو موعد التوصيل.',
                     'error'
                 );
 
                 durationInput.focus();
-
                 return;
             }
 
@@ -3151,16 +3139,13 @@ function showToast(message, type = 'success') {
                 );
 
             if (!token) {
-
                 showToast(
                     'انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.',
                     'error'
                 );
 
                 closeModal();
-
                 switchView('admin-login');
-
                 return;
             }
 
@@ -3169,59 +3154,57 @@ function showToast(message, type = 'success') {
                     'save-shipping-modal'
                 );
 
-            saveButton.disabled =
-                true;
-
+            saveButton.disabled = true;
             saveButton.textContent =
                 'جاري الإضافة...';
 
             try {
 
-               const response = await fetch('/api/shipping-options', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + token
-    },
-    body: JSON.stringify({
-        name: name,
-        price: price,
-        delivery_days: duration,
-        enabled: true
-    })
-});
+                const response = await fetch(
+                    '/api/shipping-options',
+                    {
+                        method: 'POST',
 
-const responseText = await response.text();
-let data = {};
+                        headers: {
+                            'Content-Type':
+                                'application/json',
+
+                            'Authorization':
+                                'Bearer ' + token
+                        },
+
+                        body: JSON.stringify({
+                            name: name,
+                            price: price,
+                            delivery_days: duration,
+                            enabled: true
+                        })
+                    }
+                );
+
+                const responseText =
+                    await response.text();
+
+                let data = {};
 
                 try {
-
-                    data =
-                        responseText
-                            ? JSON.parse(
-                                responseText
-                            )
-                            : {};
-
+                    data = responseText
+                        ? JSON.parse(responseText)
+                        : {};
                 } catch {
-
                     data = {
-                        error:
-                            responseText
+                        error: responseText
                     };
-
                 }
 
                 if (
                     !response.ok ||
                     !data.success
                 ) {
-
                     throw new Error(
                         data?.error ||
                         'فشل إضافة بيانات الشحن'
                     );
-
                 }
 
                 closeModal();
@@ -3247,8 +3230,7 @@ let data = {};
                     'error'
                 );
 
-                saveButton.disabled =
-                    false;
+                saveButton.disabled = false;
 
                 saveButton.textContent =
                     'إضافة';
@@ -3258,7 +3240,11 @@ let data = {};
     nameInput.focus();
 }
 
-        async function addColorPrompt(type) {
+
+// ================================
+// إضافة لون
+// ================================
+async function addColorPrompt(type) {
 
     const typeNames = {
         cushion: 'لون التنجيد',
@@ -3266,17 +3252,21 @@ let data = {};
         wood: 'لون الخشب'
     };
 
-    const selectedType = typeNames[type] || 'لون';
+    const selectedType =
+        typeNames[type] || 'لون';
 
-    const oldModal = document.getElementById('color-add-modal');
+    const oldModal =
+        document.getElementById('color-add-modal');
 
     if (oldModal) {
         oldModal.remove();
     }
 
-    const modal = document.createElement('div');
+    const modal =
+        document.createElement('div');
 
-    modal.id = 'color-add-modal';
+    modal.id =
+        'color-add-modal';
 
     modal.innerHTML = `
         <div style="
@@ -3498,30 +3488,36 @@ let data = {};
         .getElementById('cancel-color-modal')
         .onclick = closeModal;
 
-    previewInput.addEventListener('input', () => {
-        hexInput.value =
-            previewInput.value.toUpperCase();
-    });
-
-    hexInput.addEventListener('input', () => {
-
-        let value =
-            hexInput.value.trim();
-
-        if (
-            !value.startsWith('#') &&
-            value.length > 0
-        ) {
-            value = '#' + value;
-            hexInput.value = value;
+    previewInput.addEventListener(
+        'input',
+        () => {
+            hexInput.value =
+                previewInput.value.toUpperCase();
         }
+    );
 
-        if (
-            /^#[0-9A-Fa-f]{6}$/.test(value)
-        ) {
-            previewInput.value = value;
+    hexInput.addEventListener(
+        'input',
+        () => {
+
+            let value =
+                hexInput.value.trim();
+
+            if (
+                !value.startsWith('#') &&
+                value.length > 0
+            ) {
+                value = '#' + value;
+                hexInput.value = value;
+            }
+
+            if (
+                /^#[0-9A-Fa-f]{6}$/.test(value)
+            ) {
+                previewInput.value = value;
+            }
         }
-    });
+    );
 
     document
         .getElementById('save-color-modal')
@@ -3538,6 +3534,7 @@ let data = {};
                     'اكتب اسم اللون أولاً.',
                     'error'
                 );
+
                 nameInput.focus();
                 return;
             }
@@ -3549,6 +3546,7 @@ let data = {};
                     'اكتب كود لون صحيح مثل #8B1E2B',
                     'error'
                 );
+
                 hexInput.focus();
                 return;
             }
@@ -3578,76 +3576,88 @@ let data = {};
             saveButton.textContent =
                 'جاري الإضافة...';
 
-          try {
+            try {
 
-    const response = await fetch('/api/colors', {
-        method: 'POST',
+                const response = await fetch(
+                    '/api/colors',
+                    {
+                        method: 'POST',
 
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + token
-        },
+                        headers: {
+                            'Content-Type':
+                                'application/json',
 
-        body: JSON.stringify({
-            name: name,
-            hex: hex,
-            type: type,
-            enabled: true
-        })
-    });
+                            'Authorization':
+                                'Bearer ' + token
+                        },
 
-    const responseText = await response.text();
+                        body: JSON.stringify({
+                            name: name,
+                            hex: hex,
+                            type: type,
+                            enabled: true
+                        })
+                    }
+                );
 
-    let data = {};
+                const responseText =
+                    await response.text();
 
-    try {
-        data = responseText
-            ? JSON.parse(responseText)
-            : {};
-    } catch {
-        data = {
-            error: responseText
+                let data = {};
+
+                try {
+                    data = responseText
+                        ? JSON.parse(responseText)
+                        : {};
+                } catch {
+                    data = {
+                        error: responseText
+                    };
+                }
+
+                if (
+                    !response.ok ||
+                    !data.success
+                ) {
+                    throw new Error(
+                        data?.error ||
+                        'فشل إضافة اللون'
+                    );
+                }
+
+                closeModal();
+
+                showToast(
+                    `تمت إضافة ${selectedType} بنجاح ✅`
+                );
+
+                await loadStoreDataFromDatabase();
+
+                renderAdminDashboard();
+
+            } catch (error) {
+
+                console.error(
+                    'ADD COLOR ERROR:',
+                    error
+                );
+
+                showToast(
+                    error?.message ||
+                    'حدث خطأ أثناء إضافة اللون.',
+                    'error'
+                );
+
+                saveButton.disabled = false;
+
+                saveButton.textContent =
+                    'إضافة';
+            }
         };
-    }
 
-    if (
-        !response.ok ||
-        !data.success
-    ) {
-        throw new Error(
-            data?.error ||
-            'فشل إضافة اللون'
-        );
-    }
-
-    closeModal();
-
-    showToast(
-        `تمت إضافة ${selectedType} بنجاح ✅`
-    );
-
-    await loadStoreDataFromDatabase();
-
-    renderAdminDashboard();
-
-} catch (error) {
-
-    console.error(
-        'ADD COLOR ERROR:',
-        error
-    );
-
-    showToast(
-        error?.message ||
-        'حدث خطأ أثناء إضافة اللون.',
-        'error'
-    );
-
-    saveButton.disabled = false;
-
-    saveButton.textContent =
-        'إضافة';
+    nameInput.focus();
 }
+
 // ================================
 // إضافة نوع تنجيد جديد
 // ================================
