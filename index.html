@@ -1602,126 +1602,345 @@ function updateTransferAmount() {
 
         function closeCheckoutModal() { document.getElementById('checkout-modal').classList.add('hidden'); }
 
-      async function handlePlaceOrder(e) {
+    async function handlePlaceOrder(e) {
     e.preventDefault();
 
-    const name = document.getElementById('chk-name').value;
-    const phone = document.getElementById('chk-phone').value;
-    const gov = document.getElementById('chk-gov').value;
-    const city = document.getElementById('chk-city').value;
-    const address = document.getElementById('chk-address').value;
+    const name =
+        document.getElementById('chk-name')?.value?.trim() || '';
 
-    const shipVal = document.querySelector(
-        'input[name="ship_option"]:checked'
-    )?.value;
+    const phone =
+        document.getElementById('chk-phone')?.value?.trim() || '';
+
+    const gov =
+        document.getElementById('chk-gov')?.value?.trim() || '';
+
+    const city =
+        document.getElementById('chk-city')?.value?.trim() || '';
+
+    const address =
+        document.getElementById('chk-address')?.value?.trim() || '';
+
+    const shipVal =
+        document.querySelector(
+            'input[name="ship_option"]:checked'
+        )?.value;
 
     const selectedShip =
-        appState.shippingOptions.find(s => s.id === shipVal) ||
+        appState.shippingOptions.find(
+            s => String(s.id) === String(shipVal)
+        ) ||
         appState.shippingOptions[0];
 
-    const subtotal = currentCart.reduce(
-        (sum, item) => sum + (item.unitPrice * item.qty),
-        0
-    );
-
-    const total = subtotal + (selectedShip?.price || 0);
-          
-          // التحقق من صورة إيصال التحويل
-const paymentProofInput = document.getElementById('payment-proof');
-
-if (!paymentProofInput || !paymentProofInput.files || paymentProofInput.files.length === 0) {
-    alert('من فضلك ارفع صورة إيصال التحويل أولاً قبل تأكيد الطلب.');
-    return;
-}
-
-const paymentProofFile = paymentProofInput.files[0];
-
-  // طريقة الدفع المختارة
-// الدفع بالفيزا / Mastercard فقط
-const paymentMethod = 'Visa / Mastercard';
-
-const newOrder = {
-    id: "ORD-" + Math.floor(10000 + Math.random() * 90000),
-    date: new Date().toISOString().split('T')[0],
-
-    customer: {
-        name,
-        phone,
-        gov,
-        city,
-        address
-    },
-
-    items: currentCart,
-
-    total: total,
-
-    shippingMethod: selectedShip?.name || '',
-
-    paymentMethod: paymentMethod,
-
-    // كل الطلبات الجديدة تكون في انتظار الدفع
-    paymentStatus: 'Pending',
-
-    // حالة الطلب
-    status: "New"
-};
-
-try {
-
-    const response = await fetch('/api/orders', {
-        method: 'POST',
-
-        headers: {
-            'Content-Type': 'application/json'
-        },
-
-        body: JSON.stringify(newOrder)
-    });
-
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-        throw new Error(
-            data?.error || 'فشل حفظ الطلب'
+    const subtotal =
+        currentCart.reduce(
+            (sum, item) =>
+                sum +
+                (
+                    Number(item.unitPrice || item.price || 0) *
+                    Number(item.qty || 0)
+                ),
+            0
         );
+
+    const shippingCost =
+        Number(selectedShip?.price || 0);
+
+    const total =
+        subtotal + shippingCost;
+
+    /* =========================================
+       1 - التأكد من وجود إيصال التحويل
+    ========================================= */
+
+    const paymentProofInput =
+        document.getElementById('payment-proof');
+
+    if (
+        !paymentProofInput ||
+        !paymentProofInput.files ||
+        paymentProofInput.files.length === 0
+    ) {
+        alert(
+            'من فضلك ارفع صورة إيصال التحويل أولاً قبل تأكيد الطلب.'
+        );
+        return;
     }
 
-    // إضافة الطلب للواجهة بعد نجاح قاعدة البيانات
-    appState.orders.unshift(newOrder);
+    const paymentProofFile =
+        paymentProofInput.files[0];
 
-    saveState();
+    /* =========================================
+       2 - التأكد أن الملف صورة
+    ========================================= */
 
-} catch (error) {
+    if (
+        !paymentProofFile.type ||
+        !paymentProofFile.type.startsWith('image/')
+    ) {
+        alert(
+            'من فضلك اختر صورة صحيحة لإيصال التحويل.'
+        );
+        return;
+    }
 
-    console.error(
-        'CREATE ORDER ERROR:',
-        error
-    );
+    /* =========================================
+       3 - قراءة الصورة وتحويلها Base64
+    ========================================= */
+
+    let fileData = '';
+
+    try {
+
+        fileData =
+            await new Promise((resolve, reject) => {
+
+                const reader =
+                    new FileReader();
+
+                reader.onload = () =>
+                    resolve(reader.result);
+
+                reader.onerror = () =>
+                    reject(
+                        new Error(
+                            'فشل قراءة صورة الإيصال'
+                        )
+                    );
+
+                reader.readAsDataURL(
+                    paymentProofFile
+                );
+            });
+
+    } catch (error) {
+
+        console.error(
+            'READ PAYMENT PROOF ERROR:',
+            error
+        );
+
+        alert(
+            'لم نتمكن من قراءة صورة الإيصال.'
+        );
+
+        return;
+    }
+
+    /* =========================================
+       4 - رفع صورة الإيصال إلى Supabase
+    ========================================= */
+
+    let paymentProofUrl = '';
+
+    try {
+
+        const uploadResponse =
+            await fetch(
+                '/api/upload-image',
+                {
+                    method: 'POST',
+
+                    headers: {
+                        'Content-Type':
+                            'application/json'
+                    },
+
+                    body: JSON.stringify({
+                        fileName:
+                            paymentProofFile.name,
+
+                        fileType:
+                            paymentProofFile.type,
+
+                        fileData:
+                            fileData,
+
+                        folder:
+                            'payment-proofs'
+                    })
+                }
+            );
+
+        const uploadData =
+            await uploadResponse.json();
+
+        if (
+            !uploadResponse.ok ||
+            !uploadData.success ||
+            !uploadData.image_url
+        ) {
+            throw new Error(
+                uploadData?.error ||
+                'فشل رفع إيصال التحويل'
+            );
+        }
+
+        paymentProofUrl =
+            uploadData.image_url;
+
+    } catch (error) {
+
+        console.error(
+            'PAYMENT PROOF UPLOAD ERROR:',
+            error
+        );
+
+        alert(
+            'فشل رفع إيصال التحويل.\n' +
+            (error?.message || '')
+        );
+
+        return;
+    }
+
+    /* =========================================
+       5 - إنشاء الطلب
+    ========================================= */
+
+    const paymentMethod =
+        'Visa / Mastercard';
+
+    const newOrder = {
+
+        id:
+            "ORD-" +
+            Math.floor(
+                10000 +
+                Math.random() * 90000
+            ),
+
+        date:
+            new Date()
+                .toISOString()
+                .split('T')[0],
+
+        customer: {
+            name,
+            phone,
+            gov,
+            city,
+            address
+        },
+
+        items:
+            currentCart,
+
+        subtotal:
+            subtotal,
+
+        shippingCost:
+            shippingCost,
+
+        total:
+            total,
+
+        shippingMethod:
+            selectedShip?.name || '',
+
+        paymentMethod:
+            paymentMethod,
+
+        paymentStatus:
+            'Pending',
+
+        paymentProofUrl:
+            paymentProofUrl,
+
+        status:
+            'New'
+    };
+
+    /* =========================================
+       6 - حفظ الطلب في قاعدة البيانات
+    ========================================= */
+
+    try {
+
+        const response =
+            await fetch(
+                '/api/orders',
+                {
+                    method: 'POST',
+
+                    headers: {
+                        'Content-Type':
+                            'application/json'
+                    },
+
+                    body:
+                        JSON.stringify(
+                            newOrder
+                        )
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (
+            !response.ok ||
+            !data.success
+        ) {
+            throw new Error(
+                data?.error ||
+                'فشل حفظ الطلب'
+            );
+        }
+
+        /* =====================================
+           7 - حفظ الطلب محلياً بعد نجاح DB
+        ===================================== */
+
+        appState.orders.unshift(
+            newOrder
+        );
+
+        saveState();
+
+    } catch (error) {
+
+        console.error(
+            'CREATE ORDER ERROR:',
+            error
+        );
+
+        alert(
+            'تم رفع صورة الإيصال، ولكن حدث خطأ أثناء تسجيل الطلب.\n' +
+            (error?.message || '')
+        );
+
+        return;
+    }
+
+    /* =========================================
+       8 - إنهاء الطلب
+    ========================================= */
+
+    currentCart = [];
+
+    updateCartBadge();
+
+    closeCheckoutModal();
 
     alert(
-        'حدث خطأ أثناء تسجيل الطلب في قاعدة البيانات.\n' +
-        (error?.message || '')
+        `تم تسجيل طلبك بنجاح! 🎉\n` +
+        `رقم الطلب: ${newOrder.id}\n` +
+        `طريقة الدفع: ${paymentMethod}`
     );
 
-    return;
-}
+    switchView(
+        'orders-track'
+    );
 
-currentCart = [];
+    const trackInput =
+        document.getElementById(
+            'track-order-id-input'
+        );
 
-updateCartBadge();
-
-closeCheckoutModal();
-
-alert(
-    `تم تسجيل طلبك بنجاح! 🎉\nرقم الطلب: ${newOrder.id}\nطريقة الدفع: ${paymentMethod}`
-);
-
-    switchView('orders-track');
-
-    document.getElementById(
-        'track-order-id-input'
-    ).value = newOrder.id;
+    if (trackInput) {
+        trackInput.value =
+            newOrder.id;
+    }
 
     trackOrderSubmit();
 }
