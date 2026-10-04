@@ -1432,34 +1432,136 @@ showToast('تم إضافة القسم بنجاح ✅');
             document.getElementById('cart-badge-count').innerText = currentCart.reduce((sum, i) => sum + i.qty, 0);
         }
 
-        function openCheckoutModal() {
-            if (currentCart.length === 0) { alert("سلة الشراء فارغة."); return; }
-            const shippingContainer = document.getElementById('checkout-shipping-options');
-            shippingContainer.innerHTML = appState.shippingOptions.map((opt, idx) => `
-                <label class="flex items-center justify-between p-3 rounded-xl border border-neutral-700 bg-black cursor-pointer hover:border-brand-amber">
-                    <div class="flex items-center space-x-2 space-x-reverse">
-                        <input type="radio" name="ship_option" value="${opt.id}" ${idx === 0 ? 'checked' : ''}>
-                        <div><span class="text-xs font-bold text-white">${opt.name}</span><p class="text-[10px] text-gray-400">${opt.timeframe}</p></div>
+      function openCheckoutModal() {
+    if (currentCart.length === 0) {
+        alert("سلة الشراء فارغة.");
+        return;
+    }
+
+    const shippingContainer =
+        document.getElementById('checkout-shipping-options');
+
+    // عرض طرق الشحن بدون undefined
+    shippingContainer.innerHTML =
+        appState.shippingOptions.map((opt, idx) => `
+            <label
+                class="flex items-center justify-between p-3 rounded-xl border border-neutral-700 bg-black cursor-pointer hover:border-brand-amber"
+            >
+                <div class="flex items-center space-x-2 space-x-reverse">
+                    
+                    <input
+                        type="radio"
+                        name="ship_option"
+                        value="${opt.id}"
+                        ${idx === 0 ? 'checked' : ''}
+                        onchange="updateTransferAmount()"
+                    >
+
+                    <div>
+                        <span class="text-xs font-bold text-white">
+                            ${opt.name || 'طريقة الشحن'}
+                        </span>
+
+                        <p class="text-[10px] text-gray-400">
+                            ${opt.timeframe || ''}
+                        </p>
                     </div>
-                    <span class="text-xs font-bold text-brand-amber">${opt.price} ج.م</span>
-                </label>
-            `).join('');
-            toggleCartDrawer(false);
-            document.getElementById('checkout-modal').classList.remove('hidden');
-                // قفل زر تأكيد الطلب حتى يتم رفع إيصال التحويل
-    const confirmButton = document.querySelector(
-        '#checkout-form button[type="submit"]'
-    );
+
+                </div>
+
+                <span class="text-xs font-bold text-brand-amber">
+                    ${Number(opt.price || 0).toLocaleString()} ج.م
+                </span>
+
+            </label>
+        `).join('');
+
+    toggleCartDrawer(false);
+
+    document
+        .getElementById('checkout-modal')
+        .classList.remove('hidden');
+
+
+    // ==========================================
+    // حساب المبلغ المطلوب للتحويل
+    // ==========================================
+
+    updateTransferAmount();
+
+
+    // ==========================================
+    // قفل زر تأكيد الطلب
+    // حتى يتم رفع إيصال التحويل
+    // ==========================================
+
+    const confirmButton =
+        document.querySelector(
+            '#checkout-form button[type="submit"]'
+        );
 
     if (confirmButton) {
+
         confirmButton.disabled = true;
+
         confirmButton.classList.add(
             'opacity-50',
             'cursor-not-allowed'
         );
     }
+function updateTransferAmount() {
 
+    const amountElement =
+        document.getElementById('transfer-amount');
+
+    if (!amountElement) return;
+
+
+    // حساب قيمة المنتجات
+    const subtotal = currentCart.reduce(
+        (sum, item) =>
+            sum + (
+                Number(item.unitPrice || item.price || 0) *
+                Number(item.qty || 0)
+            ),
+        0
+    );
+
+
+    // طريقة الشحن المختارة
+    const selectedShipping =
+        document.querySelector(
+            'input[name="ship_option"]:checked'
+        );
+
+
+    let shippingCost = 0;
+
+
+    if (selectedShipping) {
+
+        const shippingOption =
+            appState.shippingOptions.find(
+                s => String(s.id) === String(selectedShipping.value)
+            );
+
+        shippingCost =
+            Number(shippingOption?.price || 0);
+    }
+
+
+    const total =
+        subtotal + shippingCost;
+
+
+    amountElement.textContent =
+        `${total.toLocaleString('ar-EG')} ج.م`;
+}
+
+    // ==========================================
     // تصفير إيصال التحويل عند فتح طلب جديد
+    // ==========================================
+
     const paymentProofInput =
         document.getElementById('payment-proof');
 
@@ -1467,17 +1569,19 @@ showToast('تم إضافة القسم بنجاح ✅');
         paymentProofInput.value = '';
     }
 
+
     const paymentProofStatus =
         document.getElementById('payment-proof-status');
 
     if (paymentProofStatus) {
+
         paymentProofStatus.textContent =
             'يجب رفع صورة إيصال التحويل لتأكيد الطلب.';
 
         paymentProofStatus.className =
             'text-xs text-gray-500 mt-2';
     }
-        }
+}
 
         function closeCheckoutModal() { document.getElementById('checkout-modal').classList.add('hidden'); }
 
