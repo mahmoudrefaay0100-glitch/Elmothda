@@ -811,35 +811,104 @@
 <div id="card-payment-details"
      class="mt-4 bg-neutral-950 border border-neutral-800 rounded-xl p-4">
 
-    <div class="mb-4">
-        <p class="text-sm font-bold text-white mb-2">
-            💳 بيانات التحويل
-        </p>
+    <!-- الخطوة الأولى: بيانات التحويل -->
+    <div id="payment-step-transfer">
 
-        <div class="bg-black border border-neutral-700 rounded-lg p-3 text-sm text-gray-300">
-            <p>اسم الحساب: <span class="text-white font-bold">سيتم تحديده</span></p>
-            <p>رقم الحساب: <span class="text-white font-bold">سيتم تحديده</span></p>
-            <p>المبلغ المطلوب: <span id="transfer-amount" class="text-brand-amber font-bold"></span></p>
+        <div class="mb-4">
+
+            <p class="text-sm font-bold text-white mb-2">
+                💳 بيانات التحويل
+            </p>
+
+            <div class="bg-black border border-neutral-700 rounded-lg p-3 text-sm text-gray-300">
+
+                <p>
+                    اسم الحساب:
+                    <span class="text-white font-bold">
+                        سيتم تحديده
+                    </span>
+                </p>
+
+                <p>
+                    رقم الحساب:
+                    <span class="text-white font-bold">
+                        سيتم تحديده
+                    </span>
+                </p>
+
+                <p>
+                    المبلغ المطلوب للتحويل:
+                    <span
+                        id="transfer-amount"
+                        class="text-brand-amber font-bold"
+                    >
+                        0 ج.م
+                    </span>
+                </p>
+
+            </div>
         </div>
+
+        <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mb-4">
+
+            <p class="text-xs text-amber-300 leading-6">
+                قم بتحويل المبلغ الموضح أعلاه، وبعد إتمام التحويل
+                اضغط على الزر التالي لإرفاق صورة الإيصال.
+            </p>
+
+        </div>
+
+        <button
+            type="button"
+            onclick="showPaymentProofStep()"
+            class="w-full amber-gradient text-black font-extrabold py-3 rounded-xl transition"
+        >
+            تم التحويل — إرفاق الإيصال
+            <i class="fas fa-arrow-left mr-2"></i>
+        </button>
+
     </div>
 
-    <div>
-        <label class="block text-sm font-bold text-white mb-2">
-            📷 صورة إيصال التحويل
-        </label>
+
+    <!-- الخطوة الثانية: رفع الإيصال -->
+    <div id="payment-step-proof" class="hidden">
+
+        <div class="mb-4">
+
+            <p class="text-sm font-bold text-white mb-2">
+                📷 إرفاق إيصال التحويل
+            </p>
+
+            <p class="text-xs text-gray-400 leading-6">
+                بعد إتمام التحويل، اختر صورة واضحة لإيصال الدفع.
+            </p>
+
+        </div>
 
         <input
             type="file"
             id="payment-proof"
             accept="image/*"
-            class="w-full text-sm text-gray-300 bg-black border border-neutral-700 rounded-lg p-3"
+            class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-xs text-gray-300"
             onchange="handlePaymentProofChange(this)"
         >
 
-        <p id="payment-proof-status"
-           class="text-xs text-gray-500 mt-2">
+        <p
+            id="payment-proof-status"
+            class="text-xs text-gray-500 mt-2"
+        >
             يجب رفع صورة إيصال التحويل لتأكيد الطلب.
         </p>
+
+        <button
+            type="button"
+            onclick="backToPaymentTransferStep()"
+            class="w-full mt-3 border border-neutral-700 text-gray-300 font-bold py-3 rounded-xl"
+        >
+            <i class="fas fa-arrow-right ml-2"></i>
+            العودة لبيانات التحويل
+        </button>
+
     </div>
 
 </div>
@@ -1432,7 +1501,7 @@ showToast('تم إضافة القسم بنجاح ✅');
             document.getElementById('cart-badge-count').innerText = currentCart.reduce((sum, i) => sum + i.qty, 0);
         }
 
-      function openCheckoutModal() {
+     function openCheckoutModal() {
     if (currentCart.length === 0) {
         alert("سلة الشراء فارغة.");
         return;
@@ -1441,14 +1510,20 @@ showToast('تم إضافة القسم بنجاح ✅');
     const shippingContainer =
         document.getElementById('checkout-shipping-options');
 
-    // عرض طرق الشحن بدون undefined
+    if (!shippingContainer) {
+        return;
+    }
+
+    // عرض طرق الشحن
     shippingContainer.innerHTML =
-        appState.shippingOptions.map((opt, idx) => `
+        (appState.shippingOptions || []).map((opt, idx) => `
+
             <label
                 class="flex items-center justify-between p-3 rounded-xl border border-neutral-700 bg-black cursor-pointer hover:border-brand-amber"
             >
+
                 <div class="flex items-center space-x-2 space-x-reverse">
-                    
+
                     <input
                         type="radio"
                         name="ship_option"
@@ -1458,64 +1533,106 @@ showToast('تم إضافة القسم بنجاح ✅');
                     >
 
                     <div>
+
                         <span class="text-xs font-bold text-white">
                             ${opt.name || 'طريقة الشحن'}
                         </span>
 
-                       <p class="text-[10px] text-gray-400">
-    ${
-        (
-            opt.timeframe &&
-            opt.timeframe !== 'undefined'
-        )
-            ? opt.timeframe
-            : (
-                opt.duration &&
-                opt.duration !== 'undefined'
-            )
-                ? opt.duration
-                : (
-                    opt.delivery_time &&
-                    opt.delivery_time !== 'undefined'
-                )
-                    ? opt.delivery_time
-                    : ''
-    }
-</p>
+                        <p class="text-[10px] text-gray-400">
+                            ${
+                                opt.timeframe &&
+                                opt.timeframe !== 'undefined'
+                                    ? opt.timeframe
+                                    : (
+                                        opt.duration &&
+                                        opt.duration !== 'undefined'
+                                            ? opt.duration
+                                            : (
+                                                opt.delivery_time &&
+                                                opt.delivery_time !== 'undefined'
+                                                    ? opt.delivery_time
+                                                    : ''
+                                            )
+                                    )
+                            }
+                        </p>
+
                     </div>
 
                 </div>
 
                 <span class="text-xs font-bold text-brand-amber">
-                    ${Number(opt.price || 0).toLocaleString()} ج.م
+                    ${Number(opt.price || 0).toLocaleString('ar-EG')} ج.م
                 </span>
 
             </label>
-        `).join('');
 
+        `).join('');
+         console.log('SHIPPING OPTIONS:', appState.shippingOptions);
+
+    // إغلاق السلة
     toggleCartDrawer(false);
 
-    document
-        .getElementById('checkout-modal')
-        .classList.remove('hidden');
+    // فتح صفحة إتمام الطلب
+    const checkoutModal =
+        document.getElementById('checkout-modal');
 
+    if (checkoutModal) {
+        checkoutModal.classList.remove('hidden');
+    }
 
     // ==========================================
-    // حساب المبلغ المطلوب للتحويل
+    // تحديث الإجمالي حسب طريقة الشحن المختارة
     // ==========================================
 
     updateTransferAmount();
 
+    // ==========================================
+    // كل مرة نفتح الطلب نرجع لخطوة بيانات التحويل
+    // ==========================================
+
+    const transferStep =
+        document.getElementById('payment-step-transfer');
+
+    const proofStep =
+        document.getElementById('payment-step-proof');
+
+    if (transferStep) {
+        transferStep.classList.remove('hidden');
+    }
+
+    if (proofStep) {
+        proofStep.classList.add('hidden');
+    }
 
     // ==========================================
-    // قفل زر تأكيد الطلب
-    // حتى يتم رفع إيصال التحويل
+    // مسح إيصال التحويل القديم
+    // ==========================================
+
+    const paymentProofInput =
+        document.getElementById('payment-proof');
+
+    if (paymentProofInput) {
+        paymentProofInput.value = '';
+    }
+
+    const paymentProofStatus =
+        document.getElementById('payment-proof-status');
+
+    if (paymentProofStatus) {
+        paymentProofStatus.textContent =
+            'يجب رفع صورة إيصال التحويل لتأكيد الطلب.';
+
+        paymentProofStatus.className =
+            'text-xs text-gray-500 mt-2';
+    }
+
+    // ==========================================
+    // تعطيل زر تأكيد الطلب لحد رفع الإيصال
     // ==========================================
 
     const confirmButton =
-        document.querySelector(
-            '#checkout-form button[type="submit"]'
-        );
+        document.getElementById('confirm-order-btn');
 
     if (confirmButton) {
 
@@ -1526,80 +1643,64 @@ showToast('تم إضافة القسم بنجاح ✅');
             'cursor-not-allowed'
         );
     }
-function updateTransferAmount() {
+}
+
+        function updateTransferAmount() {
 
     const amountElement =
         document.getElementById('transfer-amount');
 
     if (!amountElement) return;
 
+    // إجمالي المنتجات
+    const subtotal =
+        currentCart.reduce(
+            (sum, item) =>
+                sum +
+                (
+                    Number(
+                        item.unitPrice ||
+                        item.price ||
+                        0
+                    ) *
+                    Number(item.qty || 0)
+                ),
+            0
+        );
 
-    // حساب قيمة المنتجات
-    const subtotal = currentCart.reduce(
-        (sum, item) =>
-            sum + (
-                Number(item.unitPrice || item.price || 0) *
-                Number(item.qty || 0)
-            ),
-        0
-    );
-
-
-    // طريقة الشحن المختارة
+    // طريقة الشحن المختارة حاليًا
     const selectedShipping =
         document.querySelector(
             'input[name="ship_option"]:checked'
         );
 
-
     let shippingCost = 0;
-
 
     if (selectedShipping) {
 
         const shippingOption =
-            appState.shippingOptions.find(
-                s => String(s.id) === String(selectedShipping.value)
+            (appState.shippingOptions || []).find(
+                option =>
+                    String(option.id) ===
+                    String(selectedShipping.value)
             );
 
-        shippingCost =
-            Number(shippingOption?.price || 0);
+        if (shippingOption) {
+
+            shippingCost =
+                Number(
+                    shippingOption.price || 0
+                );
+        }
     }
 
-
+    // الإجمالي النهائي
     const total =
         subtotal + shippingCost;
-
 
     amountElement.textContent =
         `${total.toLocaleString('ar-EG')} ج.م`;
 }
-
-    // ==========================================
-    // تصفير إيصال التحويل عند فتح طلب جديد
-    // ==========================================
-
-    const paymentProofInput =
-        document.getElementById('payment-proof');
-
-    if (paymentProofInput) {
-        paymentProofInput.value = '';
-    }
-
-
-    const paymentProofStatus =
-        document.getElementById('payment-proof-status');
-
-    if (paymentProofStatus) {
-
-        paymentProofStatus.textContent =
-            'يجب رفع صورة إيصال التحويل لتأكيد الطلب.';
-
-        paymentProofStatus.className =
-            'text-xs text-gray-500 mt-2';
-    }
-}
-
         function closeCheckoutModal() { document.getElementById('checkout-modal').classList.add('hidden'); }
 
     async function handlePlaceOrder(e) {
@@ -1625,11 +1726,20 @@ function updateTransferAmount() {
             'input[name="ship_option"]:checked'
         )?.value;
 
-    const selectedShip =
-        appState.shippingOptions.find(
-            s => String(s.id) === String(shipVal)
-        ) ||
-        appState.shippingOptions[0];
+   const shippingOptions =
+    Array.isArray(appState.shippingOptions)
+        ? appState.shippingOptions
+        : [];
+
+const selectedShip =
+    shippingOptions.find(
+        s => String(s.id) === String(shipVal)
+    );
+
+if (!selectedShip) {
+    alert('من فضلك اختر طريقة الشحن.');
+    return;
+}
 
     const subtotal =
         currentCart.reduce(
@@ -1642,12 +1752,11 @@ function updateTransferAmount() {
             0
         );
 
-    const shippingCost =
-        Number(selectedShip?.price || 0);
+   const shippingCost =
+    Number(selectedShip.price || 0);
 
-    const total =
-        subtotal + shippingCost;
-
+const total =
+    subtotal + shippingCost;
     /* =========================================
        1 - التأكد من وجود إيصال التحويل
     ========================================= */
