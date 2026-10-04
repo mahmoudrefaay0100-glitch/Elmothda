@@ -3159,28 +3159,25 @@ async function openShippingBulkModal() {
 
             try {
 
-                const response = await fetch(
-                    '/api/shipping-options',
-                    {
-                        method: 'POST',
+               const response = await fetch(
+    '/api/shipping-options',
+    {
+        method: 'POST',
 
-                        headers: {
-                            'Content-Type':
-                                'application/json',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+        },
 
-                            'Authorization':
-                                'Bearer ' + token
-                        },
-
-                        body: JSON.stringify({
-                            name: name,
-                            price: price,
-                            delivery_days: duration,
-                            enabled: true
-                        })
-                    }
-                );
-
+        body: JSON.stringify({
+            id: 'ship-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8),
+            name: name,
+            price: price,
+            delivery_days: duration,
+            enabled: true
+        })
+    }
+);
                const responseText = await response.text();
 
                 let data = {};
