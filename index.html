@@ -772,7 +772,7 @@
                 <h3 class="text-xl font-black text-white"><i class="fas fa-truck-loading text-brand-amber ml-2"></i> استكمال بيانات الشحن والتسليم</h3>
                 <p class="text-xs text-gray-400 mt-1">الرجاء إدخال البيانات بدقة للتواصل معكم من المصنع مباشرة</p>
             </div>
-            <form onsubmit="handlePlaceOrder(event)" class="space-y-4 text-xs">
+            <form id="checkout-form" onsubmit="handlePlaceOrder(event)" class="space-y-4 text-xs">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div><label class="block text-gray-300 font-bold mb-1">الاسم بالكامل *</label><input type="text" id="chk-name" required placeholder="مثال: أستاذ أحمد محمود" class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"></div>
                     <div><label class="block text-gray-300 font-bold mb-1">رقم الهاتف *</label><input type="tel" id="chk-phone" required placeholder="01xxxxxxxxx" class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"></div>
@@ -808,9 +808,54 @@
                 بطاقة فيزا / Mastercard
             </span>
         </label>
+<div id="card-payment-details"
+     class="mt-4 bg-neutral-950 border border-neutral-800 rounded-xl p-4">
 
+    <div class="mb-4">
+        <p class="text-sm font-bold text-white mb-2">
+            💳 بيانات التحويل
+        </p>
+
+        <div class="bg-black border border-neutral-700 rounded-lg p-3 text-sm text-gray-300">
+            <p>اسم الحساب: <span class="text-white font-bold">سيتم تحديده</span></p>
+            <p>رقم الحساب: <span class="text-white font-bold">سيتم تحديده</span></p>
+            <p>المبلغ المطلوب: <span id="transfer-amount" class="text-brand-amber font-bold"></span></p>
+        </div>
     </div>
+
+    <div>
+        <label class="block text-sm font-bold text-white mb-2">
+            📷 صورة إيصال التحويل
+        </label>
+
+        <input
+            type="file"
+            id="payment-proof"
+            accept="image/*"
+            class="w-full text-sm text-gray-300 bg-black border border-neutral-700 rounded-lg p-3"
+            onchange="handlePaymentProofChange(this)"
+        >
+
+        <p id="payment-proof-status"
+           class="text-xs text-gray-500 mt-2">
+            يجب رفع صورة إيصال التحويل لتأكيد الطلب.
+        </p>
+    </div>
+
 </div>
+
+        <!-- زر تأكيد الطلب -->
+        <button
+            type="submit"
+            id="confirm-order-btn"
+            disabled
+            class="w-full amber-gradient text-black font-extrabold py-3.5 rounded-xl shadow-lg transition text-sm opacity-50 cursor-not-allowed"
+        >
+            تأكيد الطلب
+            <i class="fas fa-check mr-2"></i>
+        </button>
+
+    </form>
 
     <!-- FLOATING AI VOICE & TEXT ASSISTANT & WHATSAPP BUTTONS -->
     <div class="fixed bottom-6 left-6 z-40 flex flex-col gap-3">
@@ -1401,6 +1446,37 @@ showToast('تم إضافة القسم بنجاح ✅');
             `).join('');
             toggleCartDrawer(false);
             document.getElementById('checkout-modal').classList.remove('hidden');
+                // قفل زر تأكيد الطلب حتى يتم رفع إيصال التحويل
+    const confirmButton = document.querySelector(
+        '#checkout-form button[type="submit"]'
+    );
+
+    if (confirmButton) {
+        confirmButton.disabled = true;
+        confirmButton.classList.add(
+            'opacity-50',
+            'cursor-not-allowed'
+        );
+    }
+
+    // تصفير إيصال التحويل عند فتح طلب جديد
+    const paymentProofInput =
+        document.getElementById('payment-proof');
+
+    if (paymentProofInput) {
+        paymentProofInput.value = '';
+    }
+
+    const paymentProofStatus =
+        document.getElementById('payment-proof-status');
+
+    if (paymentProofStatus) {
+        paymentProofStatus.textContent =
+            'يجب رفع صورة إيصال التحويل لتأكيد الطلب.';
+
+        paymentProofStatus.className =
+            'text-xs text-gray-500 mt-2';
+    }
         }
 
         function closeCheckoutModal() { document.getElementById('checkout-modal').classList.add('hidden'); }
@@ -1428,6 +1504,16 @@ showToast('تم إضافة القسم بنجاح ✅');
     );
 
     const total = subtotal + (selectedShip?.price || 0);
+          
+          // التحقق من صورة إيصال التحويل
+const paymentProofInput = document.getElementById('payment-proof');
+
+if (!paymentProofInput || !paymentProofInput.files || paymentProofInput.files.length === 0) {
+    alert('من فضلك ارفع صورة إيصال التحويل أولاً قبل تأكيد الطلب.');
+    return;
+}
+
+const paymentProofFile = paymentProofInput.files[0];
 
   // طريقة الدفع المختارة
 // الدفع بالفيزا / Mastercard فقط
@@ -1519,6 +1605,58 @@ alert(
     trackOrderSubmit();
 }
 
+        function handlePaymentProofChange(input) {
+
+    const status = document.getElementById('payment-proof-status');
+
+    if (!input.files || input.files.length === 0) {
+
+        if (status) {
+            status.textContent =
+                'يجب رفع صورة إيصال التحويل لتأكيد الطلب.';
+            status.className =
+                'text-xs text-gray-500 mt-2';
+        }
+
+        return;
+    }
+
+    const file = input.files[0];
+
+    // التأكد أن الملف صورة
+    if (!file.type.startsWith('image/')) {
+
+        input.value = '';
+
+        if (status) {
+            status.textContent =
+                'من فضلك اختر صورة صحيحة لإيصال التحويل.';
+            status.className =
+                'text-xs text-red-400 mt-2';
+        }
+
+        return;
+    }
+
+    if (status) {
+        status.textContent =
+            'تم اختيار صورة إيصال التحويل ✅';
+        status.className =
+            'text-xs text-green-400 mt-2';
+    }
+
+    // تفعيل زر تأكيد الطلب
+    const confirmButton =
+        document.getElementById('confirm-order-btn');
+
+    if (confirmButton) {
+        confirmButton.disabled = false;
+        confirmButton.classList.remove(
+            'opacity-50',
+            'cursor-not-allowed'
+        );
+    }
+}
         function trackOrderSubmit() {
             const orderId = document.getElementById('track-order-id-input').value.trim();
             const container = document.getElementById('track-result-container');
