@@ -1739,6 +1739,83 @@ async function handleAdminLogin(e) {
     }
 }
 
+        async function deleteShippingOption(id) {
+    const token = sessionStorage.getItem(
+        'OSCAR_ADMIN_ACCESS_TOKEN'
+    );
+
+    if (!token) {
+        showToast(
+            'انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.',
+            'error'
+        );
+
+        switchView('admin-login');
+        return;
+    }
+
+    if (!confirm('هل أنت متأكد من حذف بيانات الشحن؟')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `/api/shipping-options?id=${encodeURIComponent(id)}`,
+            {
+                method: 'DELETE',
+
+                headers: {
+                    'Authorization':
+                        'Bearer ' + token
+                }
+            }
+        );
+
+        const responseText =
+            await response.text();
+
+        let data = {};
+
+        try {
+            data = responseText
+                ? JSON.parse(responseText)
+                : {};
+        } catch {
+            data = {
+                error: responseText
+            };
+        }
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data?.error ||
+                'فشل حذف بيانات الشحن'
+            );
+        }
+
+        showToast(
+            'تم حذف بيانات الشحن بنجاح ✅'
+        );
+
+        await loadStoreDataFromDatabase();
+
+        renderAdminDashboard();
+
+    } catch (error) {
+
+        console.error(
+            'DELETE SHIPPING ERROR:',
+            error
+        );
+
+        showToast(
+            error?.message ||
+            'حدث خطأ أثناء حذف بيانات الشحن.',
+            'error'
+        );
+    }
+}
+        
 function renderAdminColors() {
 
     const cushionContainer =
@@ -1794,29 +1871,47 @@ function renderAdminShipping() {
         return;
     }
 
-    container.innerHTML = appState.shippingOptions.map(option => `
-        <div class="bg-black border border-neutral-800 rounded-xl p-4">
-            <div class="flex items-center justify-between">
+    container.innerHTML =
+        appState.shippingOptions.map(option => `
 
-                <div>
-                    <div class="text-white font-bold text-sm">
-                        ${option.name || option.title || 'خيار شحن'}
+            <div class="bg-black border border-neutral-800 rounded-xl p-4">
+
+                <div class="flex items-center justify-between gap-4">
+
+                    <div class="flex-1">
+
+                        <div class="text-white font-bold text-sm">
+                            ${option.name || option.title || 'خيار شحن'}
+                        </div>
+
+                        <div class="text-gray-400 text-xs mt-1">
+                            ${option.delivery_days || option.duration || option.delivery_time || ''}
+                        </div>
+
                     </div>
 
-                    <div class="text-gray-400 text-xs mt-1">
-                        ${option.duration || option.delivery_time || ''}
-                    </div>
-                </div>
+                    <div class="flex items-center gap-3">
 
-                <div class="text-brand-amber font-bold text-sm">
-                    ${Number(option.price || option.cost || 0)} ج.م
+                        <div class="text-brand-amber font-bold text-sm whitespace-nowrap">
+                            ${Number(option.price || option.cost || 0)} ج.م
+                        </div>
+
+                        <button
+                            type="button"
+                            onclick="deleteShippingOption('${option.id}')"
+                            class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-xs font-bold"
+                        >
+                            🗑️ حذف
+                        </button>
+
+                    </div>
+
                 </div>
 
             </div>
-        </div>
-    `).join('');
-}
 
+        `).join('');
+}
         function renderAdminOrders() {
             const tbody = document.getElementById('admin-orders-table-body');
             if (!tbody) return;
