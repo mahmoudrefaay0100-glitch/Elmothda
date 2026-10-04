@@ -1609,7 +1609,7 @@ showToast('تم إضافة القسم بنجاح ✅');
     }
 }
 
-     function updateTransferAmount() {
+   function updateTransferAmount() {
 
     const amountElement =
         document.getElementById('transfer-amount');
@@ -1669,13 +1669,45 @@ showToast('تم إضافة القسم بنجاح ✅');
     amountElement.textContent =
         `${total.toLocaleString('ar-EG')} ج.م`;
 }
-    
+
+window.updateTransferAmount = updateTransferAmount;
+
+function closeCheckoutModal() {
+    document
+        .getElementById('checkout-modal')
+        .classList.add('hidden');
+}
+
+async function submitReceiptOrder() {
+
+    const confirmButton =
+        document.getElementById('confirm-order-btn');
+
+    if (confirmButton) {
         confirmButton.disabled = true;
 
-        confirmButton.classList.add(
-            'opacity-50',
-            'cursor-not-allowed'
+        confirmButton.textContent =
+            'جاري تسجيل الطلب...';
+    }
+
+    try {
+        await handlePlaceOrder({
+            preventDefault: () => {}
+        });
+
+    } catch (error) {
+
+        console.error(
+            'SUBMIT RECEIPT ORDER ERROR:',
+            error
         );
+
+        if (confirmButton) {
+            confirmButton.disabled = false;
+
+            confirmButton.textContent =
+                'تأكيد الطلب';
+        }
     }
 }
 
@@ -1740,8 +1772,7 @@ amountElement.textContent =
     `${total.toLocaleString('ar-EG')} ج.م`;
 }
 
-window.updateTransferAmount =
-    updateTransferAmount;
+window.updateTransferAmount = updateTransferAmount;
 
 function closeCheckoutModal() {
     document
