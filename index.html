@@ -3192,8 +3192,7 @@ function showToast(message, type = 'success') {
 });
 
 const responseText = await response.text();
-
-                let data = {};
+let data = {};
 
                 try {
 
@@ -3579,75 +3578,75 @@ const responseText = await response.text();
             saveButton.textContent =
                 'جاري الإضافة...';
 
-            try {
+          try {
 
-               const response = await fetch('/api/shipping-options', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + token
-    },
-    body: JSON.stringify({
-        name: name,
-        price: price,
-        delivery_days: duration,
-        enabled: true
-    })
-});
+    const response = await fetch('/api/colors', {
+        method: 'POST',
 
-const responseText = await response.text();
-                let data = {};
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+        },
 
-                try {
-                    data = responseText
-                        ? JSON.parse(responseText)
-                        : {};
-                } catch {
-                    data = {
-                        error: responseText
-                    };
-                }
+        body: JSON.stringify({
+            name: name,
+            hex: hex,
+            type: type,
+            enabled: true
+        })
+    });
 
-                if (
-                    !response.ok ||
-                    !data.success
-                ) {
-                    throw new Error(
-                        data?.error ||
-                        'فشل إضافة اللون'
-                    );
-                }
+    const responseText = await response.text();
 
-                closeModal();
+    let data = {};
 
-                showToast(
-                    `تمت إضافة ${selectedType} بنجاح ✅`
-                );
-
-                await loadStoreDataFromDatabase();
-
-                renderAdminDashboard();
-
-            } catch (error) {
-
-                console.error(
-                    'ADD COLOR ERROR:',
-                    error
-                );
-
-                showToast(
-                    error?.message ||
-                    'حدث خطأ أثناء إضافة اللون.',
-                    'error'
-                );
-
-                saveButton.disabled = false;
-                saveButton.textContent =
-                    'إضافة';
-            }
+    try {
+        data = responseText
+            ? JSON.parse(responseText)
+            : {};
+    } catch {
+        data = {
+            error: responseText
         };
+    }
 
-    nameInput.focus();
+    if (
+        !response.ok ||
+        !data.success
+    ) {
+        throw new Error(
+            data?.error ||
+            'فشل إضافة اللون'
+        );
+    }
+
+    closeModal();
+
+    showToast(
+        `تمت إضافة ${selectedType} بنجاح ✅`
+    );
+
+    await loadStoreDataFromDatabase();
+
+    renderAdminDashboard();
+
+} catch (error) {
+
+    console.error(
+        'ADD COLOR ERROR:',
+        error
+    );
+
+    showToast(
+        error?.message ||
+        'حدث خطأ أثناء إضافة اللون.',
+        'error'
+    );
+
+    saveButton.disabled = false;
+
+    saveButton.textContent =
+        'إضافة';
 }
 // ================================
 // إضافة نوع تنجيد جديد
