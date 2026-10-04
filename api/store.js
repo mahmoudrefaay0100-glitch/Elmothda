@@ -1,4 +1,21 @@
 export default async function handler(req, res) {
+
+    // =========================
+    // منع التخزين المؤقت
+    // =========================
+
+    res.setHeader(
+        'Cache-Control',
+        'no-store, no-cache, must-revalidate, proxy-revalidate'
+    );
+
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    // =========================
+    // السماح بـ GET فقط
+    // =========================
+
     if (req.method !== "GET") {
         return res.status(405).json({
             success: false,
@@ -19,16 +36,24 @@ export default async function handler(req, res) {
             });
         }
 
+        // =========================
+        // جلب بيانات أي جدول
+        // =========================
+
         async function getTable(table, options = "") {
+
             const url =
                 `${SUPABASE_URL}/rest/v1/${table}?${options}`;
 
             const response = await fetch(url, {
                 method: "GET",
+
                 headers: {
                     apikey: SUPABASE_SERVICE_ROLE_KEY,
+
                     Authorization:
                         "Bearer " + SUPABASE_SERVICE_ROLE_KEY,
+
                     "Content-Type": "application/json"
                 }
             });
@@ -57,6 +82,10 @@ export default async function handler(req, res) {
             return data;
         }
 
+        // =========================
+        // تحميل كل بيانات المتجر
+        // =========================
+
         const [
             products,
             categories,
@@ -69,6 +98,7 @@ export default async function handler(req, res) {
             // =========================
             // المنتجات
             // =========================
+
             getTable(
                 "products",
                 "select=*&visible=eq.true&order=created_at.desc"
@@ -77,6 +107,7 @@ export default async function handler(req, res) {
             // =========================
             // الأقسام
             // =========================
+
             getTable(
                 "categories",
                 "select=*&visible=eq.true&order=sort_order.asc"
@@ -85,6 +116,7 @@ export default async function handler(req, res) {
             // =========================
             // إعدادات الموقع
             // =========================
+
             getTable(
                 "site_settings",
                 "select=*&id=eq.1&limit=1"
@@ -93,6 +125,7 @@ export default async function handler(req, res) {
             // =========================
             // خيارات الشحن
             // =========================
+
             getTable(
                 "shipping_options",
                 "select=*&enabled=eq.true"
@@ -101,6 +134,7 @@ export default async function handler(req, res) {
             // =========================
             // أنواع التنجيد
             // =========================
+
             getTable(
                 "upholstery_types",
                 "select=*&enabled=eq.true&order=id.asc"
@@ -109,6 +143,7 @@ export default async function handler(req, res) {
             // =========================
             // جميع الألوان
             // =========================
+
             getTable(
                 "store_colors",
                 "select=*&enabled=eq.true&order=id.asc"
@@ -136,6 +171,7 @@ export default async function handler(req, res) {
         // =========================
 
         return res.status(200).json({
+
             success: true,
 
             products: products || [],
