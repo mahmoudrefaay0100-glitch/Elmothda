@@ -27,7 +27,8 @@ export default async function handler(req, res) {
         const {
             fileName,
             fileType,
-            fileData
+            fileData,
+            folder = "products"
         } = req.body || {};
 
         if (!fileData) {
@@ -45,6 +46,24 @@ export default async function handler(req, res) {
                 success: false,
                 error: "الملف يجب أن يكون صورة"
             });
+        }
+
+        /*
+         * تحديد مكان التخزين
+         *
+         * products      -> product-images
+         * payment-proofs -> payment-proofs
+         */
+
+        let bucketName;
+        let folderName;
+
+        if (folder === "payment-proofs") {
+            bucketName = "payment-proofs";
+            folderName = "orders";
+        } else {
+            bucketName = "product-images";
+            folderName = "products";
         }
 
         const base64Data =
@@ -74,17 +93,27 @@ export default async function handler(req, res) {
                     .toLowerCase()
                 : "jpg";
 
+        const safeExtension =
+            ["jpg", "jpeg", "png", "webp"].includes(extension)
+                ? extension
+                : "jpg";
+
+        const prefix =
+            folder === "payment-proofs"
+                ? "payment"
+                : "product";
+
         const newFileName =
-            `product-${Date.now()}-${Math.random()
+            `${prefix}-${Date.now()}-${Math.random()
                 .toString(36)
-                .substring(2, 10)}.${extension}`;
+                .substring(2, 10)}.${safeExtension}`;
 
         const filePath =
-            `products/${newFileName}`;
+            `${folderName}/${newFileName}`;
 
         const uploadResponse =
             await fetch(
-                `${SUPABASE_URL}/storage/v1/object/product-images/${filePath}`,
+                `${SUPABASE_URL}/storage/v1/object/${bucketName}/${filePath}`,
                 {
                     method: "POST",
 
@@ -141,11 +170,13 @@ export default async function handler(req, res) {
         }
 
         const imageUrl =
-            `${SUPABASE_URL}/storage/v1/object/public/product-images/${filePath}`;
+            `${SUPABASE_URL}/storage/v1/object/public/${bucketName}/${filePath}`;
 
         return res.status(200).json({
             success: true,
-            image_url: imageUrl
+            image_url: imageUrl,
+            bucket: bucketName,
+            path: filePath
         });
 
     } catch (error) {
