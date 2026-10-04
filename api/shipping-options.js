@@ -1,16 +1,11 @@
 export default async function handler(req, res) {
-
     try {
-
         const {
             SUPABASE_URL,
             SUPABASE_SERVICE_ROLE_KEY
         } = process.env;
 
-        if (
-            !SUPABASE_URL ||
-            !SUPABASE_SERVICE_ROLE_KEY
-        ) {
+        if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
             return res.status(500).json({
                 success: false,
                 error: 'بيانات Supabase غير موجودة في Vercel'
@@ -73,7 +68,7 @@ export default async function handler(req, res) {
         }
 
         // =========================
-        // GET
+        // GET - جلب بيانات الشحن
         // =========================
 
         if (req.method === 'GET') {
@@ -85,9 +80,11 @@ export default async function handler(req, res) {
                     headers: {
                         apikey:
                             SUPABASE_SERVICE_ROLE_KEY,
+
                         Authorization:
                             'Bearer ' +
                             SUPABASE_SERVICE_ROLE_KEY,
+
                         'Content-Type':
                             'application/json'
                     }
@@ -123,7 +120,7 @@ export default async function handler(req, res) {
         }
 
         // =========================
-        // POST
+        // POST - إضافة بيانات شحن
         // =========================
 
         if (req.method === 'POST') {
@@ -131,46 +128,69 @@ export default async function handler(req, res) {
             const {
                 name,
                 price,
-                duration,
+                delivery_days,
+                description,
                 enabled
             } = req.body || {};
 
             const cleanName =
                 String(name || '').trim();
 
-            const cleanDuration =
-                String(duration || '').trim();
+            const cleanDescription =
+                String(description || '').trim();
+
+            const cleanDeliveryDays =
+                String(
+                    delivery_days || ''
+                ).trim();
 
             const cleanPrice =
                 Number(price);
 
+            // -------------------------
+            // التحقق من الاسم
+            // -------------------------
+
             if (!cleanName) {
                 return res.status(400).json({
                     success: false,
-                    error: 'اسم الشحن مطلوب'
+                    error:
+                        'اسم الشحن مطلوب'
                 });
             }
 
+            // -------------------------
+            // التحقق من السعر
+            // -------------------------
+
             if (
-                !Number.isFinite(cleanPrice) ||
+                !Number.isFinite(
+                    cleanPrice
+                ) ||
                 cleanPrice < 0
             ) {
                 return res.status(400).json({
                     success: false,
-                    error: 'سعر الشحن غير صحيح'
+                    error:
+                        'سعر الشحن غير صحيح'
                 });
             }
 
-            if (!cleanDuration) {
+            // -------------------------
+            // التحقق من مدة التوصيل
+            // -------------------------
+
+            if (!cleanDeliveryDays) {
                 return res.status(400).json({
                     success: false,
-                    error: 'مدة التوصيل مطلوبة'
+                    error:
+                        'مدة التوصيل مطلوبة'
                 });
             }
 
-            // =========================
-            // إضافة إلى Supabase
-            // =========================
+            // -------------------------
+            // الحفظ في Supabase
+            // -------------------------
 
             const insertResponse =
                 await fetch(
@@ -197,11 +217,14 @@ export default async function handler(req, res) {
                             name:
                                 cleanName,
 
+                            description:
+                                cleanDescription,
+
                             price:
                                 cleanPrice,
 
-                            duration:
-                                cleanDuration,
+                            delivery_days:
+                                cleanDeliveryDays,
 
                             enabled:
                                 enabled !== false
@@ -218,25 +241,24 @@ export default async function handler(req, res) {
                 insertedData =
                     insertText
                         ? JSON.parse(
-                            insertText
-                        )
+                              insertText
+                          )
                         : [];
             } catch {
                 insertedData = [];
             }
 
             if (!insertResponse.ok) {
-
                 throw new Error(
                     insertedData?.message ||
                     insertedData?.error ||
                     'فشل حفظ بيانات الشحن'
                 );
-
             }
 
             return res.status(201).json({
                 success: true,
+
                 shippingOption:
                     Array.isArray(
                         insertedData
@@ -248,7 +270,7 @@ export default async function handler(req, res) {
         }
 
         // =========================
-        // DELETE
+        // DELETE - حذف بيانات شحن
         // =========================
 
         if (req.method === 'DELETE') {
@@ -295,8 +317,8 @@ export default async function handler(req, res) {
                     deleteData =
                         deleteText
                             ? JSON.parse(
-                                deleteText
-                            )
+                                  deleteText
+                              )
                             : {};
                 } catch {
                     deleteData = {};
@@ -314,9 +336,14 @@ export default async function handler(req, res) {
             });
         }
 
+        // =========================
+        // أي طلب غير مدعوم
+        // =========================
+
         return res.status(405).json({
             success: false,
-            error: 'Method Not Allowed'
+            error:
+                'Method Not Allowed'
         });
 
     } catch (error) {
