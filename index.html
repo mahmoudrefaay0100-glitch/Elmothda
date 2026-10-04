@@ -1405,7 +1405,7 @@ showToast('تم إضافة القسم بنجاح ✅');
 
         function closeCheckoutModal() { document.getElementById('checkout-modal').classList.add('hidden'); }
 
-      function handlePlaceOrder(e) {
+      async function handlePlaceOrder(e) {
     e.preventDefault();
 
     const name = document.getElementById('chk-name').value;
@@ -1460,9 +1460,45 @@ const newOrder = {
     status: "New"
 };
 
-appState.orders.unshift(newOrder);
+try {
 
-saveState();
+    const response = await fetch('/api/orders', {
+        method: 'POST',
+
+        headers: {
+            'Content-Type': 'application/json'
+        },
+
+        body: JSON.stringify(newOrder)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+        throw new Error(
+            data?.error || 'فشل حفظ الطلب'
+        );
+    }
+
+    // إضافة الطلب للواجهة بعد نجاح قاعدة البيانات
+    appState.orders.unshift(newOrder);
+
+    saveState();
+
+} catch (error) {
+
+    console.error(
+        'CREATE ORDER ERROR:',
+        error
+    );
+
+    alert(
+        'حدث خطأ أثناء تسجيل الطلب في قاعدة البيانات.\n' +
+        (error?.message || '')
+    );
+
+    return;
+}
 
 currentCart = [];
 
@@ -2005,6 +2041,70 @@ function renderAdminShipping() {
     `).join('');
 }
 
+        async function updateOrderStatus(orderId, newStatus) {
+
+    const order = appState.orders.find(
+        o => String(o.id) === String(orderId)
+    );
+
+    if (!order) {
+        alert('لم يتم العثور على الطلب.');
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            `/api/orders?id=${encodeURIComponent(orderId)}`,
+            {
+                method: 'PUT',
+
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+
+                body: JSON.stringify({
+                    status: newStatus
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data?.error ||
+                'فشل تحديث حالة الطلب'
+            );
+        }
+
+        // تحديث الحالة في الصفحة
+        order.status = newStatus;
+
+        // حفظ نسخة محلية للعرض السريع
+        saveState();
+
+        renderAdminOrders();
+
+        showToast(
+            'تم تحديث حالة الطلب وحفظها في قاعدة البيانات ✅'
+        );
+
+    } catch (error) {
+
+        console.error(
+            'UPDATE ORDER STATUS ERROR:',
+            error
+        );
+
+        alert(
+            error?.message ||
+            'حدث خطأ أثناء تحديث حالة الطلب'
+        );
+
+        renderAdminOrders();
+    }
+}
 function deleteAdminOrder(orderId) {
 
     if (!confirm('هل أنت متأكد من حذف هذا الطلب؟')) {
