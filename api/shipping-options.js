@@ -38,6 +38,7 @@ export default async function handler(req, res) {
                 headers: {
                     apikey:
                         SUPABASE_SERVICE_ROLE_KEY,
+
                     Authorization:
                         'Bearer ' + token
                 }
@@ -77,6 +78,7 @@ export default async function handler(req, res) {
                 `${SUPABASE_URL}/rest/v1/shipping_options?select=*&order=id.asc`,
                 {
                     method: 'GET',
+
                     headers: {
                         apikey:
                             SUPABASE_SERVICE_ROLE_KEY,
@@ -126,12 +128,28 @@ export default async function handler(req, res) {
         if (req.method === 'POST') {
 
             const {
+                id,
                 name,
                 price,
                 delivery_days,
                 description,
                 enabled
             } = req.body || {};
+
+            // =========================
+            // إنشاء ID إذا لم يتم إرساله
+            // =========================
+
+            const cleanId =
+                String(id || '').trim() ||
+                (
+                    'ship-' +
+                    Date.now() +
+                    '-' +
+                    Math.random()
+                        .toString(36)
+                        .substring(2, 8)
+                );
 
             const cleanName =
                 String(name || '').trim();
@@ -188,9 +206,9 @@ export default async function handler(req, res) {
                 });
             }
 
-            // -------------------------
+            // =========================
             // الحفظ في Supabase
-            // -------------------------
+            // =========================
 
             const insertResponse =
                 await fetch(
@@ -214,6 +232,9 @@ export default async function handler(req, res) {
                         },
 
                         body: JSON.stringify({
+                            id:
+                                cleanId,
+
                             name:
                                 cleanName,
 
