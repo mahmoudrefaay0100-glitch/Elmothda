@@ -869,50 +869,14 @@
 
     </div>
 
-
-    <!-- الخطوة الثانية: رفع الإيصال -->
-    <div id="payment-step-proof" class="hidden">
-
-        <div class="mb-4">
-
-            <p class="text-sm font-bold text-white mb-2">
-                📷 إرفاق إيصال التحويل
-            </p>
-
-            <p class="text-xs text-gray-400 leading-6">
-                بعد إتمام التحويل، اختر صورة واضحة لإيصال الدفع.
-            </p>
-
-        </div>
-
-        <input
-            type="file"
-            id="payment-proof"
-            accept="image/*"
-            class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-xs text-gray-300"
-            onchange="handlePaymentProofChange(this)"
-        >
-
-        <p
-            id="payment-proof-status"
-            class="text-xs text-gray-500 mt-2"
-        >
-            يجب رفع صورة إيصال التحويل لتأكيد الطلب.
-        </p>
-
-        <button
-            type="button"
-            onclick="backToPaymentTransferStep()"
-            class="w-full mt-3 border border-neutral-700 text-gray-300 font-bold py-3 rounded-xl"
-        >
-            <i class="fas fa-arrow-right ml-2"></i>
-            العودة لبيانات التحويل
-        </button>
-
-    </div>
-
-</div>
-
+   <button
+    type="button"
+    onclick="finishPaymentAndOpenReceipt()"
+    class="w-full amber-gradient text-black font-extrabold py-3 rounded-xl transition"
+>
+    تم التحويل
+    <i class="fas fa-check mr-2"></i>
+</button>
         <!-- زر تأكيد الطلب -->
         <button
             type="submit"
@@ -1779,6 +1743,40 @@ showToast('تم إضافة القسم بنجاح ✅');
         
         function closeCheckoutModal() { document.getElementById('checkout-modal').classList.add('hidden'); }
 
+        async function submitReceiptOrder() {
+
+    const confirmButton =
+        document.getElementById('confirm-order-btn');
+
+    if (confirmButton) {
+        confirmButton.disabled = true;
+
+        confirmButton.textContent =
+            'جاري تسجيل الطلب...';
+    }
+
+    try {
+
+        await handlePlaceOrder({
+            preventDefault: () => {}
+        });
+
+    } catch (error) {
+
+        console.error(
+            'SUBMIT RECEIPT ORDER ERROR:',
+            error
+        );
+
+        if (confirmButton) {
+            confirmButton.disabled = false;
+
+            confirmButton.textContent =
+                'تأكيد الطلب';
+        }
+    }
+}
+        
     async function handlePlaceOrder(e) {
     e.preventDefault();
 
@@ -2106,6 +2104,13 @@ const total =
     updateCartBadge();
 
     closeCheckoutModal();
+
+const receiptPage =
+    document.getElementById('payment-receipt-page');
+
+if (receiptPage) {
+    receiptPage.classList.add('hidden');
+}
 
     alert(
         `تم تسجيل طلبك بنجاح! 🎉\n` +
