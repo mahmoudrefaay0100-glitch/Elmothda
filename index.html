@@ -6481,7 +6481,276 @@ async function addUpholsteryTypePrompt() {
 }
         // تحميل بيانات المتجر عند فتح الموقع
 loadStoreDataFromDatabase();
-        
+
+        <!-- LIVE VISITORS COUNTER -->
+<div
+    id="live-visitors-counter"
+    style="
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        z-index: 9999;
+        background: rgba(20,20,20,.95);
+        border: 1px solid rgba(212,175,55,.35);
+        color: #fff;
+        padding: 10px 16px;
+        border-radius: 999px;
+        box-shadow: 0 8px 25px rgba(0,0,0,.25);
+        font-size: 13px;
+        font-weight: 700;
+        direction: rtl;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    "
+>
+    <span
+        style="
+            width: 9px;
+            height: 9px;
+            background: #22c55e;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 8px rgba(34,197,94,.8);
+        "
+    ></span>
+
+    <span>
+        <span id="live-visitors-count">0</span>
+        شخص يتصفح الموقع الآن
+    </span>
+</div>
+
+<script>
+(function () {
+
+    const counter =
+        document.getElementById(
+            'live-visitors-counter'
+        );
+
+    const countElement =
+        document.getElementById(
+            'live-visitors-count'
+        );
+
+    if (!counter || !countElement) {
+        return;
+    }
+
+    // إنشاء رقم خاص بهذا المتصفح
+    let visitorId =
+        sessionStorage.getItem(
+            'ELMOTHDA_VISITOR_ID'
+        );
+
+    if (!visitorId) {
+
+        visitorId =
+            'visitor-' +
+            Date.now() +
+            '-' +
+            Math.random()
+                .toString(36)
+                .substring(2, 10);
+
+        sessionStorage.setItem(
+            'ELMOTHDA_VISITOR_ID',
+            visitorId
+        );
+    }
+
+    async function updateVisitors() {
+
+        try {
+
+            const response =
+                await fetch(
+                    '/api/visitors',
+                    {
+                        method: 'POST',
+
+                        headers: {
+                            'Content-Type':
+                                'application/json'
+                        },
+
+                        body: JSON.stringify({
+                            visitorId:
+                                visitorId
+                        })
+                    }
+                );
+
+            const data =
+                await response.json();
+
+            if (
+                response.ok &&
+                data.success
+            ) {
+
+                const count =
+                    Number(
+                        data.count || 0
+                    );
+
+                countElement.textContent =
+                    count.toLocaleString(
+                        'ar-EG'
+                    );
+            }
+
+        } catch (error) {
+
+            console.error(
+               <!-- LIVE VISITORS COUNTER -->
+<div
+    id="live-visitors-counter"
+    style="
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        z-index: 9999;
+        background: rgba(20,20,20,.95);
+        border: 1px solid rgba(212,175,55,.35);
+        color: #fff;
+        padding: 10px 16px;
+        border-radius: 999px;
+        box-shadow: 0 8px 25px rgba(0,0,0,.25);
+        font-size: 13px;
+        font-weight: 700;
+        direction: rtl;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    "
+>
+    <span
+        style="
+            width: 9px;
+            height: 9px;
+            background: #22c55e;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 8px rgba(34,197,94,.8);
+        "
+    ></span>
+
+    <span>
+        <span id="live-visitors-count">0</span>
+        شخص يتصفح الموقع الآن
+    </span>
+</div>
+
+<script>
+
+// تحميل بيانات المتجر عند فتح الموقع
+loadStoreDataFromDatabase();
+
+
+// ================================
+// عداد الزوار الموجودين الآن
+// ================================
+(function () {
+
+    const counter =
+        document.getElementById(
+            'live-visitors-counter'
+        );
+
+    const countElement =
+        document.getElementById(
+            'live-visitors-count'
+        );
+
+    if (!counter || !countElement) {
+        return;
+    }
+
+    let visitorId =
+        sessionStorage.getItem(
+            'ELMOTHDA_VISITOR_ID'
+        );
+
+    if (!visitorId) {
+
+        visitorId =
+            'visitor-' +
+            Date.now() +
+            '-' +
+            Math.random()
+                .toString(36)
+                .substring(2, 10);
+
+        sessionStorage.setItem(
+            'ELMOTHDA_VISITOR_ID',
+            visitorId
+        );
+    }
+
+    async function updateVisitors() {
+
+        try {
+
+            const response =
+                await fetch(
+                    '/api/visitors',
+                    {
+                        method: 'POST',
+
+                        headers: {
+                            'Content-Type':
+                                'application/json'
+                        },
+
+                        body: JSON.stringify({
+                            visitorId:
+                                visitorId
+                        })
+                    }
+                );
+
+            const data =
+                await response.json();
+
+            if (
+                response.ok &&
+                data.success
+            ) {
+
+                const count =
+                    Number(
+                        data.count || 0
+                    );
+
+                countElement.textContent =
+                    count.toLocaleString(
+                        'ar-EG'
+                    );
+            }
+
+        } catch (error) {
+
+            console.error(
+                'LIVE VISITORS ERROR:',
+                error
+            );
+
+        }
+    }
+
+    // أول تحديث
+    updateVisitors();
+
+    // تحديث كل 30 ثانية
+    setInterval(
+        updateVisitors,
+        30000
+    );
+
+})();
+
 </script>
 </body>
 </html>
