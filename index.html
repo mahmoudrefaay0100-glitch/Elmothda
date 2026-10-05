@@ -777,9 +777,60 @@
                     <div><label class="block text-gray-300 font-bold mb-1">الاسم بالكامل *</label><input type="text" id="chk-name" required placeholder="مثال: أستاذ أحمد محمود" class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"></div>
                     <div><label class="block text-gray-300 font-bold mb-1">رقم الهاتف *</label><input type="tel" id="chk-phone" required placeholder="01xxxxxxxxx" class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"></div>
                     <div><label class="block text-gray-300 font-bold mb-1">رقم الواتساب للتفاصيل</label><input type="tel" id="chk-whatsapp" placeholder="01xxxxxxxxx" class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"></div>
-                    <div><label class="block text-gray-300 font-bold mb-1">المحافظة *</label><input type="text" id="chk-gov" required placeholder="مثال: القاهرة، المنوفية، الجيزة..." class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"></div>
-                    <div><label class="block text-gray-300 font-bold mb-1">المركز / المدينة *</label><input type="text" id="chk-city" required placeholder="مثال: أشمون، شبين الكوم..." class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"></div>
-                    <div><label class="block text-gray-300 font-bold mb-1">المنطقة والحي</label><input type="text" id="chk-district" placeholder="اسم المنطقة" class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"></div>
+<div>
+    <label class="block text-gray-300 font-bold mb-1">
+        المحافظة *
+    </label>
+
+    <select
+        id="chk-gov"
+        required
+        class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"
+        onchange="updateCitiesByGovernorate()"
+    >
+        <option value="">اختر المحافظة</option>
+
+        <option value="القاهرة">القاهرة</option>
+        <option value="الجيزة">الجيزة</option>
+        <option value="القليوبية">القليوبية</option>
+        <option value="الإسكندرية">الإسكندرية</option>
+        <option value="البحيرة">البحيرة</option>
+        <option value="مطروح">مطروح</option>
+        <option value="دمياط">دمياط</option>
+        <option value="الدقهلية">الدقهلية</option>
+        <option value="كفر الشيخ">كفر الشيخ</option>
+        <option value="الغربية">الغربية</option>
+        <option value="المنوفية">المنوفية</option>
+        <option value="الشرقية">الشرقية</option>
+        <option value="الإسماعيلية">الإسماعيلية</option>
+        <option value="بورسعيد">بورسعيد</option>
+        <option value="السويس">السويس</option>
+        <option value="شمال سيناء">شمال سيناء</option>
+        <option value="جنوب سيناء">جنوب سيناء</option>
+        <option value="الفيوم">الفيوم</option>
+        <option value="بني سويف">بني سويف</option>
+        <option value="المنيا">المنيا</option>
+        <option value="أسيوط">أسيوط</option>
+        <option value="سوهاج">سوهاج</option>
+        <option value="قنا">قنا</option>
+        <option value="الأقصر">الأقصر</option>
+        <option value="أسوان">أسوان</option>
+        <option value="الوادي الجديد">الوادي الجديد</option>
+    </select>
+<div>
+    <label class="block text-gray-300 font-bold mb-1">
+        المركز / المدينة *
+    </label>
+
+    <select
+        id="chk-city"
+        required
+        disabled
+        class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+        <option value="">اختر المحافظة أولاً</option>
+    </select>
+</div>                    <div><label class="block text-gray-300 font-bold mb-1">المنطقة والحي</label><input type="text" id="chk-district" placeholder="اسم المنطقة" class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"></div>
                 </div>
                 <div><label class="block text-gray-300 font-bold mb-1">العنوان بالتفصيل واسم الكافيه/المشروع *</label><textarea id="chk-address" required rows="2" placeholder="اكتب اسم الكافيه أو الشارع والعمارة..." class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"></textarea></div>
                 <div class="border-t border-neutral-800 pt-4">
@@ -1193,7 +1244,7 @@
             'view-admin-product-editor'
         )?.classList.remove('hidden');
 
-    } else if (viewName === 'admin-dashboard') {
+   } else if (viewName === 'admin-dashboard') {
 
     document.getElementById(
         'view-admin-dashboard'
@@ -1203,10 +1254,6 @@
 
         if (typeof loadAdminOrders === 'function') {
             loadAdminOrders();
-        } else {
-            console.error(
-                'loadAdminOrders function NOT FOUND'
-            );
         }
 
     }, 300);
@@ -2215,7 +2262,325 @@ async function submitReceiptOrder() {
     }
 }
 
-   
+  const egyptGovernoratesCities = {
+
+    "القاهرة": [
+        "القاهرة"
+    ],
+
+    "الجيزة": [
+        "الجيزة",
+        "أكتوبر",
+        "الشيخ زايد",
+        "الحوامدية",
+        "البدرشين",
+        "العياط",
+        "الصف",
+        "أطفيح",
+        "كرداسة",
+        "أوسيم",
+        "منشأة القناطر"
+    ],
+
+    "القليوبية": [
+        "بنها",
+        "شبرا الخيمة",
+        "القناطر الخيرية",
+        "الخانكة",
+        "كفر شكر",
+        "طوخ",
+        "قها",
+        "شبين القناطر",
+        "العبور",
+        "الخصوص"
+    ],
+
+    "الإسكندرية": [
+        "الإسكندرية",
+        "برج العرب"
+    ],
+
+    "البحيرة": [
+        "دمنهور",
+        "كفر الدوار",
+        "رشيد",
+        "إدكو",
+        "أبو المطامير",
+        "أبو حمص",
+        "الدلنجات",
+        "المحمودية",
+        "الرحمانية",
+        "إيتاي البارود",
+        "شبراخيت",
+        "حوش عيسى",
+        "وادي النطرون",
+        "النوبارية الجديدة"
+    ],
+
+    "مطروح": [
+        "مرسى مطروح",
+        "الحمام",
+        "العلمين",
+        "الضبعة",
+        "النجيلة",
+        "سيدي براني",
+        "السلوم",
+        "سيوة"
+    ],
+
+    "دمياط": [
+        "دمياط",
+        "دمياط الجديدة",
+        "رأس البر",
+        "فارسكور",
+        "الزرقا",
+        "كفر سعد",
+        "كفر البطيخ"
+    ],
+
+    "الدقهلية": [
+        "المنصورة",
+        "طلخا",
+        "ميت غمر",
+        "دكرنس",
+        "السنبلاوين",
+        "أجا",
+        "بلقاس",
+        "شربين",
+        "منية النصر",
+        "الجمالية",
+        "المطرية",
+        "ميت سلسيل",
+        "نبروه"
+    ],
+
+    "كفر الشيخ": [
+        "كفر الشيخ",
+        "دسوق",
+        "فوه",
+        "مطوبس",
+        "بلطيم",
+        "الحامول",
+        "بيلا",
+        "قلين",
+        "سيدي سالم",
+        "الرياض",
+        "البرلس"
+    ],
+
+    "الغربية": [
+        "طنطا",
+        "المحلة الكبرى",
+        "زفتى",
+        "كفر الزيات",
+        "السنطة",
+        "قطور",
+        "بسيون",
+        "سمنود"
+    ],
+
+    "المنوفية": [
+        "شبين الكوم",
+        "أشمون",
+        "منوف",
+        "قويسنا",
+        "الباجور",
+        "تلا",
+        "بركة السبع",
+        "الشهداء",
+        "السادات",
+        "سرس الليان"
+    ],
+
+    "الشرقية": [
+        "الزقازيق",
+        "بلبيس",
+        "العاشر من رمضان",
+        "منيا القمح",
+        "مشتول السوق",
+        "أبو حماد",
+        "فاقوس",
+        "ههيا",
+        "الإبراهيمية",
+        "ديرب نجم",
+        "كفر صقر",
+        "أبو كبير",
+        "الحسينية"
+    ],
+
+    "الإسماعيلية": [
+        "الإسماعيلية",
+        "فايد",
+        "القنطرة شرق",
+        "القنطرة غرب",
+        "التل الكبير",
+        "أبو صوير"
+    ],
+
+    "بورسعيد": [
+        "بورسعيد"
+    ],
+
+    "السويس": [
+        "السويس"
+    ],
+
+    "شمال سيناء": [
+        "العريش",
+        "رفح",
+        "الشيخ زويد",
+        "بئر العبد",
+        "الحسنة",
+        "نخل"
+    ],
+
+    "جنوب سيناء": [
+        "الطور",
+        "شرم الشيخ",
+        "دهب",
+        "نويبع",
+        "طابا",
+        "رأس سدر",
+        "أبو رديس",
+        "أبو زنيمة",
+        "سانت كاترين"
+    ],
+
+    "الفيوم": [
+        "الفيوم",
+        "سنورس",
+        "إطسا",
+        "طامية",
+        "يوسف الصديق",
+        "أبشواي"
+    ],
+
+    "بني سويف": [
+        "بني سويف",
+        "الواسطى",
+        "ناصر",
+        "إهناسيا",
+        "ببا",
+        "سمسطا",
+        "الفشن"
+    ],
+
+    "المنيا": [
+        "المنيا",
+        "ملوي",
+        "سمالوط",
+        "مغاغة",
+        "بني مزار",
+        "أبو قرقاص",
+        "مطاي",
+        "العدوة",
+        "دير مواس"
+    ],
+
+    "أسيوط": [
+        "أسيوط",
+        "ديروط",
+        "القوصية",
+        "منفلوط",
+        "أبنوب",
+        "الفتح",
+        "أبو تيج",
+        "الغنايم",
+        "ساحل سليم",
+        "البداري",
+        "صدفا"
+    ],
+
+    "سوهاج": [
+        "سوهاج",
+        "أخميم",
+        "جرجا",
+        "طهطا",
+        "المراغة",
+        "البلينا",
+        "المنشأة",
+        "دار السلام",
+        "جهينة",
+        "ساقلته",
+        "طما"
+    ],
+
+    "قنا": [
+        "قنا",
+        "نجع حمادي",
+        "دشنا",
+        "قفط",
+        "قوص",
+        "نقادة",
+        "أبو تشت",
+        "الوقف"
+    ],
+
+    "الأقصر": [
+        "الأقصر",
+        "إسنا",
+        "أرمنت",
+        "القرنة",
+        "البياضية",
+        "الزينية"
+    ],
+
+    "أسوان": [
+        "أسوان",
+        "كوم أمبو",
+        "إدفو",
+        "دراو",
+        "نصر النوبة"
+    ],
+
+    "الوادي الجديد": [
+        "الخارجة",
+        "الداخلة",
+        "الفرافرة",
+        "باريس",
+        "بلاط"
+    ]
+};
+
+
+function updateCitiesByGovernorate() {
+
+    const governorate =
+        document.getElementById('chk-gov')?.value;
+
+    const citySelect =
+        document.getElementById('chk-city');
+
+    if (!citySelect) return;
+
+    citySelect.innerHTML = '';
+
+    if (!governorate) {
+
+        citySelect.disabled = true;
+
+        citySelect.innerHTML =
+            '<option value="">اختر المحافظة أولاً</option>';
+
+        return;
+    }
+
+    const cities =
+        egyptGovernoratesCities[governorate] || [];
+
+    citySelect.disabled = false;
+
+    citySelect.innerHTML =
+        '<option value="">اختر المركز / المدينة</option>' +
+        cities.map(city => `
+            <option value="${city}">
+                ${city}
+            </option>
+        `).join('');
+}
+
+window.updateCitiesByGovernorate =
+    updateCitiesByGovernorate;
         
     async function handlePlaceOrder(e) {
     e.preventDefault();
@@ -3431,34 +3796,40 @@ function renderAdminShipping() {
         }).join('');
 }
 
-    async function loadAdminOrders() {
+   async function loadAdminOrders() {
 
-    alert('بدأ تحميل الطلبات');
+    console.log('===== LOAD ADMIN ORDERS START =====');
+
+    const token =
+        sessionStorage.getItem(
+            'OSCAR_ADMIN_ACCESS_TOKEN'
+        );
+
+    console.log(
+        'TOKEN EXISTS:',
+        !!token
+    );
+
+    if (!token) {
+        alert('خطأ: Access Token غير موجود');
+        return;
+    }
 
     try {
-
-        const token =
-            sessionStorage.getItem(
-                'OSCAR_ADMIN_ACCESS_TOKEN'
-            );
-
-        console.log('ADMIN TOKEN:', token);
-
-        if (!token) {
-            alert('مفيش Access Token للأدمن');
-            return;
-        }
 
         const response =
             await fetch('/api/orders', {
                 method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization':
+                        `Bearer ${token}`,
+                    'Content-Type':
+                        'application/json'
                 }
             });
 
         console.log(
-            'ORDERS RESPONSE STATUS:',
+            'API STATUS:',
             response.status
         );
 
@@ -3466,13 +3837,13 @@ function renderAdminShipping() {
             await response.json();
 
         console.log(
-            'ORDERS API DATA:',
+            'API RESPONSE:',
             data
         );
 
         if (!response.ok) {
             alert(
-                'خطأ API الطلبات:\n' +
+                'API Error:\n' +
                 (data?.error || response.status)
             );
             return;
@@ -3484,31 +3855,33 @@ function renderAdminShipping() {
                 : [];
 
         console.log(
-            'ORDERS IN APP STATE:',
-            appState.orders
+            'ORDERS COUNT:',
+            appState.orders.length
         );
 
         renderAdminOrders();
 
         alert(
-            `تم جلب ${appState.orders.length} طلب من قاعدة البيانات`
+            'تم جلب الطلبات من قاعدة البيانات: ' +
+            appState.orders.length
         );
 
     } catch (error) {
 
         console.error(
-            'LOAD ADMIN ORDERS ERROR:',
+            'LOAD ORDERS ERROR:',
             error
         );
 
         alert(
-            'خطأ في جلب الطلبات:\n' +
+            'حصل خطأ أثناء جلب الطلبات:\n' +
             error.message
         );
     }
 }
 
-window.loadAdminOrders = loadAdminOrders;
+window.loadAdminOrders =
+    loadAdminOrders;
         
         async function updateOrderStatus(orderId, newStatus) {
 
