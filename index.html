@@ -3079,101 +3079,339 @@ function renderAdminShipping() {
 
         `).join('');
 }
-       function renderAdminOrders() {
-    const tbody = document.getElementById('admin-orders-table-body');
+     function renderAdminOrders() {
+
+    const tbody =
+        document.getElementById(
+            'admin-orders-table-body'
+        );
 
     if (!tbody) return;
 
-    tbody.innerHTML = appState.orders.map(order => `
-        <tr class="hover:bg-neutral-950 transition">
+    const orders =
+        Array.isArray(appState.orders)
+            ? appState.orders
+            : [];
 
-            <td class="p-4 font-bold text-white">
-                ${order.id}
-            </td>
+    if (orders.length === 0) {
 
-            <td class="p-4">
-                ${order.customer.name}
-                <br>
-                <span class="text-brand-amber">
-                    ${order.customer.phone}
-                </span>
-            </td>
-
-            <td class="p-4">
-                ${order.customer.gov} - ${order.customer.city}
-            </td>
-
-            <td class="p-4">
-                ${order.items.map(i =>
-                    `${i.productTitle} (×${i.qty})`
-                ).join(', ')}
-            </td>
-
-            <td class="p-4 font-extrabold text-brand-amber">
-                ${order.total.toLocaleString()} ج.م
-            </td>
-
-            <!-- طريقة الدفع -->
-            <td class="p-4">
-                <span class="text-green-400 font-bold">
-                    ${order.paymentMethod || 'Visa / Mastercard'}
-                </span>
-            </td>
-
-            <!-- حالة الدفع -->
-            <td class="p-4">
-                <span class="text-yellow-400 font-bold">
-                    ${order.paymentStatus || 'Pending'}
-                </span>
-            </td>
-
-            <!-- حالة الطلب -->
-            <td class="p-4">
-
-                <select
-                    onchange="updateOrderStatus('${order.id}', this.value)"
-                    class="bg-black border border-neutral-700 rounded-lg px-3 py-2 text-white text-xs font-bold"
+        tbody.innerHTML = `
+            <tr>
+                <td
+                    colspan="9"
+                    class="p-8 text-center text-gray-500"
                 >
+                    لا توجد طلبات حالياً
+                </td>
+            </tr>
+        `;
 
-                    <option value="New" ${order.status === 'New' ? 'selected' : ''}>
-                        🆕 جديد
-                    </option>
+        return;
+    }
 
-                    <option value="Confirmed" ${order.status === 'Confirmed' ? 'selected' : ''}>
-                        ✅ مؤكد
-                    </option>
+    tbody.innerHTML =
+        orders.map(order => {
 
-                    <option value="Shipped" ${order.status === 'Shipped' ? 'selected' : ''}>
-                        🚚 تم الشحن
-                    </option>
+            // ==========================================
+            // بيانات العميل
+            // يدعم بيانات الموقع وبيانات Supabase
+            // ==========================================
 
-                    <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>
-                        📦 تم التسليم
-                    </option>
+            const customer =
+                order.customer || {};
 
-                    <option value="Cancelled" ${order.status === 'Cancelled' ? 'selected' : ''}>
-                        ❌ ملغي
-                    </option>
+            const customerName =
+                customer.name ||
+                order.customer_name ||
+                '';
 
-                </select>
+            const customerPhone =
+                customer.phone ||
+                order.phone ||
+                '';
 
-            </td>
+            const customerGov =
+                customer.gov ||
+                order.governorate ||
+                '';
 
-            <!-- حذف الطلب -->
-            <td class="p-4">
+            const customerCity =
+                customer.city ||
+                order.city ||
+                '';
 
-                <button
-                    onclick="deleteAdminOrder('${order.id}')"
-                    class="text-red-500 hover:text-red-400"
-                    title="حذف الطلب"
-                >
-                    <i class="fas fa-trash"></i>
-                </button>
+            // ==========================================
+            // المنتجات
+            // ==========================================
 
-            </td>
+            const items =
+                Array.isArray(order.items)
+                    ? order.items
+                    : [];
 
-        </tr>
-    `).join('');
+            const itemsHtml =
+                items.length
+                    ? items.map(item => {
+
+                        const title =
+                            item.productTitle ||
+                            item.title ||
+                            item.name ||
+                            'منتج';
+
+                        const qty =
+                            Number(
+                                item.qty ||
+                                item.quantity ||
+                                1
+                            );
+
+                        return `
+                            ${title}
+                            (×${qty})
+                        `;
+
+                    }).join(', ')
+                    : 'لا توجد منتجات';
+
+            // ==========================================
+            // المبالغ
+            // ==========================================
+
+            const total =
+                Number(
+                    order.total || 0
+                );
+
+            const shippingCost =
+                Number(
+                    order.shippingCost ??
+                    order.shipping_cost ??
+                    0
+                );
+
+            const depositPercent =
+                Number(
+                    order.depositPercent ??
+                    order.deposit_percent ??
+                    0
+                );
+
+            const depositAmount =
+                Number(
+                    order.depositAmount ??
+                    order.deposit_amount ??
+                    0
+                );
+
+            const remainingAmount =
+                Number(
+                    order.remainingAmount ??
+                    order.remaining_amount ??
+                    0
+                );
+
+            // ==========================================
+            // طريقة الدفع
+            // ==========================================
+
+            const paymentMethod =
+                order.paymentMethod ||
+                order.payment_method ||
+                'Visa / Mastercard';
+
+            const paymentStatus =
+                order.paymentStatus ||
+                order.payment_status ||
+                'Pending';
+
+            const status =
+                order.status ||
+                'New';
+
+            // ==========================================
+            // عرض بيانات Deposit
+            // ==========================================
+
+            let paymentDetails = '';
+
+            if (
+                paymentMethod === 'Deposit' ||
+                paymentMethod === 'deposit'
+            ) {
+
+                paymentDetails = `
+                    <div class="mt-2 text-xs space-y-1">
+
+                        <div class="text-brand-amber">
+                            Deposit:
+                            <strong>
+                                ${depositAmount.toLocaleString('ar-EG')}
+                                ج.م
+                            </strong>
+                        </div>
+
+                        <div class="text-gray-300">
+                            النسبة:
+                            ${depositPercent}%
+                        </div>
+
+                        <div class="text-red-400">
+                            المتبقي:
+                            <strong>
+                                ${remainingAmount.toLocaleString('ar-EG')}
+                                ج.م
+                            </strong>
+                        </div>
+
+                    </div>
+                `;
+
+            }
+
+            // ==========================================
+            // الصف
+            // ==========================================
+
+            return `
+                <tr class="hover:bg-neutral-950 transition">
+
+                    <!-- رقم الطلب -->
+                    <td class="p-4 font-bold text-white">
+                        ${order.id || order.order_number || ''}
+                    </td>
+
+                    <!-- العميل -->
+                    <td class="p-4">
+
+                        <div class="font-bold text-white">
+                            ${customerName}
+                        </div>
+
+                        <div class="text-brand-amber">
+                            ${customerPhone}
+                        </div>
+
+                    </td>
+
+                    <!-- المحافظة / المدينة -->
+                    <td class="p-4">
+
+                        ${customerGov}
+
+                        ${
+                            customerCity
+                                ? ` - ${customerCity}`
+                                : ''
+                        }
+
+                    </td>
+
+                    <!-- المنتجات -->
+                    <td class="p-4">
+                        ${itemsHtml}
+                    </td>
+
+                    <!-- الإجمالي والشحن -->
+                    <td class="p-4 font-extrabold text-brand-amber">
+
+                        <div>
+                            ${total.toLocaleString('ar-EG')}
+                            ج.م
+                        </div>
+
+                        <div class="text-xs text-gray-400 mt-1">
+                            الشحن:
+                            ${shippingCost.toLocaleString('ar-EG')}
+                            ج.م
+                        </div>
+
+                    </td>
+
+                    <!-- طريقة الدفع -->
+                    <td class="p-4">
+
+                        <span class="text-green-400 font-bold">
+                            ${paymentMethod}
+                        </span>
+
+                        ${paymentDetails}
+
+                    </td>
+
+                    <!-- حالة الدفع -->
+                    <td class="p-4">
+
+                        <span class="text-yellow-400 font-bold">
+                            ${paymentStatus}
+                        </span>
+
+                    </td>
+
+                    <!-- حالة الطلب -->
+                    <td class="p-4">
+
+                        <select
+                            onchange="updateOrderStatus('${order.id || order.order_number}', this.value)"
+                            class="bg-black border border-neutral-700 rounded-lg px-3 py-2 text-white text-xs font-bold"
+                        >
+
+                            <option
+                                value="New"
+                                ${status === 'New' ? 'selected' : ''}
+                            >
+                                🆕 جديد
+                            </option>
+
+                            <option
+                                value="Confirmed"
+                                ${status === 'Confirmed' ? 'selected' : ''}
+                            >
+                                ✅ مؤكد
+                            </option>
+
+                            <option
+                                value="Shipped"
+                                ${status === 'Shipped' ? 'selected' : ''}
+                            >
+                                🚚 تم الشحن
+                            </option>
+
+                            <option
+                                value="Delivered"
+                                ${status === 'Delivered' ? 'selected' : ''}
+                            >
+                                📦 تم التسليم
+                            </option>
+
+                            <option
+                                value="Cancelled"
+                                ${status === 'Cancelled' ? 'selected' : ''}
+                            >
+                                ❌ ملغي
+                            </option>
+
+                        </select>
+
+                    </td>
+
+                    <!-- حذف الطلب -->
+                    <td class="p-4">
+
+                        <button
+                            onclick="deleteAdminOrder('${order.id || order.order_number}')"
+                            class="text-red-500 hover:text-red-400"
+                            title="حذف الطلب"
+                        >
+                            <i class="fas fa-trash"></i>
+                        </button>
+
+                    </td>
+
+                </tr>
+            `;
+
+        }).join('');
 }
 
         async function updateOrderStatus(orderId, newStatus) {
