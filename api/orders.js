@@ -85,26 +85,26 @@ export default async function handler(req, res) {
 
                         subtotal:
                             Number(
-                                order.subtotal ||
-                                order.total ||
+                                order.subtotal ??
+                                order.total ??
                                 0
                             ),
 
                         shipping_cost:
                             Number(
-                                order.shippingCost ||
+                                order.shippingCost ??
                                 0
                             ),
 
                         discount:
                             Number(
-                                order.discount ||
+                                order.discount ??
                                 0
                             ),
 
                         total:
                             Number(
-                                order.total ||
+                                order.total ??
                                 0
                             ),
 
@@ -115,6 +115,24 @@ export default async function handler(req, res) {
                         payment_method:
                             order.paymentMethod ||
                             'Visa / Mastercard',
+
+                        deposit_percent:
+                            Number(
+                                order.depositPercent ??
+                                30
+                            ),
+
+                        deposit_amount:
+                            Number(
+                                order.depositAmount ??
+                                0
+                            ),
+
+                        remaining_amount:
+                            Number(
+                                order.remainingAmount ??
+                                0
+                            ),
 
                         payment_status:
                             order.paymentStatus ||
