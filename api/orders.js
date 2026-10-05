@@ -16,16 +16,22 @@ export default async function handler(req, res) {
 
         // =====================================================
         // التحقق من الأدمن
-        // مطلوب لجلب الطلبات وتعديلها
+        // قراءة التوكن من Authorization أو x-admin-token
         // =====================================================
 
         const authHeader =
-            req.headers.authorization || '';
+            req.headers.authorization ||
+            req.headers.Authorization ||
+            '';
+
+        const adminToken =
+            req.headers['x-admin-token'] || '';
 
         const token =
-            authHeader.startsWith('Bearer ')
-                ? authHeader.substring(7)
-                : '';
+            adminToken ||
+            authHeader
+                .replace(/^Bearer\s+/i, '')
+                .trim();
 
 
         // =====================================================
@@ -212,6 +218,11 @@ export default async function handler(req, res) {
         // =====================================================
 
         if (!token) {
+
+            console.error(
+                'ADMIN AUTH ERROR: No admin token received'
+            );
+
             return res.status(401).json({
                 success: false,
                 error: 'غير مصرح'
@@ -279,6 +290,7 @@ export default async function handler(req, res) {
 
             return res.status(200).json({
                 success: true,
+
                 orders:
                     Array.isArray(data)
                         ? data
@@ -298,6 +310,7 @@ export default async function handler(req, res) {
                 req.query?.id;
 
             if (!orderId) {
+
                 return res.status(400).json({
                     success: false,
                     error:
@@ -323,6 +336,7 @@ export default async function handler(req, res) {
                     status
                 )
             ) {
+
                 return res.status(400).json({
                     success: false,
                     error:
@@ -373,6 +387,11 @@ export default async function handler(req, res) {
 
             if (!response.ok) {
 
+                console.error(
+                    'SUPABASE UPDATE ORDER ERROR:',
+                    data
+                );
+
                 return res.status(
                     response.status
                 ).json({
@@ -388,6 +407,7 @@ export default async function handler(req, res) {
                 !Array.isArray(data) ||
                 data.length === 0
             ) {
+
                 return res.status(404).json({
                     success: false,
                     error:
