@@ -6492,29 +6492,31 @@ async function addUpholsteryTypePrompt() {
         position: fixed;
         bottom: 20px;
         left: 20px;
-        z-index: 9999;
-        background: rgba(20,20,20,.95);
-        border: 1px solid rgba(212,175,55,.35);
-        color: #fff;
+        z-index: 999999;
+        background: #171717;
+        border: 1px solid #d4af37;
+        color: #ffffff;
         padding: 10px 16px;
         border-radius: 999px;
-        box-shadow: 0 8px 25px rgba(0,0,0,.25);
-        font-size: 13px;
+        box-shadow: 0 8px 25px rgba(0,0,0,.35);
+        font-size: 14px;
         font-weight: 700;
         direction: rtl;
         display: flex;
         align-items: center;
         gap: 8px;
+        font-family: Arial, sans-serif;
     "
 >
     <span
         style="
             width: 9px;
             height: 9px;
+            min-width: 9px;
             background: #22c55e;
             border-radius: 50%;
             display: inline-block;
-            box-shadow: 0 0 8px rgba(34,197,94,.8);
+            box-shadow: 0 0 8px rgba(34,197,94,.9);
         "
     ></span>
 
@@ -6524,31 +6526,18 @@ async function addUpholsteryTypePrompt() {
     </span>
 </div>
 
-
 <script>
 (function () {
 
-    const counter =
-        document.getElementById(
-            'live-visitors-counter'
-        );
-
     const countElement =
-        document.getElementById(
-            'live-visitors-count'
-        );
+        document.getElementById('live-visitors-count');
 
-    if (!counter || !countElement) {
-        return;
-    }
+    if (!countElement) return;
 
     let visitorId =
-        sessionStorage.getItem(
-            'ELMOTHDA_VISITOR_ID'
-        );
+        sessionStorage.getItem('ELMOTHDA_VISITOR_ID');
 
     if (!visitorId) {
-
         visitorId =
             'visitor-' +
             Date.now() +
@@ -6567,36 +6556,27 @@ async function addUpholsteryTypePrompt() {
 
         try {
 
-            const response =
-                await fetch(
-                    '/api/visitors',
-                    {
-                        method: 'POST',
+            const response = await fetch(
+                '/api/visitors',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        visitorId: visitorId
+                    })
+                }
+            );
 
-                        headers: {
-                            'Content-Type':
-                                'application/json'
-                        },
+            const data = await response.json();
 
-                        body: JSON.stringify({
-                            visitorId:
-                                visitorId
-                        })
-                    }
-                );
-
-            const data =
-                await response.json();
-
-            if (
-                response.ok &&
-                data.success
-            ) {
+            if (response.ok && data.success) {
 
                 countElement.textContent =
-                    Number(
-                        data.count || 0
-                    ).toLocaleString('ar-EG');
+                    Number(data.count || 0)
+                        .toLocaleString('ar-EG');
+
             }
 
         } catch (error) {
@@ -6605,6 +6585,7 @@ async function addUpholsteryTypePrompt() {
                 'LIVE VISITORS ERROR:',
                 error
             );
+
         }
     }
 
