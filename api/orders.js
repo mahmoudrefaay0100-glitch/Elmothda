@@ -16,7 +16,6 @@ export default async function handler(req, res) {
 
         // =====================================================
         // التحقق من الأدمن
-        // قراءة التوكن من Authorization أو x-admin-token
         // =====================================================
 
         const authHeader =
@@ -37,7 +36,6 @@ export default async function handler(req, res) {
         // =====================================================
         // إنشاء طلب جديد
         // POST /api/orders
-        // متاح للعميل بدون تسجيل دخول
         // =====================================================
 
         if (req.method === 'POST') {
@@ -213,8 +211,8 @@ export default async function handler(req, res) {
 
 
         // =====================================================
-        // التحقق من الأدمن
-        // GET و PUT
+        // GET / PUT / DELETE
+        // للأدمن فقط
         // =====================================================
 
         if (!token) {
@@ -417,6 +415,101 @@ export default async function handler(req, res) {
 
             return res.status(200).json({
                 success: true,
+                order:
+                    data[0]
+            });
+        }
+
+
+        // =====================================================
+        // حذف الطلب نهائياً من قاعدة البيانات
+        // DELETE /api/orders?id=ORDER_ID
+        // =====================================================
+
+        if (req.method === 'DELETE') {
+
+            const orderId =
+                req.query?.id;
+
+            if (!orderId) {
+
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        'رقم الطلب غير موجود'
+                });
+            }
+
+            const response =
+                await fetch(
+                    `${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`,
+                    {
+                        method: 'DELETE',
+
+                        headers: {
+                            apikey:
+                                SUPABASE_SERVICE_ROLE_KEY,
+
+                            Authorization:
+                                `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+
+                            'Content-Type':
+                                'application/json',
+
+                            Prefer:
+                                'return=representation'
+                        }
+                    }
+                );
+
+            const text =
+                await response.text();
+
+            let data = [];
+
+            try {
+                data =
+                    text
+                        ? JSON.parse(text)
+                        : [];
+            } catch {
+                data = [];
+            }
+
+            if (!response.ok) {
+
+                console.error(
+                    'SUPABASE DELETE ORDER ERROR:',
+                    data
+                );
+
+                return res.status(
+                    response.status
+                ).json({
+                    success: false,
+                    error:
+                        data?.message ||
+                        data?.error ||
+                        'فشل حذف الطلب من قاعدة البيانات'
+                });
+            }
+
+            if (
+                !Array.isArray(data) ||
+                data.length === 0
+            ) {
+
+                return res.status(404).json({
+                    success: false,
+                    error:
+                        'الطلب غير موجود في قاعدة البيانات'
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                message:
+                    'تم حذف الطلب نهائياً',
                 order:
                     data[0]
             });
