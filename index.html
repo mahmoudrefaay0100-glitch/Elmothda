@@ -140,7 +140,7 @@
         </div>
     </header>
 
-    <!-- LIVE VISITORS COUNTER -->
+   <!-- VISITORS DISPLAY -->
 <div
     id="live-visitors-counter"
     class="w-full flex justify-center py-3"
@@ -151,12 +151,12 @@
     >
         <span
             class="w-2.5 h-2.5 bg-green-500 rounded-full inline-block"
-            style="box-shadow: 0 0 8px rgba(34,197,94,.9);"
+            style="box-shadow:0 0 8px rgba(34,197,94,.9);"
         ></span>
 
         <span class="text-sm font-bold">
-            <span id="live-visitors-count">0</span>
-            شخص يتصفح الموقع الآن
+            <span id="live-visitors-count">20</span>
+            متواجدون الآن
         </span>
     </div>
 </div>
@@ -169,65 +169,34 @@
 
     if (!countElement) return;
 
-    let visitorId =
-        sessionStorage.getItem('ELMOTHDA_VISITOR_ID');
+    // رقم تجميلي بين 20 و30
+    let count =
+        Math.floor(Math.random() * 11) + 20;
 
-    if (!visitorId) {
-        visitorId =
-            'visitor-' +
-            Date.now() +
-            '-' +
-            Math.random()
-                .toString(36)
-                .substring(2, 10);
+    countElement.textContent =
+        count.toLocaleString('ar-EG');
 
-        sessionStorage.setItem(
-            'ELMOTHDA_VISITOR_ID',
-            visitorId
-        );
-    }
+    // تغيير الرقم كل 8 ثواني
+    setInterval(function () {
 
-    async function updateVisitors() {
-        try {
+        const change =
+            Math.floor(Math.random() * 5) - 2;
 
-            const response = await fetch(
-                '/api/visitors',
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type':
-                            'application/json'
-                    },
-                    body: JSON.stringify({
-                        visitorId: visitorId
-                    })
-                }
-            );
+        count += change;
 
-            const data =
-                await response.json();
-
-            if (response.ok && data.success) {
-                countElement.textContent =
-                    Number(
-                        data.count || 0
-                    ).toLocaleString('ar-EG');
-            }
-
-        } catch (error) {
-            console.error(
-                'LIVE VISITORS ERROR:',
-                error
-            );
+        // الحفاظ على الرقم بين 20 و30
+        if (count < 20) {
+            count = 20;
         }
-    }
 
-    updateVisitors();
+        if (count > 30) {
+            count = 30;
+        }
 
-    setInterval(
-        updateVisitors,
-        30000
-    );
+        countElement.textContent =
+            count.toLocaleString('ar-EG');
+
+    }, 8000);
 
 })();
 </script>
