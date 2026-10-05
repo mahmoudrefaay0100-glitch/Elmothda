@@ -793,25 +793,58 @@
 
     <div class="grid grid-cols-1 gap-2">
 
-        <label class="border border-neutral-700 rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer hover:border-brand-amber bg-black">
-            <input
-                type="radio"
-                name="pay_method"
-                value="card"
-                checked
-                class="mb-1"
-            >
+       <!-- Visa / Mastercard -->
+<label
+    class="border border-neutral-700 rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer hover:border-brand-amber bg-black"
+>
+    <input
+        type="radio"
+        name="pay_method"
+        value="card"
+        checked
+        class="mb-1"
+        onchange="handlePaymentMethodChange()"
+    >
 
-            <i class="fas fa-credit-card text-brand-amber text-lg"></i>
+    <i class="fas fa-credit-card text-brand-amber text-lg"></i>
 
-            <span class="text-[10px] text-gray-300 font-bold mt-1">
-                بطاقة فيزا / Mastercard
-            </span>
-        </label>
-<div id="card-payment-details"
-     class="mt-4 bg-neutral-950 border border-neutral-800 rounded-xl p-4">
+    <span class="text-[10px] text-gray-300 font-bold mt-1">
+        Visa / Mastercard
+    </span>
+</label>
 
-    <!-- الخطوة الأولى: بيانات التحويل -->
+<!-- Deposit -->
+<label
+    class="border border-neutral-700 rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer hover:border-brand-amber bg-black"
+>
+    <input
+        type="radio"
+        name="pay_method"
+        value="deposit"
+        class="mb-1"
+        onchange="handlePaymentMethodChange()"
+    >
+
+    <i class="fas fa-hand-holding-usd text-brand-amber text-lg"></i>
+
+    <span class="text-[10px] text-gray-300 font-bold mt-1">
+        Deposit
+    </span>
+
+    <span
+        id="deposit-percent-label"
+        class="text-[9px] text-gray-500 mt-1"
+    >
+        30%
+    </span>
+</label>
+
+<!-- تفاصيل Visa / Mastercard -->
+<div
+    id="card-payment-details"
+    class="col-span-1 mt-4 bg-neutral-950 border border-neutral-800 rounded-xl p-4"
+>
+
     <div id="payment-step-transfer">
 
         <div class="mb-4">
@@ -822,15 +855,25 @@
 
             <div class="bg-black border border-neutral-700 rounded-lg p-3 text-sm text-gray-300">
 
-              <p>
-    <span class="text-gray-400">اسم الحساب:</span>
-    <strong class="text-white">محمود رفاعي السيد رفاعي</strong>
-</p>
+                <p>
+                    <span class="text-gray-400">
+                        اسم الحساب:
+                    </span>
 
-<p>
-    <span class="text-gray-400">رقم الحساب:</span>
-    <strong class="text-white">4295001525320601018</strong>
-</p>
+                    <strong class="text-white">
+                        محمود رفاعي السيد رفاعي
+                    </strong>
+                </p>
+
+                <p>
+                    <span class="text-gray-400">
+                        رقم الحساب:
+                    </span>
+
+                    <strong class="text-white">
+                        4295001525320601018
+                    </strong>
+                </p>
 
                 <p>
                     المبلغ المطلوب للتحويل:
@@ -856,23 +899,90 @@
 
         <button
             type="button"
-            onclick="showPaymentProofStep()"
+            onclick="finishPaymentAndOpenReceipt()"
             class="w-full amber-gradient text-black font-extrabold py-3 rounded-xl transition"
         >
-            تم التحويل — إرفاق الإيصال
-            <i class="fas fa-arrow-left mr-2"></i>
+            تم التحويل
+            <i class="fas fa-check mr-2"></i>
         </button>
 
     </div>
 
-   <button
-    type="button"
-    onclick="finishPaymentAndOpenReceipt()"
-    class="w-full amber-gradient text-black font-extrabold py-3 rounded-xl transition"
+</div>
+
+<!-- تفاصيل Deposit -->
+<div
+    id="deposit-payment-details"
+    class="hidden col-span-1 mt-4 bg-neutral-950 border border-neutral-800 rounded-xl p-4"
 >
-    تم التحويل
-    <i class="fas fa-check mr-2"></i>
-</button>
+
+    <p class="text-sm font-bold text-white mb-3">
+        🟠 Deposit
+    </p>
+
+    <div class="bg-black border border-neutral-700 rounded-lg p-3 text-sm text-gray-300">
+
+        <p>
+            قيمة الطلب:
+            <span
+                id="deposit-total-amount"
+                class="text-white font-bold"
+            >
+                0 ج.م
+            </span>
+        </p>
+
+        <p class="mt-2">
+            نسبة الـ Deposit:
+            <span
+                id="deposit-percent-value"
+                class="text-brand-amber font-bold"
+            >
+                30%
+            </span>
+        </p>
+
+        <p class="mt-2">
+            المطلوب كـ Deposit:
+            <span
+                id="deposit-amount"
+                class="text-brand-amber font-bold"
+            >
+                0 ج.م
+            </span>
+        </p>
+
+        <p class="mt-2">
+            المتبقي:
+            <span
+                id="deposit-remaining-amount"
+                class="text-white font-bold"
+            >
+                0 ج.م
+            </span>
+        </p>
+
+    </div>
+
+    <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mt-4">
+
+        <p class="text-xs text-amber-300 leading-6">
+            اختر Deposit لتسجيل طلبك، وسنتواصل معك لتأكيد طريقة دفع العربون.
+        </p>
+
+    </div>
+
+    <button
+        type="button"
+        onclick="submitDepositOrder()"
+        class="w-full mt-4 amber-gradient text-black font-extrabold py-3 rounded-xl transition"
+    >
+        تأكيد الطلب — Deposit
+        <i class="fas fa-check mr-2"></i>
+    </button>
+
+</div>
+          
         <!-- زر تأكيد الطلب -->
         <button
             type="submit"
@@ -1668,6 +1778,393 @@ showToast('تم إضافة القسم بنجاح ✅');
 
 window.updateTransferAmount = updateTransferAmount;
 
+        function handlePaymentMethodChange() {
+
+    const selectedPayment =
+        document.querySelector(
+            'input[name="pay_method"]:checked'
+        );
+
+    const cardDetails =
+        document.getElementById(
+            'card-payment-details'
+        );
+
+    const depositDetails =
+        document.getElementById(
+            'deposit-payment-details'
+        );
+
+    if (!selectedPayment) {
+        return;
+    }
+
+    if (selectedPayment.value === 'deposit') {
+
+        if (cardDetails) {
+            cardDetails.classList.add('hidden');
+        }
+
+        if (depositDetails) {
+            depositDetails.classList.remove('hidden');
+        }
+
+        updateDepositAmount();
+
+    } else {
+
+        if (cardDetails) {
+            cardDetails.classList.remove('hidden');
+        }
+
+        if (depositDetails) {
+            depositDetails.classList.add('hidden');
+        }
+
+    }
+}
+
+
+function updateDepositAmount() {
+
+    const depositPercent =
+        Number(
+            appState.depositPercent || 30
+        );
+
+    const subtotal =
+        currentCart.reduce(
+            (sum, item) => {
+
+                const price =
+                    Number(
+                        item.unitPrice ??
+                        item.price ??
+                        0
+                    );
+
+                const qty =
+                    Number(
+                        item.qty ?? 0
+                    );
+
+                return sum + (price * qty);
+            },
+            0
+        );
+
+    const selectedShipping =
+        document.querySelector(
+            'input[name="ship_option"]:checked'
+        );
+
+    let shippingCost = 0;
+
+    if (selectedShipping) {
+
+        const shippingOptions =
+            Array.isArray(
+                appState.shippingOptions
+            )
+                ? appState.shippingOptions
+                : [];
+
+        const shippingOption =
+            shippingOptions.find(
+                option =>
+                    String(option.id) ===
+                    String(selectedShipping.value)
+            );
+
+        if (shippingOption) {
+            shippingCost =
+                Number(
+                    shippingOption.price || 0
+                );
+        }
+    }
+
+    const total =
+        subtotal + shippingCost;
+
+    const depositAmount =
+        Math.round(
+            total *
+            depositPercent /
+            100
+        );
+
+    const remainingAmount =
+        total - depositAmount;
+
+    const totalElement =
+        document.getElementById(
+            'deposit-total-amount'
+        );
+
+    const percentElement =
+        document.getElementById(
+            'deposit-percent-value'
+        );
+
+    const amountElement =
+        document.getElementById(
+            'deposit-amount'
+        );
+
+    const remainingElement =
+        document.getElementById(
+            'deposit-remaining-amount'
+        );
+
+    const percentLabel =
+        document.getElementById(
+            'deposit-percent-label'
+        );
+
+    if (totalElement) {
+        totalElement.textContent =
+            `${total.toLocaleString('ar-EG')} ج.م`;
+    }
+
+    if (percentElement) {
+        percentElement.textContent =
+            `${depositPercent}%`;
+    }
+
+    if (amountElement) {
+        amountElement.textContent =
+            `${depositAmount.toLocaleString('ar-EG')} ج.م`;
+    }
+
+    if (remainingElement) {
+        remainingElement.textContent =
+            `${remainingAmount.toLocaleString('ar-EG')} ج.م`;
+    }
+
+    if (percentLabel) {
+        percentLabel.textContent =
+            `${depositPercent}%`;
+    }
+}
+
+
+window.handlePaymentMethodChange =
+    handlePaymentMethodChange;
+
+window.updateDepositAmount =
+    updateDepositAmount;
+
+        async function submitDepositOrder() {
+
+    try {
+
+        const name =
+            document.getElementById('chk-name')?.value?.trim() || '';
+
+        const phone =
+            document.getElementById('chk-phone')?.value?.trim() || '';
+
+        const gov =
+            document.getElementById('chk-gov')?.value?.trim() || '';
+
+        const city =
+            document.getElementById('chk-city')?.value?.trim() || '';
+
+        const address =
+            document.getElementById('chk-address')?.value?.trim() || '';
+
+        if (!name || !phone || !gov || !city || !address) {
+            alert('من فضلك أكمل بيانات العميل والعنوان أولاً.');
+            return;
+        }
+
+        const shipVal =
+            document.querySelector(
+                'input[name="ship_option"]:checked'
+            )?.value;
+
+        const shippingOptions =
+            Array.isArray(appState.shippingOptions)
+                ? appState.shippingOptions
+                : [];
+
+        const selectedShip =
+            shippingOptions.find(
+                s => String(s.id) === String(shipVal)
+            );
+
+        if (!selectedShip) {
+            alert('من فضلك اختر طريقة الشحن.');
+            return;
+        }
+
+        const subtotal =
+            currentCart.reduce(
+                (sum, item) =>
+                    sum +
+                    (
+                        Number(
+                            item.unitPrice ??
+                            item.price ??
+                            0
+                        ) *
+                        Number(item.qty ?? 0)
+                    ),
+                0
+            );
+
+        const shippingCost =
+            Number(selectedShip.price || 0);
+
+        const total =
+            subtotal + shippingCost;
+
+        const depositPercent =
+            Number(
+                appState.depositPercent || 30
+            );
+
+        const depositAmount =
+            Math.round(
+                total *
+                depositPercent /
+                100
+            );
+
+        const remainingAmount =
+            Math.max(
+                total - depositAmount,
+                0
+            );
+
+        const newOrder = {
+
+            id:
+                "ORD-" +
+                Math.floor(
+                    10000 +
+                    Math.random() * 90000
+                ),
+
+            date:
+                new Date()
+                    .toISOString()
+                    .split('T')[0],
+
+            customer: {
+                name,
+                phone,
+                gov,
+                city,
+                address
+            },
+
+            items:
+                currentCart,
+
+            subtotal,
+
+            shippingCost,
+
+            total,
+
+            shippingMethod:
+                selectedShip.name || '',
+
+            paymentMethod:
+                'Deposit',
+
+            depositPercent,
+
+            depositAmount,
+
+            remainingAmount,
+
+            paymentStatus:
+                'Pending',
+
+            paymentProofUrl:
+                '',
+
+            status:
+                'New'
+        };
+
+        const response =
+            await fetch('/api/orders', {
+
+                method: 'POST',
+
+                headers: {
+                    'Content-Type':
+                        'application/json'
+                },
+
+                body:
+                    JSON.stringify(newOrder)
+            });
+
+        const result =
+            await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.error ||
+                'فشل تسجيل الطلب'
+            );
+        }
+
+        alert(
+            `تم تسجيل طلبك بنجاح ✅\n\n` +
+            `رقم الطلب: ${newOrder.id}\n` +
+            `Deposit: ${depositAmount.toLocaleString('ar-EG')} ج.م\n` +
+            `المتبقي: ${remainingAmount.toLocaleString('ar-EG')} ج.م\n\n` +
+            `سنتواصل معك لتأكيد دفع الـ Deposit.`
+        );
+
+        currentCart = [];
+
+        localStorage.removeItem('cart');
+
+        const checkoutModal =
+            document.getElementById(
+                'checkout-modal'
+            );
+
+        if (checkoutModal) {
+            checkoutModal.classList.add('hidden');
+        }
+
+        if (
+            typeof renderCart === 'function'
+        ) {
+            renderCart();
+        }
+
+        if (
+            typeof showOrderTracking === 'function'
+        ) {
+            showOrderTracking();
+        }
+
+    } catch (error) {
+
+        console.error(
+            'SUBMIT DEPOSIT ORDER ERROR:',
+            error
+        );
+
+        alert(
+            'حدث خطأ أثناء تسجيل الطلب:\n' +
+            error.message
+        );
+    }
+}
+
+window.submitDepositOrder =
+    submitDepositOrder;
+
 function closeCheckoutModal() {
     document
         .getElementById('checkout-modal')
@@ -1912,10 +2409,39 @@ const total =
        5 - إنشاء الطلب
     ========================================= */
 
-    const paymentMethod =
-        'Visa / Mastercard';
+  const selectedPayment =
+    document.querySelector(
+        'input[name="payment_method"]:checked'
+    );
 
-    const newOrder = {
+const paymentMethod =
+    selectedPayment?.value ||
+    'Visa / Mastercard';
+
+/* نسبة الـ Deposit */
+const depositPercent =
+    paymentMethod === 'Deposit'
+        ? Number(
+            appState.depositPercent || 30
+        )
+        : 100;
+
+/* قيمة الـ Deposit */
+const depositAmount =
+    paymentMethod === 'Deposit'
+        ? Math.round(
+            total * depositPercent / 100
+        )
+        : total;
+
+/* المتبقي */
+const remainingAmount =
+    Math.max(
+        total - depositAmount,
+        0
+    );
+
+const newOrder = {
 
         id:
             "ORD-" +
@@ -1955,6 +2481,15 @@ const total =
         paymentMethod:
             paymentMethod,
 
+    depositPercent:
+    depositPercent,
+
+depositAmount:
+    depositAmount,
+
+remainingAmount:
+    remainingAmount,
+    
         paymentStatus:
             'Pending',
 
