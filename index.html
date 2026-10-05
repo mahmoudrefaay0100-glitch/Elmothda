@@ -2742,6 +2742,8 @@ async function handleAdminLogin(e) {
 
         switchView('admin-dashboard');
 
+loadAdminOrders();
+
     } catch (error) {
 
         console.error(
@@ -3414,6 +3416,120 @@ function renderAdminShipping() {
         }).join('');
 }
 
+       async function loadAdminOrders() {
+    try {
+
+        const token =
+            sessionStorage.getItem(
+                'OSCAR_ADMIN_ACCESS_TOKEN'
+            );
+
+        if (!token) {
+            console.error(
+                'ADMIN TOKEN NOT FOUND'
+            );
+            return;
+        }
+
+        const response =
+            await fetch(
+                '/api/orders',
+                {
+                    method: 'GET',
+
+                    headers: {
+                        'Authorization':
+                            `Bearer ${token}`,
+                        'Content-Type':
+                            'application/json'
+                    }
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (
+            !response.ok ||
+            !data.success
+        ) {
+            throw new Error(
+                data?.error ||
+                'فشل تحميل الطلبات'
+            );
+        }
+
+        /*
+         * تحميل الطلبات من Supabase
+         */
+        appState.orders =
+            Array.isArray(data.orders)
+                ? data.orders
+                : [];
+
+        /*
+         * تحديث جدول الطلبات
+         */
+        renderAdminOrders();
+
+        /*
+         * تحديث عداد الطلبات
+         */
+        const ordersCount =
+            document.getElementById(
+                'admin-orders-count'
+            );
+
+        if (ordersCount) {
+            ordersCount.textContent =
+                appState.orders.length;
+        }
+
+        /*
+         * حساب إجمالي المبيعات
+         */
+        const totalSales =
+            appState.orders.reduce(
+                (sum, order) =>
+                    sum +
+                    Number(
+                        order.total || 0
+                    ),
+                0
+            );
+
+        const salesElement =
+            document.getElementById(
+                'admin-total-sales'
+            );
+
+        if (salesElement) {
+            salesElement.textContent =
+                `${totalSales.toLocaleString('ar-EG')} ج.م`;
+        }
+
+        console.log(
+            'ADMIN ORDERS LOADED:',
+            appState.orders
+        );
+
+    } catch (error) {
+
+        console.error(
+            'LOAD ADMIN ORDERS ERROR:',
+            error
+        );
+
+        alert(
+            'حدث خطأ أثناء تحميل الطلبات:\n' +
+            (error?.message || '')
+        );
+    }
+}
+
+window.loadAdminOrders =
+    loadAdminOrders;
+        
         async function updateOrderStatus(orderId, newStatus) {
 
     const order = appState.orders.find(
