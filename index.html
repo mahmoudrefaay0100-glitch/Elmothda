@@ -3883,7 +3883,7 @@ function renderAdminShipping() {
 window.loadAdminOrders =
     loadAdminOrders;
         
-      async function updateOrderStatus(orderId, newStatus) {
+     async function updateOrderStatus(orderId, newStatus) {
 
     const order = appState.orders.find(
         o => String(o.id || o.order_number) === String(orderId)
@@ -3915,7 +3915,12 @@ window.loadAdminOrders =
 
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+
+                    // إرسال التوكن بالطريقة الأولى
+                    'Authorization': `Bearer ${token}`,
+
+                    // وإرساله بالطريقة الثانية
+                    'x-admin-token': token
                 },
 
                 body: JSON.stringify({
@@ -3936,7 +3941,7 @@ window.loadAdminOrders =
         // تحديث الحالة في الصفحة
         order.status = newStatus;
 
-        // حفظ نسخة محلية للعرض السريع
+        // حفظ نسخة محلية
         saveState();
 
         // إعادة عرض الطلبات
