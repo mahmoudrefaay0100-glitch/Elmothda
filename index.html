@@ -3970,20 +3970,72 @@ window.loadAdminOrders =
 window.updateOrderStatus =
     updateOrderStatus;
         
-function deleteAdminOrder(orderId) {
+async function deleteAdminOrder(orderId) {
 
-    if (!confirm('هل أنت متأكد من حذف هذا الطلب؟')) {
+    if (!confirm('هل أنت متأكد من حذف هذا الطلب نهائياً؟')) {
         return;
     }
 
-    appState.orders = appState.orders.filter(
-        o => o.id !== orderId
-    );
+    try {
 
-    saveState();
+        const adminToken =
+            localStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN') || '';
 
-    renderAdminOrders();
+        if (!adminToken) {
+            alert('انتهت جلسة الأدمن، سجل الدخول مرة أخرى.');
+            return;
+        }
+
+        const response = await fetch(
+            `/api/orders?id=${encodeURIComponent(orderId)}`,
+            {
+                method: 'DELETE',
+
+                headers: {
+                    'Authorization':
+                        `Bearer ${adminToken}`,
+
+                    'x-admin-token':
+                        adminToken
+                }
+            }
+        );
+
+        const data =
+            await response.json();
+
+        if (!response.ok || !data.success) {
+
+            throw new Error(
+                data?.error ||
+                'فشل حذف الطلب'
+            );
+        }
+
+        // حذف الطلب من الحالة المحلية بعد نجاح حذفه من قاعدة البيانات
+        appState.orders =
+            appState.orders.filter(
+                o => o.id !== orderId
+            );
+
+        renderAdminOrders();
+
+        alert('تم حذف الطلب نهائياً بنجاح.');
+
+    } catch (error) {
+
+        console.error(
+            'DELETE ORDER ERROR:',
+            error
+        );
+
+        alert(
+            error?.message ||
+            'حدث خطأ أثناء حذف الطلب'
+        );
+    }
 }
+        
 async function deleteProductFromDatabase(productId) {
     const token = sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
 
