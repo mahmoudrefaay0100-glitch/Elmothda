@@ -4233,9 +4233,7 @@ async function deleteAdminOrder(orderId) {
     try {
 
        const adminToken =
-    sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN') ||
-    localStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN') ||
-    '';
+    sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN') || '';
 
         if (!adminToken) {
             alert('انتهت جلسة الأدمن، سجل الدخول مرة أخرى.');
