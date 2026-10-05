@@ -8,7 +8,10 @@ export default async function handler(req, res) {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
 
-    if (req.method !== 'GET') {
+    if (
+        req.method !== 'GET' &&
+        req.method !== 'PUT'
+    ) {
         return res.status(405).json({
             success: false,
             error: 'Method not allowed'
@@ -28,7 +31,7 @@ export default async function handler(req, res) {
         }
 
         // =========================
-        // رابط Supabase ثابت للتجربة
+        // رابط Supabase
         // =========================
 
         const SUPABASE_BASE_URL =
@@ -38,44 +41,53 @@ export default async function handler(req, res) {
         // دالة الاتصال بـ Supabase
         // =========================
 
-        async function getTable(table, query = '') {
+        async function supabaseRequest(
+            table,
+            method = 'GET',
+            query = '',
+            body = null
+        ) {
 
             const url =
                 `${SUPABASE_BASE_URL}/rest/v1/${table}` +
                 (query ? `?${query}` : '');
 
-            console.log(
-                'SUPABASE TEST URL:',
-                url
-            );
+            const headers = {
+                apikey:
+                    SUPABASE_SERVICE_ROLE_KEY,
 
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    apikey: SUPABASE_SERVICE_ROLE_KEY,
-                    Authorization:
-                        `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-                    Accept: 'application/json'
-                }
-            });
+                Authorization:
+                    `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+
+                Accept:
+                    'application/json',
+
+                'Content-Type':
+                    'application/json',
+
+                Prefer:
+                    'return=representation'
+            };
+
+            const response =
+                await fetch(url, {
+                    method,
+                    headers,
+                    body:
+                        body !== null
+                            ? JSON.stringify(body)
+                            : undefined
+                });
 
             const text =
                 await response.text();
 
-            console.log(
-                'SUPABASE STATUS:',
-                response.status
-            );
-
-            console.log(
-                'SUPABASE RESPONSE:',
-                text.substring(0, 500)
-            );
-
-            let data;
+            let data = [];
 
             try {
-                data = JSON.parse(text);
+                data = text
+                    ? JSON.parse(text)
+                    : [];
             } catch {
                 throw new Error(
                     `Supabase returned non-JSON response: ${text.substring(0, 300)}`
@@ -83,6 +95,7 @@ export default async function handler(req, res) {
             }
 
             if (!response.ok) {
+
                 throw new Error(
                     data?.message ||
                     data?.error_description ||
@@ -94,47 +107,191 @@ export default async function handler(req, res) {
             return data;
         }
 
+        // =====================================================
+        // حفظ إعدادات المتجر
+        // =====================================================
+
+        if (req.method === 'PUT') {
+
+            const depositPercent =
+                Number(
+                    req.body?.depositPercent
+                );
+
+            if (
+                !Number.isFinite(
+                    depositPercent
+                )
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        'نسبة الديبوزت غير صحيحة'
+                });
+            }
+
+            if (
+                depositPercent < 0 ||
+                depositPercent > 100
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        'نسبة الديبوزت يجب أن تكون بين 0% و100%'
+                });
+            }
+
+            const percent =
+                Math.round(
+                    depositPercent
+                );
+
+            // =========================
+            // جلب أول إعدادات موجودة
+            // =========================
+
+            const existingSettings =
+                await supabaseRequest(
+                    'site_settings',
+                    'GET',
+                    'select=*&limit=1'
+                );
+
+            let savedSettings;
+
+            // =========================
+            // لو يوجد سجل إعدادات
+            // =========================
+
+            if (
+                Array.isArray(
+                    existingSettings
+                ) &&
+                existingSettings.length > 0
+            ) {
+
+                const existingId =
+                    existingSettings[0].id;
+
+                savedSettings =
+                    await supabaseRequest(
+                        'site_settings',
+                        'PATCH',
+                        `id=eq.${encodeURIComponent(existingId)}`,
+                        {
+                            deposit_percent:
+                                percent
+                        }
+                    );
+
+            }
+
+            // =========================
+            // لو لا يوجد سجل
+            // =========================
+
+            else {
+
+                savedSettings =
+                    await supabaseRequest(
+                        'site_settings',
+                        'POST',
+                        '',
+                        {
+                            deposit_percent:
+                                percent
+                        }
+                    );
+
+            }
+
+            return res.status(200).json({
+
+                success: true,
+
+                message:
+                    'تم حفظ نسبة الديبوزت بنجاح',
+
+                depositPercent:
+                    percent,
+
+                siteSettings:
+                    Array.isArray(
+                        savedSettings
+                    )
+                        ? (
+                            savedSettings[0] ||
+                            {}
+                        )
+                        : {}
+            });
+        }
+
+        // =====================================================
+        // GET
+        // =====================================================
+
+        const products =
+            await supabaseRequest(
+                'products',
+                'GET',
+                'select=*'
+            );
+
         // =========================
-        // اختبار المنتجات أولاً
+        // الأقسام
         // =========================
 
-        const products = await getTable(
-            'products',
-            'select=*'
-        );
+        const categories =
+            await supabaseRequest(
+                'categories',
+                'GET',
+                'select=*'
+            );
 
         // =========================
-        // اختبار الأقسام
+        // إعدادات الموقع
         // =========================
 
-        const categories = await getTable(
-            'categories',
-            'select=*'
-        );
+        const siteSettings =
+            await supabaseRequest(
+                'site_settings',
+                'GET',
+                'select=*'
+            );
 
         // =========================
-        // باقي البيانات
+        // الشحن
         // =========================
 
-        const siteSettings = await getTable(
-            'site_settings',
-            'select=*'
-        );
+        const shippingOptions =
+            await supabaseRequest(
+                'shipping_options',
+                'GET',
+                'select=*'
+            );
 
-        const shippingOptions = await getTable(
-            'shipping_options',
-            'select=*'
-        );
+        // =========================
+        // أنواع التنجيد
+        // =========================
 
-        const upholsteryTypes = await getTable(
-            'upholstery_types',
-            'select=*'
-        );
+        const upholsteryTypes =
+            await supabaseRequest(
+                'upholstery_types',
+                'GET',
+                'select=*'
+            );
 
-        const storeColors = await getTable(
-            'store_colors',
-            'select=*'
-        );
+        // =========================
+        // الألوان
+        // =========================
+
+        const storeColors =
+            await supabaseRequest(
+                'store_colors',
+                'GET',
+                'select=*'
+            );
 
         // =========================
         // تقسيم الألوان
@@ -142,17 +299,36 @@ export default async function handler(req, res) {
 
         const cushionColors =
             (storeColors || []).filter(
-                color => color.type === 'cushion'
+                color =>
+                    color.type === 'cushion'
             );
 
         const wickerColors =
             (storeColors || []).filter(
-                color => color.type === 'wicker'
+                color =>
+                    color.type === 'wicker'
             );
 
         const woodColors =
             (storeColors || []).filter(
-                color => color.type === 'wood'
+                color =>
+                    color.type === 'wood'
+            );
+
+        // =========================
+        // إعدادات الموقع
+        // =========================
+
+        const settings =
+            siteSettings?.[0] || {};
+
+        // =========================
+        // نسبة الديبوزت
+        // =========================
+
+        const depositPercent =
+            Number(
+                settings.deposit_percent ?? 30
             );
 
         // =========================
@@ -170,7 +346,9 @@ export default async function handler(req, res) {
                 categories || [],
 
             siteSettings:
-                siteSettings?.[0] || {},
+                settings,
+
+            depositPercent,
 
             shippingOptions:
                 shippingOptions || [],
