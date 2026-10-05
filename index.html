@@ -1195,11 +1195,22 @@
 
     } else if (viewName === 'admin-dashboard') {
 
-        document.getElementById(
-            'view-admin-dashboard'
-        )?.classList.remove('hidden');
-    }
+    document.getElementById(
+        'view-admin-dashboard'
+    )?.classList.remove('hidden');
 
+    setTimeout(() => {
+
+        if (typeof loadAdminOrders === 'function') {
+            loadAdminOrders();
+        } else {
+            console.error(
+                'loadAdminOrders function NOT FOUND'
+            );
+        }
+
+    }, 300);
+}
     window.scrollTo({
         top: 0,
         behavior: 'smooth'
@@ -2740,9 +2751,13 @@ async function handleAdminLogin(e) {
                 data.user?.email || user;
         }
 
-        switchView('admin-dashboard');
+       alert('وصلنا للوحة التحكم');
 
-loadAdminOrders();
+switchView('admin-dashboard');
+
+setTimeout(() => {
+    loadAdminOrders();
+}, 500);
 
     } catch (error) {
 
@@ -3416,7 +3431,10 @@ function renderAdminShipping() {
         }).join('');
 }
 
-     async function loadAdminOrders() {
+    async function loadAdminOrders() {
+
+    alert('بدأ تحميل الطلبات');
+
     try {
 
         const token =
