@@ -3883,10 +3883,10 @@ function renderAdminShipping() {
 window.loadAdminOrders =
     loadAdminOrders;
         
-        async function updateOrderStatus(orderId, newStatus) {
+      async function updateOrderStatus(orderId, newStatus) {
 
     const order = appState.orders.find(
-        o => String(o.id) === String(orderId)
+        o => String(o.id || o.order_number) === String(orderId)
     );
 
     if (!order) {
@@ -3896,13 +3896,26 @@ window.loadAdminOrders =
 
     try {
 
+        const token =
+            sessionStorage.getItem(
+                'OSCAR_ADMIN_ACCESS_TOKEN'
+            );
+
+        if (!token) {
+            alert(
+                'جلسة لوحة التحكم انتهت. من فضلك سجل الدخول مرة أخرى.'
+            );
+            return;
+        }
+
         const response = await fetch(
             `/api/orders?id=${encodeURIComponent(orderId)}`,
             {
                 method: 'PUT',
 
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
 
                 body: JSON.stringify({
@@ -3926,6 +3939,7 @@ window.loadAdminOrders =
         // حفظ نسخة محلية للعرض السريع
         saveState();
 
+        // إعادة عرض الطلبات
         renderAdminOrders();
 
         showToast(
@@ -3947,6 +3961,10 @@ window.loadAdminOrders =
         renderAdminOrders();
     }
 }
+
+window.updateOrderStatus =
+    updateOrderStatus;
+        
 function deleteAdminOrder(orderId) {
 
     if (!confirm('هل أنت متأكد من حذف هذا الطلب؟')) {
