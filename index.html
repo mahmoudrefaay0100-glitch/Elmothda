@@ -611,6 +611,54 @@
                         </div>
                     </div>
 
+                    <!-- DEPOSIT SETTINGS -->
+<div class="bg-neutral-900 border border-neutral-800 p-6 rounded-2xl space-y-4">
+    <div class="flex items-center justify-between">
+        <div>
+            <h4 class="text-base font-bold text-white">
+                <i class="fas fa-money-bill-wave text-brand-amber ml-2"></i>
+                إعداد نسبة الديبوزت
+            </h4>
+
+            <p class="text-xs text-gray-400 mt-1">
+                النسبة التي يتم تحصيلها مقدمًا من إجمالي قيمة الطلب
+            </p>
+        </div>
+
+        <span
+            id="current-deposit-percent-tag"
+            class="bg-amber-950 text-brand-amber border border-brand-amber/30 text-xs px-3 py-1 rounded-full font-bold"
+        >
+            30%
+        </span>
+    </div>
+
+    <div class="flex gap-3 max-w-sm">
+        <div class="relative w-full">
+            <input
+                type="number"
+                id="deposit-percent-input"
+                min="0"
+                max="100"
+                step="1"
+                value="30"
+                class="w-full bg-black border border-neutral-700 rounded-xl px-4 py-2 pl-10 text-white text-sm"
+            >
+
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                %
+            </span>
+        </div>
+
+        <button
+            onclick="saveDepositPercent()"
+            class="wine-gradient text-white font-bold px-6 py-2 rounded-xl text-xs whitespace-nowrap"
+        >
+            حفظ النسبة
+        </button>
+    </div>
+</div>
+                    
                     <div class="bg-neutral-900 border border-neutral-800 p-6 rounded-2xl space-y-4">
                         <div class="flex justify-between items-center">
                             <h4 class="text-base font-bold text-white"><i class="fas fa-scroll text-brand-amber ml-2"></i> أنواع التنجيد والأقمشة المتاحة</h4>
@@ -1140,8 +1188,11 @@
                 aiEndpoint: "/api/ai"
             },
             adminAuth: { username: "Mo_refaay", passwordHash: "Moustafa12340" },
-            sunbrellaRatePerChair: 200,
-            categories: [
+           sunbrellaRatePerChair: 200,
+
+depositPercent: 30,
+
+categories: [
                 { id: "cat-1", name: "أثاث الكافيهات", image: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=400&q=80", visible: true, order: 1 },
                 { id: "cat-2", name: "أثاث المطاعم", image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=400&q=80", visible: true, order: 2 },
                 { id: "cat-3", name: "أثاث الفنادق", image: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=400&q=80", visible: true, order: 3 },
@@ -1196,6 +1247,39 @@
         let activeAdminTab = 'orders';
         let activeCategoryFilter = 'ALL';
 
+        function saveDepositPercent() {
+    const input = document.getElementById('deposit-percent-input');
+    const tag = document.getElementById('current-deposit-percent-tag');
+
+    if (!input) return;
+
+    let percent = Number(input.value);
+
+    if (!Number.isFinite(percent)) {
+        alert('من فضلك أدخل نسبة صحيحة');
+        return;
+    }
+
+    if (percent < 0 || percent > 100) {
+        alert('نسبة الديبوزت يجب أن تكون بين 0% و100%');
+        return;
+    }
+
+    percent = Math.round(percent);
+
+    appState.depositPercent = percent;
+
+    if (tag) {
+        tag.textContent = percent + '%';
+    }
+
+    input.value = percent;
+
+    saveState();
+
+    alert('تم حفظ نسبة الديبوزت: ' + percent + '%');
+}
+        
        function switchView(viewName) {
     const views = [
         'view-store',
@@ -3168,7 +3252,7 @@ setTimeout(() => {
             document.getElementById(`admin-tab-${tabName}`).classList.remove('hidden');
         }
 
-     function renderAdminDashboard() {
+    function renderAdminDashboard() {
     renderAdminOrders();
     renderAdminProducts();
     renderAdminCategories();
@@ -3176,7 +3260,21 @@ setTimeout(() => {
     renderAdminUpholsteryTypes();
     renderAdminColors();
     renderAdminShipping();
+
+    const depositInput = document.getElementById('deposit-percent-input');
+    const depositTag = document.getElementById('current-deposit-percent-tag');
+
+    const depositPercent = Number(appState.depositPercent ?? 30);
+
+    if (depositInput) {
+        depositInput.value = depositPercent;
+    }
+
+    if (depositTag) {
+        depositTag.textContent = depositPercent + '%';
+    }
 }
+        
         function renderAdminUpholsteryTypes() {
     const container = document.getElementById('admin-upholstery-types-list');
 
