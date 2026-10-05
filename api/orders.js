@@ -15,6 +15,20 @@ export default async function handler(req, res) {
         }
 
         // =====================================================
+        // التحقق من الأدمن
+        // مطلوب لجلب الطلبات وتعديلها
+        // =====================================================
+
+        const authHeader =
+            req.headers.authorization || '';
+
+        const token =
+            authHeader.startsWith('Bearer ')
+                ? authHeader.substring(7)
+                : '';
+
+
+        // =====================================================
         // إنشاء طلب جديد
         // POST /api/orders
         // متاح للعميل بدون تسجيل دخول
@@ -194,21 +208,81 @@ export default async function handler(req, res) {
 
         // =====================================================
         // التحقق من الأدمن
-        // مطلوب فقط لتعديل حالة الطلب
+        // GET و PUT
         // =====================================================
-
-        const authHeader =
-            req.headers.authorization || '';
-
-        const token =
-            authHeader.startsWith('Bearer ')
-                ? authHeader.substring(7)
-                : '';
 
         if (!token) {
             return res.status(401).json({
                 success: false,
                 error: 'غير مصرح'
+            });
+        }
+
+
+        // =====================================================
+        // جلب جميع الطلبات
+        // GET /api/orders
+        // =====================================================
+
+        if (req.method === 'GET') {
+
+            const response =
+                await fetch(
+                    `${SUPABASE_URL}/rest/v1/orders?select=*&order=created_at.desc`,
+                    {
+                        method: 'GET',
+
+                        headers: {
+                            apikey:
+                                SUPABASE_SERVICE_ROLE_KEY,
+
+                            Authorization:
+                                `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+
+                            'Content-Type':
+                                'application/json'
+                        }
+                    }
+                );
+
+            const text =
+                await response.text();
+
+            let data = [];
+
+            try {
+                data =
+                    text
+                        ? JSON.parse(text)
+                        : [];
+            } catch {
+                data = [];
+            }
+
+            if (!response.ok) {
+
+                console.error(
+                    'SUPABASE GET ORDERS ERROR:',
+                    data
+                );
+
+                return res.status(
+                    response.status
+                ).json({
+                    success: false,
+                    error:
+                        data?.message ||
+                        data?.error ||
+                        'فشل جلب الطلبات'
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                orders:
+                    Array.isArray(data)
+                        ? data
+                        : []
             });
         }
 
