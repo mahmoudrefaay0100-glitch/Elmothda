@@ -1247,37 +1247,193 @@ categories: [
         let activeAdminTab = 'orders';
         let activeCategoryFilter = 'ALL';
 
-        function saveDepositPercent() {
-    const input = document.getElementById('deposit-percent-input');
-    const tag = document.getElementById('current-deposit-percent-tag');
+       async function saveDepositPercent() {
+
+    const input =
+        document.getElementById(
+            'deposit-percent-input'
+        );
+
+    const tag =
+        document.getElementById(
+            'current-deposit-percent-tag'
+        );
 
     if (!input) return;
 
-    let percent = Number(input.value);
+    let percent =
+        Number(input.value);
 
     if (!Number.isFinite(percent)) {
-        alert('من فضلك أدخل نسبة صحيحة');
+
+        showToast(
+            'من فضلك أدخل نسبة صحيحة',
+            'error'
+        );
+
         return;
     }
 
-    if (percent < 0 || percent > 100) {
-        alert('نسبة الديبوزت يجب أن تكون بين 0% و100%');
+    if (
+        percent < 0 ||
+        percent > 100
+    ) {
+
+        showToast(
+            'نسبة الديبوزت يجب أن تكون بين 0% و100%',
+            'error'
+        );
+
         return;
     }
 
-    percent = Math.round(percent);
+    percent =
+        Math.round(percent);
 
-    appState.depositPercent = percent;
+    const token =
+        sessionStorage.getItem(
+            'OSCAR_ADMIN_ACCESS_TOKEN'
+        );
 
-    if (tag) {
-        tag.textContent = percent + '%';
+    if (!token) {
+
+        showToast(
+            'انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.',
+            'error'
+        );
+
+        switchView('admin-login');
+
+        return;
     }
 
-    input.value = percent;
+    const oldValue =
+        appState.depositPercent;
 
-    saveState();
+    input.disabled = true;
 
-    alert('تم حفظ نسبة الديبوزت: ' + percent + '%');
+    try {
+
+        const response =
+            await fetch(
+                '/api/store',
+                {
+                    method: 'PUT',
+
+                    headers: {
+                        'Content-Type':
+                            'application/json',
+
+                        'Authorization':
+                            'Bearer ' + token
+                    },
+
+                    body: JSON.stringify({
+                        depositPercent:
+                            percent
+                    })
+                }
+            );
+
+        const responseText =
+            await response.text();
+
+        let data = {};
+
+        try {
+
+            data =
+                responseText
+                    ? JSON.parse(
+                        responseText
+                    )
+                    : {};
+
+        } catch {
+
+            data = {
+                error:
+                    responseText
+            };
+        }
+
+        if (
+            !response.ok ||
+            !data.success
+        ) {
+
+            throw new Error(
+                data?.error ||
+                'فشل حفظ نسبة الديبوزت'
+            );
+        }
+
+        // =========================
+        // تحديث الحالة المحلية
+        // =========================
+
+        appState.depositPercent =
+            Number(
+                data.depositPercent ??
+                percent
+            );
+
+        // =========================
+        // تحديث الواجهة
+        // =========================
+
+        if (tag) {
+
+            tag.textContent =
+                appState.depositPercent +
+                '%';
+        }
+
+        input.value =
+            appState.depositPercent;
+
+        // =========================
+        // حفظ نسخة محلية
+        // =========================
+
+        saveState();
+
+        showToast(
+            'تم حفظ نسبة الديبوزت بنجاح ✅',
+            'success'
+        );
+
+    } catch (error) {
+
+        console.error(
+            'SAVE DEPOSIT PERCENT ERROR:',
+            error
+        );
+
+        // رجوع للقيمة القديمة
+        appState.depositPercent =
+            oldValue ?? 30;
+
+        input.value =
+            appState.depositPercent;
+
+        if (tag) {
+
+            tag.textContent =
+                appState.depositPercent +
+                '%';
+        }
+
+        showToast(
+            error?.message ||
+            'حدث خطأ أثناء حفظ نسبة الديبوزت',
+            'error'
+        );
+
+    } finally {
+
+        input.disabled = false;
+    }
 }
         
        function switchView(viewName) {
@@ -5022,7 +5178,18 @@ async function loadStoreDataFromDatabase() {
                 ...data.siteSettings
             };
         }
+// =========================
+// نسبة الديبوزت
+// =========================
 
+if (
+    data.depositPercent !== undefined &&
+    data.depositPercent !== null
+) {
+    appState.depositPercent =
+        Number(data.depositPercent) || 30;
+}
+        
         // =========================
         // خيارات الشحن
         // =========================
