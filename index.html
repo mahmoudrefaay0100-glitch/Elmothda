@@ -1599,7 +1599,7 @@ showToast('تم إضافة القسم بنجاح ✅');
                         name="ship_option"
                         value="${opt.id}"
                         ${idx === 0 ? 'checked' : ''}
-                        onchange="updateTransferAmount()"
+                        onchange="updateTransferAmount(); updateDepositAmount();"
                     >
 
                     <div>
