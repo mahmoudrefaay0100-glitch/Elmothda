@@ -3416,7 +3416,7 @@ function renderAdminShipping() {
         }).join('');
 }
 
-       async function loadAdminOrders() {
+     async function loadAdminOrders() {
     try {
 
         const token =
@@ -3424,93 +3424,56 @@ function renderAdminShipping() {
                 'OSCAR_ADMIN_ACCESS_TOKEN'
             );
 
+        console.log('ADMIN TOKEN:', token);
+
         if (!token) {
-            console.error(
-                'ADMIN TOKEN NOT FOUND'
-            );
+            alert('مفيش Access Token للأدمن');
             return;
         }
 
         const response =
-            await fetch(
-                '/api/orders',
-                {
-                    method: 'GET',
-
-                    headers: {
-                        'Authorization':
-                            `Bearer ${token}`,
-                        'Content-Type':
-                            'application/json'
-                    }
+            await fetch('/api/orders', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
                 }
-            );
+            });
+
+        console.log(
+            'ORDERS RESPONSE STATUS:',
+            response.status
+        );
 
         const data =
             await response.json();
 
-        if (
-            !response.ok ||
-            !data.success
-        ) {
-            throw new Error(
-                data?.error ||
-                'فشل تحميل الطلبات'
+        console.log(
+            'ORDERS API DATA:',
+            data
+        );
+
+        if (!response.ok) {
+            alert(
+                'خطأ API الطلبات:\n' +
+                (data?.error || response.status)
             );
+            return;
         }
 
-        /*
-         * تحميل الطلبات من Supabase
-         */
         appState.orders =
             Array.isArray(data.orders)
                 ? data.orders
                 : [];
 
-        /*
-         * تحديث جدول الطلبات
-         */
+        console.log(
+            'ORDERS IN APP STATE:',
+            appState.orders
+        );
+
         renderAdminOrders();
 
-        /*
-         * تحديث عداد الطلبات
-         */
-        const ordersCount =
-            document.getElementById(
-                'admin-orders-count'
-            );
-
-        if (ordersCount) {
-            ordersCount.textContent =
-                appState.orders.length;
-        }
-
-        /*
-         * حساب إجمالي المبيعات
-         */
-        const totalSales =
-            appState.orders.reduce(
-                (sum, order) =>
-                    sum +
-                    Number(
-                        order.total || 0
-                    ),
-                0
-            );
-
-        const salesElement =
-            document.getElementById(
-                'admin-total-sales'
-            );
-
-        if (salesElement) {
-            salesElement.textContent =
-                `${totalSales.toLocaleString('ar-EG')} ج.م`;
-        }
-
-        console.log(
-            'ADMIN ORDERS LOADED:',
-            appState.orders
+        alert(
+            `تم جلب ${appState.orders.length} طلب من قاعدة البيانات`
         );
 
     } catch (error) {
@@ -3521,14 +3484,13 @@ function renderAdminShipping() {
         );
 
         alert(
-            'حدث خطأ أثناء تحميل الطلبات:\n' +
-            (error?.message || '')
+            'خطأ في جلب الطلبات:\n' +
+            error.message
         );
     }
 }
 
-window.loadAdminOrders =
-    loadAdminOrders;
+window.loadAdminOrders = loadAdminOrders;
         
         async function updateOrderStatus(orderId, newStatus) {
 
