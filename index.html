@@ -1833,47 +1833,66 @@ categories: [
     }
 }
         
-       function switchView(viewName) {
+      function switchView(viewName) {
+
     const views = [
         'view-store',
         'view-orders-track',
         'view-admin-login',
         'view-admin-product-editor',
+        'view-admin-offer-editor',
         'view-admin-dashboard'
     ];
 
     views.forEach(id => {
         const el = document.getElementById(id);
+
         if (el) {
             el.classList.add('hidden');
         }
     });
 
+
     if (viewName === 'store') {
-        document.getElementById('view-store')?.classList.remove('hidden');
+
+        document.getElementById(
+            'view-store'
+        )?.classList.remove('hidden');
+
 
     } else if (viewName === 'orders-track') {
-        document.getElementById('view-orders-track')?.classList.remove('hidden');
+
+        document.getElementById(
+            'view-orders-track'
+        )?.classList.remove('hidden');
+
 
     } else if (viewName === 'admin-login') {
 
-        const token = sessionStorage.getItem(
-            'OSCAR_ADMIN_ACCESS_TOKEN'
-        );
+        const token =
+            sessionStorage.getItem(
+                'OSCAR_ADMIN_ACCESS_TOKEN'
+            );
 
-        const auth = sessionStorage.getItem(
-            'OSCAR_ADMIN_AUTH'
-        );
+        const auth =
+            sessionStorage.getItem(
+                'OSCAR_ADMIN_AUTH'
+            );
 
         if (token && auth === 'true') {
+
             document.getElementById(
                 'view-admin-dashboard'
             )?.classList.remove('hidden');
+
         } else {
+
             document.getElementById(
                 'view-admin-login'
             )?.classList.remove('hidden');
+
         }
+
 
     } else if (viewName === 'admin-product-editor') {
 
@@ -1881,26 +1900,36 @@ categories: [
             'view-admin-product-editor'
         )?.classList.remove('hidden');
 
-   } else if (viewName === 'admin-dashboard') {
 
-    document.getElementById(
-        'view-admin-dashboard'
-    )?.classList.remove('hidden');
+    } else if (viewName === 'admin-offer-editor') {
 
-    setTimeout(() => {
+        document.getElementById(
+            'view-admin-offer-editor'
+        )?.classList.remove('hidden');
 
-        if (typeof loadAdminOrders === 'function') {
-            loadAdminOrders();
-        }
 
-    }, 300);
-}
+    } else if (viewName === 'admin-dashboard') {
+
+        document.getElementById(
+            'view-admin-dashboard'
+        )?.classList.remove('hidden');
+
+        setTimeout(() => {
+
+            if (typeof loadAdminOrders === 'function') {
+                loadAdminOrders();
+            }
+
+        }, 300);
+    }
+
+
     window.scrollTo({
         top: 0,
         behavior: 'smooth'
     });
 }
-
+        
         function scrollToSection(sectionId) {
             switchView('store');
             setTimeout(() => { const el = document.getElementById(sectionId); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 100);
