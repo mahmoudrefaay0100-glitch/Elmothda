@@ -3204,6 +3204,42 @@ window.updateDepositAmount =
             );
         }
 
+        try {
+    const whatsappResponse =
+        await fetch('/api/send-whatsapp-order', {
+            method: 'POST',
+
+            headers: {
+                'Content-Type':
+                    'application/json'
+            },
+
+            body:
+                JSON.stringify(newOrder)
+        });
+
+    const whatsappResult =
+        await whatsappResponse.json();
+
+    if (!whatsappResponse.ok || !whatsappResult.success) {
+        console.error(
+            'WHATSAPP NOTIFICATION ERROR:',
+            whatsappResult
+        );
+    } else {
+        console.log(
+            'WHATSAPP ORDER NOTIFICATION SENT'
+        );
+    }
+
+} catch (whatsappError) {
+
+    console.error(
+        'WHATSAPP NOTIFICATION FAILED:',
+        whatsappError
+    );
+}
+        
         alert(
             `تم تسجيل طلبك بنجاح ✅\n\n` +
             `رقم الطلب: ${newOrder.id}\n` +
