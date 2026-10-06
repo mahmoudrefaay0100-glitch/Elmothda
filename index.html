@@ -7012,11 +7012,12 @@ if (imageFile) {
                 'Authorization': 'Bearer ' + token
             },
 
-            body: JSON.stringify({
-                fileName: imageFile.name,
-                fileType: imageFile.type,
-                fileData: fileData
-            })
+           body: JSON.stringify({
+    fileName: imageFile.name,
+    fileType: imageFile.type,
+    fileData: fileData,
+    folder: 'offers'
+})
         }
     );
 
