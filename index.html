@@ -560,6 +560,303 @@
             </div>
         </section>
 
+        <!-- ADMIN OFFER EDITOR VIEW -->
+<section id="view-admin-offer-editor" class="hidden max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <div class="bg-neutral-950 border border-neutral-800 rounded-3xl overflow-hidden shadow-2xl">
+
+        <!-- HEADER -->
+        <div class="wine-gradient p-5 flex items-center justify-between gap-4">
+
+            <div>
+                <span class="text-brand-amber text-xs font-bold">
+                    لوحة التحكم
+                </span>
+
+                <h2
+                    id="offer-editor-heading"
+                    class="text-2xl font-black text-white mt-1"
+                >
+                    إضافة عرض جديد
+                </h2>
+
+                <p class="text-xs text-gray-300 mt-1">
+                    أنشئ عرضك وحدد السعر والصورة ومدة العرض وطريقة ظهوره للعملاء.
+                </p>
+            </div>
+
+            <button
+                type="button"
+                onclick="closeOfferEditor()"
+                class="bg-black/30 border border-white/10 rounded-xl px-4 py-2 text-white text-xs font-bold"
+            >
+                رجوع
+            </button>
+
+        </div>
+
+        <!-- FORM -->
+        <form
+            id="offer-editor-form"
+            onsubmit="saveOfferFromEditor(event)"
+            class="p-6 space-y-6"
+        >
+
+            <input
+                type="hidden"
+                id="offer-edit-id"
+            >
+
+            <!-- بيانات العرض -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                <!-- عنوان العرض -->
+                <div>
+                    <label class="block text-sm font-bold text-white mb-2">
+                        عنوان العرض
+                    </label>
+
+                    <input
+                        type="text"
+                        id="offer-editor-title"
+                        required
+                        placeholder="مثال: عرض طقم الجاردن"
+                        class="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-3 text-white outline-none focus:border-brand-amber"
+                    >
+                </div>
+
+                <!-- زر العرض -->
+                <div>
+                    <label class="block text-sm font-bold text-white mb-2">
+                        نص زر العرض
+                    </label>
+
+                    <input
+                        type="text"
+                        id="offer-editor-button-text"
+                        value="اطلب العرض"
+                        placeholder="اطلب العرض"
+                        class="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-3 text-white outline-none focus:border-brand-amber"
+                    >
+                </div>
+
+            </div>
+
+            <!-- وصف العرض -->
+            <div>
+                <label class="block text-sm font-bold text-white mb-2">
+                    وصف العرض
+                </label>
+
+                <textarea
+                    id="offer-editor-description"
+                    rows="4"
+                    placeholder="اكتب تفاصيل العرض..."
+                    class="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-3 text-white outline-none focus:border-brand-amber"
+                ></textarea>
+            </div>
+
+            <!-- الأسعار -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                <div>
+                    <label class="block text-sm font-bold text-white mb-2">
+                        السعر القديم
+                    </label>
+
+                    <input
+                        type="number"
+                        id="offer-editor-old-price"
+                        min="0"
+                        step="0.01"
+                        placeholder="مثال: 25000"
+                        class="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-3 text-white outline-none focus:border-brand-amber"
+                    >
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-white mb-2">
+                        سعر العرض
+                    </label>
+
+                    <input
+                        type="number"
+                        id="offer-editor-offer-price"
+                        min="0"
+                        step="0.01"
+                        placeholder="مثال: 19900"
+                        class="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-3 text-white outline-none focus:border-brand-amber"
+                    >
+                </div>
+
+            </div>
+
+            <!-- رابط الزر -->
+            <div>
+                <label class="block text-sm font-bold text-white mb-2">
+                    رابط زر العرض
+                </label>
+
+                <input
+                    type="text"
+                    id="offer-editor-button-link"
+                    placeholder="مثال: #products أو اتركه فارغًا"
+                    class="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-3 text-white outline-none focus:border-brand-amber"
+                >
+            </div>
+
+            <!-- الصورة -->
+            <div>
+                <label class="block text-sm font-bold text-white mb-2">
+                    صورة العرض
+                </label>
+
+                <input
+                    type="file"
+                    id="offer-editor-image"
+                    accept="image/*"
+                    class="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-3 text-sm text-gray-300"
+                >
+
+                <div
+                    id="offer-image-preview"
+                    class="mt-4 hidden"
+                >
+                    <img
+                        id="offer-image-preview-img"
+                        src=""
+                        alt="صورة العرض"
+                        class="w-full max-w-md max-h-64 object-cover rounded-2xl border border-neutral-700"
+                    >
+                </div>
+            </div>
+
+            <!-- مدة العرض -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                <div>
+                    <label class="block text-sm font-bold text-white mb-2">
+                        يبدأ العرض
+                    </label>
+
+                    <input
+                        type="datetime-local"
+                        id="offer-editor-start-date"
+                        class="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-3 text-white outline-none focus:border-brand-amber"
+                    >
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-white mb-2">
+                        ينتهي العرض
+                    </label>
+
+                    <input
+                        type="datetime-local"
+                        id="offer-editor-end-date"
+                        class="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-3 text-white outline-none focus:border-brand-amber"
+                    >
+                </div>
+
+            </div>
+
+            <!-- ترتيب -->
+            <div>
+                <label class="block text-sm font-bold text-white mb-2">
+                    ترتيب العرض
+                </label>
+
+                <input
+                    type="number"
+                    id="offer-editor-sort-order"
+                    value="0"
+                    min="0"
+                    class="w-full md:w-48 bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-3 text-white outline-none focus:border-brand-amber"
+                >
+            </div>
+
+            <!-- إعدادات الظهور -->
+            <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5">
+
+                <h3 class="text-white font-bold mb-4">
+                    إعدادات ظهور العرض
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                    <!-- فعال -->
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            id="offer-editor-active"
+                            checked
+                            class="w-5 h-5 accent-orange-500"
+                        >
+
+                        <span class="text-gray-200 text-sm">
+                            العرض فعال
+                        </span>
+                    </label>
+
+                    <!-- Popup -->
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            id="offer-editor-show-popup"
+                            checked
+                            class="w-5 h-5 accent-orange-500"
+                        >
+
+                        <span class="text-gray-200 text-sm">
+                            يظهر كنافذة Popup
+                        </span>
+                    </label>
+
+                    <!-- الرئيسية -->
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            id="offer-editor-show-homepage"
+                            checked
+                            class="w-5 h-5 accent-orange-500"
+                        >
+
+                        <span class="text-gray-200 text-sm">
+                            يظهر في الرئيسية
+                        </span>
+                    </label>
+
+                </div>
+
+            </div>
+
+            <!-- أزرار -->
+            <div class="flex flex-wrap gap-3 pt-4 border-t border-neutral-800">
+
+                <button
+                    type="submit"
+                    id="offer-save-button"
+                    class="amber-gradient text-black font-extrabold px-6 py-3 rounded-xl"
+                >
+                    حفظ العرض
+                </button>
+
+                <button
+                    type="button"
+                    onclick="closeOfferEditor()"
+                    class="bg-neutral-800 text-white font-bold px-6 py-3 rounded-xl"
+                >
+                    إلغاء
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</section>
+        
         <!-- ADMIN DASHBOARD VIEW -->
         <section id="view-admin-dashboard" class="hidden">
             <div class="bg-neutral-950 border-b border-neutral-800 py-4 px-6">
@@ -4852,6 +5149,1120 @@ function openEditProduct(productId) {
             switchView('admin-dashboard');
         }
 
+        // =====================================================
+// إدارة العروض
+// =====================================================
+
+let editingOfferId = null;
+let appOffers = [];
+
+
+// =====================================================
+// فتح محرر عرض جديد
+// =====================================================
+
+function openOfferModal() {
+
+    editingOfferId = null;
+
+    switchView('admin-offer-editor');
+
+    const form =
+        document.getElementById('offer-editor-form');
+
+    if (form) {
+        form.reset();
+    }
+
+    document.getElementById(
+        'offer-edit-id'
+    ).value = '';
+
+    document.getElementById(
+        'offer-editor-heading'
+    ).textContent = 'إضافة عرض جديد';
+
+    document.getElementById(
+        'offer-editor-button-text'
+    ).value = 'اطلب العرض';
+
+    document.getElementById(
+        'offer-editor-sort-order'
+    ).value = '0';
+
+    document.getElementById(
+        'offer-editor-active'
+    ).checked = true;
+
+    document.getElementById(
+        'offer-editor-show-popup'
+    ).checked = true;
+
+    document.getElementById(
+        'offer-editor-show-homepage'
+    ).checked = true;
+
+    const preview =
+        document.getElementById(
+            'offer-image-preview'
+        );
+
+    const previewImg =
+        document.getElementById(
+            'offer-image-preview-img'
+        );
+
+    if (preview) {
+        preview.classList.add('hidden');
+    }
+
+    if (previewImg) {
+        previewImg.src = '';
+    }
+}
+
+
+// =====================================================
+// إغلاق محرر العرض
+// =====================================================
+
+function closeOfferEditor() {
+    switchView('admin-dashboard');
+
+    editingOfferId = null;
+}
+
+
+// =====================================================
+// تحويل التاريخ إلى صيغة datetime-local
+// =====================================================
+
+function formatOfferDateForInput(dateValue) {
+
+    if (!dateValue) {
+        return '';
+    }
+
+    try {
+
+        const date =
+            new Date(dateValue);
+
+        if (isNaN(date.getTime())) {
+            return '';
+        }
+
+        const year =
+            date.getFullYear();
+
+        const month =
+            String(
+                date.getMonth() + 1
+            ).padStart(2, '0');
+
+        const day =
+            String(
+                date.getDate()
+            ).padStart(2, '0');
+
+        const hours =
+            String(
+                date.getHours()
+            ).padStart(2, '0');
+
+        const minutes =
+            String(
+                date.getMinutes()
+            ).padStart(2, '0');
+
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+
+    } catch {
+        return '';
+    }
+}
+
+
+// =====================================================
+// تحميل العروض من قاعدة البيانات
+// =====================================================
+
+async function loadOffers() {
+
+    try {
+
+        const response =
+            await fetch('/api/offers');
+
+        const data =
+            await response.json();
+
+        if (!response.ok || !data.success) {
+
+            throw new Error(
+                data?.error ||
+                'فشل تحميل العروض'
+            );
+        }
+
+        appOffers =
+            Array.isArray(data.offers)
+                ? data.offers
+                : [];
+
+        renderAdminOffers();
+
+        return appOffers;
+
+    } catch (error) {
+
+        console.error(
+            'LOAD OFFERS ERROR:',
+            error
+        );
+
+        showToast(
+            error?.message ||
+            'حدث خطأ أثناء تحميل العروض.',
+            'error'
+        );
+
+        return [];
+    }
+}
+
+
+// =====================================================
+// عرض العروض داخل لوحة التحكم
+// =====================================================
+
+function renderAdminOffers() {
+
+    const container =
+        document.getElementById(
+            'admin-offers-list-grid'
+        );
+
+    if (!container) {
+        return;
+    }
+
+    if (!appOffers.length) {
+
+        container.innerHTML = `
+            <div class="col-span-full bg-neutral-900 border border-neutral-800 rounded-2xl p-8 text-center">
+
+                <i class="fas fa-fire text-brand-amber text-3xl mb-3"></i>
+
+                <p class="text-white font-bold">
+                    لا توجد عروض حاليًا
+                </p>
+
+                <p class="text-gray-500 text-xs mt-1">
+                    اضغط على "إضافة عرض جديد" لإنشاء أول عرض.
+                </p>
+
+            </div>
+        `;
+
+        return;
+    }
+
+
+    container.innerHTML =
+        appOffers.map(offer => {
+
+            const isActive =
+                offer.is_active === true;
+
+            const image =
+                offer.image_url ||
+                '';
+
+            const oldPrice =
+                Number(
+                    offer.old_price || 0
+                );
+
+            const offerPrice =
+                Number(
+                    offer.offer_price || 0
+                );
+
+            return `
+
+                <div class="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden">
+
+                    ${
+                        image
+                            ? `
+                                <img
+                                    src="${image}"
+                                    alt="${escapeHtml(offer.title || 'عرض')}"
+                                    class="w-full h-48 object-cover"
+                                >
+                            `
+                            : `
+                                <div class="w-full h-48 bg-neutral-950 flex items-center justify-center">
+                                    <i class="fas fa-image text-neutral-700 text-4xl"></i>
+                                </div>
+                            `
+                    }
+
+                    <div class="p-4">
+
+                        <div class="flex items-start justify-between gap-3">
+
+                            <div>
+                                <h4 class="text-white font-bold text-base">
+                                    ${escapeHtml(
+                                        offer.title ||
+                                        'عرض بدون عنوان'
+                                    )}
+                                </h4>
+
+                                <p class="text-gray-400 text-xs mt-2 line-clamp-2">
+                                    ${escapeHtml(
+                                        offer.description ||
+                                        ''
+                                    )}
+                                </p>
+                            </div>
+
+                            <span
+                                class="${
+                                    isActive
+                                        ? 'bg-green-950 text-green-400 border-green-800'
+                                        : 'bg-red-950 text-red-400 border-red-800'
+                                } border text-[10px] px-2 py-1 rounded-full whitespace-nowrap"
+                            >
+                                ${
+                                    isActive
+                                        ? 'فعال'
+                                        : 'متوقف'
+                                }
+                            </span>
+
+                        </div>
+
+
+                        <div class="flex items-center gap-3 mt-4">
+
+                            ${
+                                oldPrice > 0
+                                    ? `
+                                        <span class="text-gray-500 line-through text-xs">
+                                            ${oldPrice.toLocaleString()} ج.م
+                                        </span>
+                                    `
+                                    : ''
+                            }
+
+                            ${
+                                offerPrice > 0
+                                    ? `
+                                        <span class="text-brand-amber font-black text-lg">
+                                            ${offerPrice.toLocaleString()} ج.م
+                                        </span>
+                                    `
+                                    : ''
+                            }
+
+                        </div>
+
+
+                        <div class="grid grid-cols-2 gap-2 mt-4 text-[10px]">
+
+                            <span class="bg-neutral-950 border border-neutral-800 rounded-lg p-2 text-center text-gray-400">
+                                ${
+                                    offer.show_popup
+                                        ? '🔔 Popup: نعم'
+                                        : '🔕 Popup: لا'
+                                }
+                            </span>
+
+                            <span class="bg-neutral-950 border border-neutral-800 rounded-lg p-2 text-center text-gray-400">
+                                ${
+                                    offer.show_homepage
+                                        ? '🏠 الرئيسية: نعم'
+                                        : '🚫 الرئيسية: لا'
+                                }
+                            </span>
+
+                        </div>
+
+
+                        <div class="flex gap-2 mt-4">
+
+                            <button
+                                onclick="openEditOffer('${offer.id}')"
+                                class="flex-1 bg-neutral-800 border border-neutral-700 hover:border-brand-amber text-white font-bold py-2 rounded-lg text-xs"
+                            >
+                                <i class="fas fa-edit ml-1"></i>
+                                تعديل
+                            </button>
+
+                            <button
+                                onclick="deleteOfferFromDatabase('${offer.id}')"
+                                class="bg-red-950 border border-red-900 text-red-300 hover:bg-red-900 px-4 rounded-lg"
+                                title="حذف العرض"
+                            >
+                                <i class="fas fa-trash"></i>
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            `;
+
+        }).join('');
+}
+
+
+// =====================================================
+// فتح عرض للتعديل
+// =====================================================
+
+function openEditOffer(offerId) {
+
+    const offer =
+        appOffers.find(
+            item =>
+                String(item.id) ===
+                String(offerId)
+        );
+
+    if (!offer) {
+
+        showToast(
+            'لم يتم العثور على العرض.',
+            'error'
+        );
+
+        return;
+    }
+
+    editingOfferId =
+        offer.id;
+
+    switchView('admin-offer-editor');
+
+
+    document.getElementById(
+        'offer-edit-id'
+    ).value =
+        offer.id;
+
+
+    document.getElementById(
+        'offer-editor-heading'
+    ).textContent =
+        'تعديل العرض';
+
+
+    document.getElementById(
+        'offer-editor-title'
+    ).value =
+        offer.title || '';
+
+
+    document.getElementById(
+        'offer-editor-description'
+    ).value =
+        offer.description || '';
+
+
+    document.getElementById(
+        'offer-editor-old-price'
+    ).value =
+        offer.old_price ?? '';
+
+
+    document.getElementById(
+        'offer-editor-offer-price'
+    ).value =
+        offer.offer_price ?? '';
+
+
+    document.getElementById(
+        'offer-editor-button-text'
+    ).value =
+        offer.button_text ||
+        'اطلب العرض';
+
+
+    document.getElementById(
+        'offer-editor-button-link'
+    ).value =
+        offer.button_link || '';
+
+
+    document.getElementById(
+        'offer-editor-start-date'
+    ).value =
+        formatOfferDateForInput(
+            offer.start_date
+        );
+
+
+    document.getElementById(
+        'offer-editor-end-date'
+    ).value =
+        formatOfferDateForInput(
+            offer.end_date
+        );
+
+
+    document.getElementById(
+        'offer-editor-sort-order'
+    ).value =
+        offer.sort_order ?? 0;
+
+
+    document.getElementById(
+        'offer-editor-active'
+    ).checked =
+        offer.is_active !== false;
+
+
+    document.getElementById(
+        'offer-editor-show-popup'
+    ).checked =
+        offer.show_popup !== false;
+
+
+    document.getElementById(
+        'offer-editor-show-homepage'
+    ).checked =
+        offer.show_homepage !== false;
+
+
+    const preview =
+        document.getElementById(
+            'offer-image-preview'
+        );
+
+    const previewImg =
+        document.getElementById(
+            'offer-image-preview-img'
+        );
+
+
+    if (offer.image_url) {
+
+        previewImg.src =
+            offer.image_url;
+
+        preview.classList.remove(
+            'hidden'
+        );
+
+    } else {
+
+        previewImg.src = '';
+
+        preview.classList.add(
+            'hidden'
+        );
+    }
+}
+
+
+// =====================================================
+// معاينة صورة العرض قبل الحفظ
+// =====================================================
+
+document.addEventListener(
+    'change',
+    function (event) {
+
+        if (
+            event.target.id !==
+            'offer-editor-image'
+        ) {
+            return;
+        }
+
+        const file =
+            event.target.files?.[0];
+
+        if (!file) {
+            return;
+        }
+
+        const preview =
+            document.getElementById(
+                'offer-image-preview'
+            );
+
+        const previewImg =
+            document.getElementById(
+                'offer-image-preview-img'
+            );
+
+        if (!preview || !previewImg) {
+            return;
+        }
+
+        const reader =
+            new FileReader();
+
+        reader.onload =
+            function () {
+
+                previewImg.src =
+                    reader.result;
+
+                preview.classList.remove(
+                    'hidden'
+                );
+            };
+
+        reader.readAsDataURL(file);
+    }
+);
+
+
+// =====================================================
+// حفظ العرض
+// =====================================================
+
+async function saveOfferFromEditor(e) {
+
+    e.preventDefault();
+
+    try {
+
+        const token =
+            sessionStorage.getItem(
+                'OSCAR_ADMIN_ACCESS_TOKEN'
+            );
+
+        if (!token) {
+
+            alert(
+                'انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.'
+            );
+
+            switchView('admin-login');
+
+            return;
+        }
+
+
+        const saveButton =
+            e.submitter ||
+            document.getElementById(
+                'offer-save-button'
+            );
+
+
+        if (saveButton) {
+
+            saveButton.disabled =
+                true;
+
+            saveButton.innerHTML =
+                'جاري حفظ العرض...';
+        }
+
+
+        // =========================
+        // رفع الصورة
+        // =========================
+
+        const imageFile =
+            document.getElementById(
+                'offer-editor-image'
+            ).files?.[0];
+
+
+        let uploadedImage = '';
+
+
+        if (imageFile) {
+
+            const fileData =
+                await new Promise(
+                    (resolve, reject) => {
+
+                        const reader =
+                            new FileReader();
+
+                        reader.onload =
+                            function () {
+                                resolve(
+                                    reader.result
+                                );
+                            };
+
+                        reader.onerror =
+                            function () {
+                                reject(
+                                    new Error(
+                                        'فشل قراءة صورة العرض'
+                                    )
+                                );
+                            };
+
+                        reader.readAsDataURL(
+                            imageFile
+                        );
+                    }
+                );
+
+
+            const uploadResponse =
+                await fetch(
+                    '/api/upload-image',
+                    {
+                        method: 'POST',
+
+                        headers: {
+                            'Content-Type':
+                                'application/json',
+
+                            'Authorization':
+                                'Bearer ' +
+                                token
+                        },
+
+                        body:
+                            JSON.stringify({
+                                fileName:
+                                    imageFile.name,
+
+                                fileType:
+                                    imageFile.type,
+
+                                fileData:
+                                    fileData
+                            })
+                    }
+                );
+
+
+            const uploadText =
+                await uploadResponse.text();
+
+
+            let uploadData = {};
+
+
+            try {
+
+                uploadData =
+                    uploadText
+                        ? JSON.parse(
+                            uploadText
+                        )
+                        : {};
+
+            } catch {
+
+                uploadData = {
+                    error:
+                        uploadText
+                };
+            }
+
+
+            if (
+                !uploadResponse.ok ||
+                !uploadData.success
+            ) {
+
+                throw new Error(
+                    uploadData?.error ||
+                    'فشل رفع صورة العرض'
+                );
+            }
+
+
+            uploadedImage =
+                uploadData.image_url;
+
+
+            if (!uploadedImage) {
+
+                throw new Error(
+                    'تم رفع الصورة ولكن لم يتم الحصول على رابطها'
+                );
+            }
+        }
+
+
+        // =========================
+        // العرض القديم
+        // =========================
+
+        let oldOffer = null;
+
+
+        if (editingOfferId) {
+
+            oldOffer =
+                appOffers.find(
+                    offer =>
+                        String(offer.id) ===
+                        String(editingOfferId)
+                );
+        }
+
+
+        // =========================
+        // بيانات العرض
+        // =========================
+
+        const offerData = {
+
+            title:
+                document
+                    .getElementById(
+                        'offer-editor-title'
+                    )
+                    .value
+                    .trim(),
+
+            description:
+                document
+                    .getElementById(
+                        'offer-editor-description'
+                    )
+                    .value
+                    .trim(),
+
+            old_price:
+                document
+                    .getElementById(
+                        'offer-editor-old-price'
+                    )
+                    .value === ''
+                        ? null
+                        : Number(
+                            document
+                                .getElementById(
+                                    'offer-editor-old-price'
+                                )
+                                .value
+                        ),
+
+            offer_price:
+                document
+                    .getElementById(
+                        'offer-editor-offer-price'
+                    )
+                    .value === ''
+                        ? null
+                        : Number(
+                            document
+                                .getElementById(
+                                    'offer-editor-offer-price'
+                                )
+                                .value
+                        ),
+
+            button_text:
+                document
+                    .getElementById(
+                        'offer-editor-button-text'
+                    )
+                    .value
+                    .trim() ||
+                'اطلب العرض',
+
+            button_link:
+                document
+                    .getElementById(
+                        'offer-editor-button-link'
+                    )
+                    .value
+                    .trim(),
+
+            start_date:
+                document
+                    .getElementById(
+                        'offer-editor-start-date'
+                    )
+                    .value || null,
+
+            end_date:
+                document
+                    .getElementById(
+                        'offer-editor-end-date'
+                    )
+                    .value || null,
+
+            is_active:
+                document
+                    .getElementById(
+                        'offer-editor-active'
+                    )
+                    .checked,
+
+            show_popup:
+                document
+                    .getElementById(
+                        'offer-editor-show-popup'
+                    )
+                    .checked,
+
+            show_homepage:
+                document
+                    .getElementById(
+                        'offer-editor-show-homepage'
+                    )
+                    .checked,
+
+            sort_order:
+                Number(
+                    document
+                        .getElementById(
+                            'offer-editor-sort-order'
+                        )
+                        .value
+                ) || 0
+        };
+
+
+        // لو بنعدل ومفيش صورة جديدة
+        // نحتفظ بالصورة القديمة
+
+        offerData.image_url =
+            uploadedImage ||
+            oldOffer?.image_url ||
+            '';
+
+
+        // =========================
+        // إضافة أو تعديل
+        // =========================
+
+        let response;
+
+
+        if (editingOfferId) {
+
+            offerData.id =
+                editingOfferId;
+
+
+            response =
+                await fetch(
+                    '/api/offers',
+                    {
+                        method: 'PUT',
+
+                        headers: {
+                            'Content-Type':
+                                'application/json',
+
+                            'Authorization':
+                                'Bearer ' +
+                                token
+                        },
+
+                        body:
+                            JSON.stringify(
+                                offerData
+                            )
+                    }
+                );
+
+        } else {
+
+            response =
+                await fetch(
+                    '/api/offers',
+                    {
+                        method: 'POST',
+
+                        headers: {
+                            'Content-Type':
+                                'application/json',
+
+                            'Authorization':
+                                'Bearer ' +
+                                token
+                        },
+
+                        body:
+                            JSON.stringify(
+                                offerData
+                            )
+                    }
+                );
+        }
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            !response.ok ||
+            !data.success
+        ) {
+
+            throw new Error(
+                data?.error ||
+                'فشل حفظ العرض'
+            );
+        }
+
+
+        alert(
+            editingOfferId
+                ? 'تم تعديل العرض بنجاح ✅'
+                : 'تمت إضافة العرض بنجاح ✅'
+        );
+
+
+        editingOfferId = null;
+
+
+        await loadOffers();
+
+
+        closeOfferEditor();
+
+
+    } catch (error) {
+
+        console.error(
+            'SAVE OFFER ERROR:',
+            error
+        );
+
+        showToast(
+            error?.message ||
+            'حدث خطأ أثناء حفظ العرض.',
+            'error'
+        );
+
+    } finally {
+
+        const saveButton =
+            document.getElementById(
+                'offer-save-button'
+            );
+
+        if (saveButton) {
+
+            saveButton.disabled =
+                false;
+
+            saveButton.innerHTML =
+                'حفظ العرض';
+        }
+    }
+}
+
+
+// =====================================================
+// حذف عرض
+// =====================================================
+
+async function deleteOfferFromDatabase(
+    offerId
+) {
+
+    if (
+        !confirm(
+            'هل أنت متأكد من حذف هذا العرض؟'
+        )
+    ) {
+        return;
+    }
+
+
+    try {
+
+        const token =
+            sessionStorage.getItem(
+                'OSCAR_ADMIN_ACCESS_TOKEN'
+            );
+
+
+        if (!token) {
+
+            alert(
+                'انتهت جلسة الدخول.'
+            );
+
+            switchView('admin-login');
+
+            return;
+        }
+
+
+        const response =
+            await fetch(
+                '/api/offers?id=' +
+                encodeURIComponent(
+                    offerId
+                ),
+                {
+                    method: 'DELETE',
+
+                    headers: {
+                        'Authorization':
+                            'Bearer ' +
+                            token
+                    }
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            !response.ok ||
+            !data.success
+        ) {
+
+            throw new Error(
+                data?.error ||
+                'فشل حذف العرض'
+            );
+        }
+
+
+        showToast(
+            'تم حذف العرض بنجاح ✅'
+        );
+
+
+        await loadOffers();
+
+
+    } catch (error) {
+
+        console.error(
+            'DELETE OFFER ERROR:',
+            error
+        );
+
+        showToast(
+            error?.message ||
+            'حدث خطأ أثناء حذف العرض.',
+            'error'
+        );
+    }
+}
+    function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}    
        async function saveProductFromEditor(e) {
     e.preventDefault();
 
@@ -5244,7 +6655,28 @@ async function loadStoreDataFromDatabase() {
             visible: p.visible !== false,
             featured: p.featured === true
         }));
+// =========================
+// العروض
+// =========================
 
+if (Array.isArray(data.offers)) {
+    appState.offers = data.offers.map(offer => ({
+        id: offer.id,
+        title: offer.title || '',
+        description: offer.description || '',
+        image_url: offer.image_url || '',
+        old_price: Number(offer.old_price) || 0,
+        offer_price: Number(offer.offer_price) || 0,
+        button_text: offer.button_text || 'اطلب العرض',
+        button_link: offer.button_link || '',
+        start_date: offer.start_date || null,
+        end_date: offer.end_date || null,
+        is_active: offer.is_active !== false,
+        show_popup: offer.show_popup !== false,
+        show_homepage: offer.show_homepage !== false,
+        sort_order: Number(offer.sort_order) || 0
+    }));
+}
         // =========================
         // الأقسام
         // =========================
