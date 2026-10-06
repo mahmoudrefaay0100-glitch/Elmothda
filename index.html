@@ -1948,6 +1948,97 @@ categories: [
     renderOfferPopup();
 }
 
+        function startOfferCountdown(endDate, countdownId, dateId) {
+
+    const countdownEl =
+        document.getElementById(countdownId);
+
+    const dateEl =
+        document.getElementById(dateId);
+
+    if (!countdownEl || !dateEl || !endDate) {
+        return;
+    }
+
+    const endTime =
+        new Date(endDate).getTime();
+
+    if (isNaN(endTime)) {
+        countdownEl.textContent =
+            '⏳ تاريخ انتهاء العرض غير صحيح';
+
+        dateEl.textContent =
+            '📅 تاريخ الانتهاء غير محدد';
+
+        return;
+    }
+
+    const formattedDate =
+        new Intl.DateTimeFormat('ar-EG', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        }).format(new Date(endTime));
+
+    dateEl.textContent =
+        `📅 ينتهي العرض: ${formattedDate}`;
+
+    function updateCountdown() {
+
+        const remaining =
+            endTime - Date.now();
+
+        if (remaining <= 0) {
+
+            countdownEl.textContent =
+                '⏳ انتهى العرض';
+
+            dateEl.textContent =
+                `📅 انتهى العرض في: ${formattedDate}`;
+
+            clearInterval(timer);
+
+            return;
+        }
+
+        const totalSeconds =
+            Math.floor(remaining / 1000);
+
+        const days =
+            Math.floor(
+                totalSeconds / 86400
+            );
+
+        const hours =
+            Math.floor(
+                (totalSeconds % 86400) / 3600
+            );
+
+        const minutes =
+            Math.floor(
+                (totalSeconds % 3600) / 60
+            );
+
+        const seconds =
+            totalSeconds % 60;
+
+        countdownEl.textContent =
+            `⏳ متبقي على انتهاء العرض: ` +
+            `${days} يوم ` +
+            `${String(hours).padStart(2, '0')} ساعة ` +
+            `${String(minutes).padStart(2, '0')} دقيقة ` +
+            `${String(seconds).padStart(2, '0')} ثانية`;
+    }
+
+    updateCountdown();
+
+    const timer =
+        setInterval(
+            updateCountdown,
+            1000
+        );
+}
+        
         // =====================================================
 // عروض الموقع - PUBLIC OFFERS
 // =====================================================
@@ -2006,9 +2097,21 @@ function renderHomepageOffers() {
                     offer.show_homepage !== false
             );
 
-   if (offers.length === 0) {
+    if (offers.length === 0) {
 
-    container.innerHTML = '';
+        container.innerHTML = '';
+
+        const section =
+            document.getElementById(
+                'homepage-offers-section'
+            );
+
+        if (section) {
+            section.classList.add('hidden');
+        }
+
+        return;
+    }
 
     const section =
         document.getElementById(
@@ -2016,119 +2119,323 @@ function renderHomepageOffers() {
         );
 
     if (section) {
-        section.classList.add('hidden');
+        section.classList.remove('hidden');
     }
-
-    return;
-}
-
-const section =
-    document.getElementById(
-        'homepage-offers-section'
-    );
-
-if (section) {
-    section.classList.remove('hidden');
-}
 
     container.classList.remove('hidden');
 
-    container.innerHTML =
-        offers.map(offer => {
+    // إيقاف أي عدادات قديمة
+    if (
+        Array.isArray(
+            window.homepageOfferTimers
+        )
+    ) {
+        window.homepageOfferTimers.forEach(
+            timer => clearInterval(timer)
+        );
+    }
 
-            const oldPrice =
-                Number(offer.old_price) || 0;
+    window.homepageOfferTimers = [];
 
-            const offerPrice =
-                Number(offer.offer_price) || 0;
+    container.innerHTML = `
 
-            return `
-                <div
-                    class="bg-neutral-950 border border-brand-amber/30 rounded-3xl overflow-hidden shadow-xl"
-                >
+        <!-- عنوان قسم العروض -->
 
-                    ${
-                        offer.image_url
-                            ? `
-                                <img
-                                    src="${offer.image_url}"
-                                    alt="${offer.title || 'عرض خاص'}"
-                                    class="w-full h-64 object-cover"
+        <div
+            class="col-span-full text-center mb-8"
+            dir="rtl"
+        >
+
+            <h2
+                class="text-3xl md:text-4xl font-black text-white"
+            >
+                🔥 عروض المتحدة
+                <span class="text-brand-amber">
+                    | فرصتك قبل انتهاء العرض ⏳
+                </span>
+            </h2>
+
+        </div>
+
+        ${
+            offers.map(
+                (offer, index) => {
+
+                    const oldPrice =
+                        Number(
+                            offer.old_price
+                        ) || 0;
+
+                    const offerPrice =
+                        Number(
+                            offer.offer_price
+                        ) || 0;
+
+                    const countdownId =
+                        `offer-countdown-${offer.id || index}`;
+
+                    const endDateId =
+                        `offer-end-date-${offer.id || index}`;
+
+                    return `
+                        <div
+                            class="bg-neutral-950 border border-brand-amber/30 rounded-3xl overflow-hidden shadow-xl"
+                            dir="rtl"
+                        >
+
+                            ${
+                                offer.image_url
+                                    ? `
+                                        <img
+                                            src="${offer.image_url}"
+                                            alt="${offer.title || 'عرض خاص'}"
+                                            class="w-full h-64 object-cover"
+                                        >
+                                    `
+                                    : ''
+                            }
+
+                            <div class="p-6 text-center">
+
+                                <div
+                                    class="inline-flex items-center gap-2 bg-brand-amber/10 text-brand-amber px-4 py-2 rounded-full text-xs font-bold mb-4"
                                 >
-                            `
-                            : ''
+
+                                    <i class="fas fa-fire"></i>
+
+                                    عرض خاص
+
+                                </div>
+
+                                <h3
+                                    class="text-2xl font-black text-white"
+                                >
+                                    ${offer.title || ''}
+                                </h3>
+
+                                ${
+                                    offer.description
+                                        ? `
+                                            <p
+                                                class="text-gray-400 text-sm mt-3 leading-7"
+                                            >
+                                                ${offer.description}
+                                            </p>
+                                        `
+                                        : ''
+                                }
+
+                                <div
+                                    class="flex items-center justify-center gap-4 mt-5"
+                                >
+
+                                    ${
+                                        oldPrice > 0
+                                            ? `
+                                                <span
+                                                    class="text-gray-500 line-through text-sm"
+                                                >
+                                                    ${oldPrice.toLocaleString()} ج.م
+                                                </span>
+                                            `
+                                            : ''
+                                    }
+
+                                    ${
+                                        offerPrice > 0
+                                            ? `
+                                                <span
+                                                    class="text-brand-amber font-black text-2xl"
+                                                >
+                                                    ${offerPrice.toLocaleString()} ج.م
+                                                </span>
+                                            `
+                                            : ''
+                                    }
+
+                                </div>
+
+                                <!-- العداد -->
+
+                                ${
+                                    offer.end_date
+                                        ? `
+                                            <div
+                                                class="mt-6 bg-black/60 border border-brand-amber/20 rounded-2xl px-4 py-4"
+                                            >
+
+                                                <div
+                                                    id="${countdownId}"
+                                                    class="text-white font-black text-sm md:text-base"
+                                                >
+                                                    ⏳ جاري حساب الوقت...
+                                                </div>
+
+                                                <div
+                                                    id="${endDateId}"
+                                                    class="text-gray-400 text-xs mt-2"
+                                                >
+                                                    📅 جاري تحميل تاريخ الانتهاء...
+                                                </div>
+
+                                            </div>
+                                        `
+                                        : ''
+                                }
+
+                                ${
+                                    offer.button_link
+                                        ? `
+                                            <a
+                                                href="${offer.button_link}"
+                                                class="inline-flex items-center justify-center mt-6 px-7 py-3 rounded-xl amber-gradient text-black font-extrabold"
+                                            >
+                                                ${offer.button_text || 'اطلب العرض'}
+
+                                                <i
+                                                    class="fas fa-arrow-left mr-2"
+                                                ></i>
+
+                                            </a>
+                                        `
+                                        : ''
+                                }
+
+                            </div>
+
+                        </div>
+                    `;
+                }
+            ).join('')
+        }
+
+    `;
+
+    // =========================
+    // تشغيل عداد مستقل لكل عرض
+    // =========================
+
+    offers.forEach(
+        (offer, index) => {
+
+            if (!offer.end_date) {
+                return;
+            }
+
+            const countdownId =
+                `offer-countdown-${offer.id || index}`;
+
+            const endDateId =
+                `offer-end-date-${offer.id || index}`;
+
+            const countdown =
+                document.getElementById(
+                    countdownId
+                );
+
+            const endDate =
+                document.getElementById(
+                    endDateId
+                );
+
+            if (!countdown || !endDate) {
+                return;
+            }
+
+            const endTime =
+                new Date(
+                    offer.end_date
+                ).getTime();
+
+            if (isNaN(endTime)) {
+
+                countdown.textContent =
+                    '⏳ تاريخ انتهاء العرض غير صحيح';
+
+                endDate.textContent =
+                    '📅 تاريخ الانتهاء غير محدد';
+
+                return;
+            }
+
+            const formattedDate =
+                new Intl.DateTimeFormat(
+                    'ar-EG',
+                    {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
                     }
+                ).format(
+                    new Date(endTime)
+                );
 
-                    <div class="p-6 text-center">
+            endDate.textContent =
+                `📅 ينتهي العرض: ${formattedDate}`;
 
-                        <div class="inline-flex items-center gap-2 bg-brand-amber/10 text-brand-amber px-4 py-2 rounded-full text-xs font-bold mb-4">
+            function updateCountdown() {
 
-                            <i class="fas fa-fire"></i>
+                const remaining =
+                    endTime - Date.now();
 
-                            عرض خاص
+                if (remaining <= 0) {
 
-                        </div>
+                    countdown.textContent =
+                        '⏳ انتهى العرض';
 
-                        <h3 class="text-2xl font-black text-white">
-                            ${offer.title || ''}
-                        </h3>
+                    endDate.textContent =
+                        `📅 انتهى العرض في: ${formattedDate}`;
 
-                        ${
-                            offer.description
-                                ? `
-                                    <p class="text-gray-400 text-sm mt-3 leading-7">
-                                        ${offer.description}
-                                    </p>
-                                `
-                                : ''
-                        }
+                    return;
+                }
 
-                        <div class="flex items-center justify-center gap-4 mt-5">
+                const totalSeconds =
+                    Math.floor(
+                        remaining / 1000
+                    );
 
-                            ${
-                                oldPrice > 0
-                                    ? `
-                                        <span class="text-gray-500 line-through text-sm">
-                                            ${oldPrice.toLocaleString()} ج.م
-                                        </span>
-                                    `
-                                    : ''
-                            }
+                const days =
+                    Math.floor(
+                        totalSeconds / 86400
+                    );
 
-                            ${
-                                offerPrice > 0
-                                    ? `
-                                        <span class="text-brand-amber font-black text-2xl">
-                                            ${offerPrice.toLocaleString()} ج.م
-                                        </span>
-                                    `
-                                    : ''
-                            }
+                const hours =
+                    Math.floor(
+                        (totalSeconds % 86400) /
+                        3600
+                    );
 
-                        </div>
+                const minutes =
+                    Math.floor(
+                        (totalSeconds % 3600) /
+                        60
+                    );
 
-                        ${
-                            offer.button_link
-                                ? `
-                                    <a
-                                        href="${offer.button_link}"
-                                        class="inline-flex items-center justify-center mt-6 px-7 py-3 rounded-xl amber-gradient text-black font-extrabold"
-                                    >
-                                        ${offer.button_text || 'اطلب العرض'}
-                                        <i class="fas fa-arrow-left mr-2"></i>
-                                    </a>
-                                `
-                                : ''
-                        }
+                const seconds =
+                    totalSeconds % 60;
 
-                    </div>
+                countdown.textContent =
+                    `⏳ متبقي على انتهاء العرض: ` +
+                    `${days} يوم ` +
+                    `${String(hours).padStart(2, '0')} ساعة ` +
+                    `${String(minutes).padStart(2, '0')} دقيقة ` +
+                    `${String(seconds).padStart(2, '0')} ثانية`;
+            }
 
-                </div>
-            `;
+            updateCountdown();
 
-        }).join('');
+            const timer =
+                setInterval(
+                    updateCountdown,
+                    1000
+                );
+
+            window.homepageOfferTimers.push(
+                timer
+            );
+        }
+    );
 }
-
 
 // =====================================================
 // Popup العرض
