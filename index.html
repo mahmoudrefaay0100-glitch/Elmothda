@@ -6046,7 +6046,7 @@ function renderAdminOffers() {
         return;
     }
 
-    if (!appOffers.length) {
+    if (!appState.offers.length) {
 
         container.innerHTML = `
             <div class="col-span-full bg-neutral-900 border border-neutral-800 rounded-2xl p-8 text-center">
@@ -6069,8 +6069,7 @@ function renderAdminOffers() {
 
 
     container.innerHTML =
-        appOffers.map(offer => {
-
+        appState.offers.map(offer => {
             const isActive =
                 offer.is_active === true;
 
