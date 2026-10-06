@@ -1,3 +1,4 @@
+```javascript
 export default async function handler(req, res) {
     if (req.method !== "POST") {
         return res.status(405).json({
@@ -51,17 +52,31 @@ export default async function handler(req, res) {
         /*
          * تحديد مكان التخزين
          *
-         * products      -> product-images
-         * payment-proofs -> payment-proofs
+         * products
+         * -> product-images / products
+         *
+         * offers
+         * -> product-images / offers
+         *
+         * payment-proofs
+         * -> payment-proofs / orders
          */
 
         let bucketName;
         let folderName;
 
         if (folder === "payment-proofs") {
+
             bucketName = "payment-proofs";
             folderName = "orders";
+
+        } else if (folder === "offers") {
+
+            bucketName = "product-images";
+            folderName = "offers";
+
         } else {
+
             bucketName = "product-images";
             folderName = "products";
         }
@@ -72,7 +87,10 @@ export default async function handler(req, res) {
                 : fileData;
 
         const fileBuffer =
-            Buffer.from(base64Data, "base64");
+            Buffer.from(
+                base64Data,
+                "base64"
+            );
 
         if (
             fileBuffer.length >
@@ -86,7 +104,8 @@ export default async function handler(req, res) {
         }
 
         const extension =
-            fileName && fileName.includes(".")
+            fileName &&
+            fileName.includes(".")
                 ? fileName
                     .split(".")
                     .pop()
@@ -94,14 +113,21 @@ export default async function handler(req, res) {
                 : "jpg";
 
         const safeExtension =
-            ["jpg", "jpeg", "png", "webp"].includes(extension)
+            [
+                "jpg",
+                "jpeg",
+                "png",
+                "webp"
+            ].includes(extension)
                 ? extension
                 : "jpg";
 
         const prefix =
             folder === "payment-proofs"
                 ? "payment"
-                : "product";
+                : folder === "offers"
+                    ? "offer"
+                    : "product";
 
         const newFileName =
             `${prefix}-${Date.now()}-${Math.random()
@@ -110,6 +136,10 @@ export default async function handler(req, res) {
 
         const filePath =
             `${folderName}/${newFileName}`;
+
+        /*
+         * رفع الصورة إلى Supabase Storage
+         */
 
         const uploadResponse =
             await fetch(
@@ -132,7 +162,8 @@ export default async function handler(req, res) {
                             "true"
                     },
 
-                    body: fileBuffer
+                    body:
+                        fileBuffer
                 }
             );
 
@@ -142,17 +173,26 @@ export default async function handler(req, res) {
         let uploadData = {};
 
         try {
+
             uploadData =
                 responseText
                     ? JSON.parse(responseText)
                     : {};
+
         } catch {
+
             uploadData = {
-                message: responseText
+                message:
+                    responseText
             };
         }
 
+        /*
+         * فشل رفع الصورة
+         */
+
         if (!uploadResponse.ok) {
+
             console.error(
                 "SUPABASE STORAGE ERROR:",
                 uploadData
@@ -169,27 +209,44 @@ export default async function handler(req, res) {
             });
         }
 
+        /*
+         * رابط الصورة العام
+         */
+
         const imageUrl =
             `${SUPABASE_URL}/storage/v1/object/public/${bucketName}/${filePath}`;
 
         return res.status(200).json({
+
             success: true,
-            image_url: imageUrl,
-            bucket: bucketName,
-            path: filePath
+
+            image_url:
+                imageUrl,
+
+            bucket:
+                bucketName,
+
+            path:
+                filePath
+
         });
 
     } catch (error) {
+
         console.error(
             "UPLOAD IMAGE ERROR:",
             error
         );
 
         return res.status(500).json({
+
             success: false,
+
             error:
                 error?.message ||
                 "حدث خطأ أثناء رفع الصورة"
+
         });
     }
 }
+```
