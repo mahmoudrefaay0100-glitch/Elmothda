@@ -4191,7 +4191,7 @@ setTimeout(() => {
             alert("تم تحديث بيانات الدخول الإدارية بنجاح!");
         }
 
-       function switchAdminTab(tabName) {
+      function switchAdminTab(tabName) {
     ['orders', 'products', 'offers', 'categories', 'customizer', 'shipping', 'site-settings', 'security'].forEach(t => {
         const el = document.getElementById(`admin-tab-${t}`);
         if (el) el.classList.add('hidden');
@@ -4202,8 +4202,15 @@ setTimeout(() => {
     if (selectedTab) {
         selectedTab.classList.remove('hidden');
     }
-}
 
+    // إعادة رسم العروض عند فتح إدارة العروض
+    if (
+        tabName === 'offers' &&
+        typeof renderAdminOffers === 'function'
+    ) {
+        renderAdminOffers();
+    }
+}
     function renderAdminDashboard() {
     renderAdminOrders();
     renderAdminProducts();
