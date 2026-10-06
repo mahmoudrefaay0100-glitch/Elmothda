@@ -587,6 +587,9 @@
                     <button onclick="switchAdminTab('products')" id="tab-btn-products" class="px-4 py-2.5 rounded-xl bg-neutral-900 text-gray-300 hover:text-white">
                         <i class="fas fa-box-open ml-1.5"></i> المنتجات والكراسي
                     </button>
+                    <button onclick="switchAdminTab('offers')" id="tab-btn-offers" class="px-4 py-2.5 rounded-xl bg-neutral-900 text-gray-300 hover:text-white">
+    <i class="fas fa-fire ml-1.5"></i> إدارة العروض
+</button>
                     <button onclick="switchAdminTab('categories')" id="tab-btn-categories" class="px-4 py-2.5 rounded-xl bg-neutral-900 text-gray-300 hover:text-white">
                         <i class="fas fa-list-ul ml-1.5"></i> الأقسام الرئيسية
                     </button>
@@ -640,6 +643,28 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="admin-products-list-grid"></div>
                 </div>
 
+                <!-- OFFERS TAB -->
+<div id="admin-tab-offers" class="hidden space-y-6">
+    <div class="flex justify-between items-center">
+        <h3 class="text-xl font-bold text-white">
+            <i class="fas fa-fire text-brand-amber ml-2"></i>
+            إدارة العروض
+        </h3>
+
+        <button
+            onclick="openOfferModal()"
+            class="amber-gradient text-black font-extrabold px-4 py-2 rounded-xl text-xs flex items-center"
+        >
+            <i class="fas fa-plus ml-1"></i>
+            إضافة عرض جديد
+        </button>
+    </div>
+
+    <div
+        id="admin-offers-list-grid"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+    ></div>
+</div>
                 <!-- CATEGORIES TAB -->
                 <div id="admin-tab-categories" class="hidden space-y-6">
                     <div class="flex justify-between items-center">
@@ -3461,13 +3486,18 @@ setTimeout(() => {
             alert("تم تحديث بيانات الدخول الإدارية بنجاح!");
         }
 
-        function switchAdminTab(tabName) {
-            ['orders', 'products', 'categories', 'customizer', 'shipping', 'site-settings', 'security'].forEach(t => {
-                const el = document.getElementById(`admin-tab-${t}`);
-                if (el) el.classList.add('hidden');
-            });
-            document.getElementById(`admin-tab-${tabName}`).classList.remove('hidden');
-        }
+       function switchAdminTab(tabName) {
+    ['orders', 'products', 'offers', 'categories', 'customizer', 'shipping', 'site-settings', 'security'].forEach(t => {
+        const el = document.getElementById(`admin-tab-${t}`);
+        if (el) el.classList.add('hidden');
+    });
+
+    const selectedTab = document.getElementById(`admin-tab-${tabName}`);
+
+    if (selectedTab) {
+        selectedTab.classList.remove('hidden');
+    }
+}
 
     function renderAdminDashboard() {
     renderAdminOrders();
