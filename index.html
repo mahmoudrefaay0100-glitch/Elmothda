@@ -263,6 +263,18 @@
                 </div>
             </div>
 
+             <!-- OFFERS SECTION -->
+            <section
+                id="homepage-offers-section"
+                class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10"
+            >
+                <div
+                    id="homepage-offers-container"
+                    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                ></div>
+            </section>
+
+            
             <!-- Categories Grid Section -->
             <div id="categories-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
                 <div class="flex flex-col md:flex-row md:items-end justify-between mb-10">
@@ -1894,12 +1906,377 @@ categories: [
             setTimeout(() => { const el = document.getElementById(sectionId); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 100);
         }
 
-        function renderAllViews() {
+      function renderAllViews() {
     renderSiteSettings();
     renderCategoriesGrid();
     renderProductsGrid();
     renderAdminDashboard();
+    renderAdminOffers();
     updateCartBadge();
+
+    // عرض العروض للزوار
+    renderHomepageOffers();
+    renderOfferPopup();
+}
+
+        // =====================================================
+// عروض الموقع - PUBLIC OFFERS
+// =====================================================
+
+function getActivePublicOffers() {
+    const offers = Array.isArray(appState.offers)
+        ? appState.offers
+        : [];
+
+    const now = new Date();
+
+    return offers
+        .filter(offer => {
+
+            if (offer.is_active === false) {
+                return false;
+            }
+
+            const starts =
+                !offer.start_date ||
+                new Date(offer.start_date) <= now;
+
+            const ends =
+                !offer.end_date ||
+                new Date(offer.end_date) >= now;
+
+            return starts && ends;
+        })
+        .sort(
+            (a, b) =>
+                (Number(a.sort_order) || 0) -
+                (Number(b.sort_order) || 0)
+        );
+}
+
+
+// =====================================================
+// عرض العروض في الصفحة الرئيسية
+// =====================================================
+
+function renderHomepageOffers() {
+
+    const container =
+        document.getElementById(
+            'homepage-offers-container'
+        );
+
+    if (!container) {
+        return;
+    }
+
+    const offers =
+        getActivePublicOffers()
+            .filter(
+                offer =>
+                    offer.show_homepage !== false
+            );
+
+   if (offers.length === 0) {
+
+    container.innerHTML = '';
+
+    const section =
+        document.getElementById(
+            'homepage-offers-section'
+        );
+
+    if (section) {
+        section.classList.add('hidden');
+    }
+
+    return;
+}
+
+const section =
+    document.getElementById(
+        'homepage-offers-section'
+    );
+
+if (section) {
+    section.classList.remove('hidden');
+}
+
+    container.classList.remove('hidden');
+
+    container.innerHTML =
+        offers.map(offer => {
+
+            const oldPrice =
+                Number(offer.old_price) || 0;
+
+            const offerPrice =
+                Number(offer.offer_price) || 0;
+
+            return `
+                <div
+                    class="bg-neutral-950 border border-brand-amber/30 rounded-3xl overflow-hidden shadow-xl"
+                >
+
+                    ${
+                        offer.image_url
+                            ? `
+                                <img
+                                    src="${offer.image_url}"
+                                    alt="${offer.title || 'عرض خاص'}"
+                                    class="w-full h-64 object-cover"
+                                >
+                            `
+                            : ''
+                    }
+
+                    <div class="p-6 text-center">
+
+                        <div class="inline-flex items-center gap-2 bg-brand-amber/10 text-brand-amber px-4 py-2 rounded-full text-xs font-bold mb-4">
+
+                            <i class="fas fa-fire"></i>
+
+                            عرض خاص
+
+                        </div>
+
+                        <h3 class="text-2xl font-black text-white">
+                            ${offer.title || ''}
+                        </h3>
+
+                        ${
+                            offer.description
+                                ? `
+                                    <p class="text-gray-400 text-sm mt-3 leading-7">
+                                        ${offer.description}
+                                    </p>
+                                `
+                                : ''
+                        }
+
+                        <div class="flex items-center justify-center gap-4 mt-5">
+
+                            ${
+                                oldPrice > 0
+                                    ? `
+                                        <span class="text-gray-500 line-through text-sm">
+                                            ${oldPrice.toLocaleString()} ج.م
+                                        </span>
+                                    `
+                                    : ''
+                            }
+
+                            ${
+                                offerPrice > 0
+                                    ? `
+                                        <span class="text-brand-amber font-black text-2xl">
+                                            ${offerPrice.toLocaleString()} ج.م
+                                        </span>
+                                    `
+                                    : ''
+                            }
+
+                        </div>
+
+                        ${
+                            offer.button_link
+                                ? `
+                                    <a
+                                        href="${offer.button_link}"
+                                        class="inline-flex items-center justify-center mt-6 px-7 py-3 rounded-xl amber-gradient text-black font-extrabold"
+                                    >
+                                        ${offer.button_text || 'اطلب العرض'}
+                                        <i class="fas fa-arrow-left mr-2"></i>
+                                    </a>
+                                `
+                                : ''
+                        }
+
+                    </div>
+
+                </div>
+            `;
+
+        }).join('');
+}
+
+
+// =====================================================
+// Popup العرض
+// =====================================================
+
+function renderOfferPopup() {
+
+    const offers =
+        getActivePublicOffers()
+            .filter(
+                offer =>
+                    offer.show_popup !== false
+            );
+
+    if (offers.length === 0) {
+        return;
+    }
+
+    // لو Popup اتعرض قبل كده في نفس الزيارة
+    if (
+        sessionStorage.getItem(
+            'OSCAR_OFFER_POPUP_SHOWN'
+        ) === 'true'
+    ) {
+        return;
+    }
+
+    const offer =
+        offers[0];
+
+    let popup =
+        document.getElementById(
+            'public-offer-popup'
+        );
+
+    if (!popup) {
+
+        popup =
+            document.createElement('div');
+
+        popup.id =
+            'public-offer-popup';
+
+        popup.className =
+            'fixed inset-0 z-[99999] hidden items-center justify-center bg-black/70 backdrop-blur-sm p-4';
+
+        document.body.appendChild(popup);
+    }
+
+    const oldPrice =
+        Number(offer.old_price) || 0;
+
+    const offerPrice =
+        Number(offer.offer_price) || 0;
+
+    popup.innerHTML = `
+
+        <div
+            class="relative w-full max-w-lg bg-neutral-950 border border-brand-amber/40 rounded-3xl overflow-hidden shadow-2xl"
+            onclick="event.stopPropagation()"
+        >
+
+            <button
+                type="button"
+                onclick="closeOfferPopup()"
+                class="absolute top-3 left-3 z-10 w-10 h-10 rounded-full bg-black/70 text-white hover:bg-black flex items-center justify-center"
+                aria-label="إغلاق"
+            >
+                <i class="fas fa-times"></i>
+            </button>
+
+            ${
+                offer.image_url
+                    ? `
+                        <img
+                            src="${offer.image_url}"
+                            alt="${offer.title || 'عرض خاص'}"
+                            class="w-full max-h-80 object-cover"
+                        >
+                    `
+                    : ''
+            }
+
+            <div class="p-6 text-center">
+
+                <div class="text-brand-amber text-sm font-bold mb-2">
+                    🔥 عرض خاص لفترة محدودة
+                </div>
+
+                <h2 class="text-2xl font-black text-white">
+                    ${offer.title || ''}
+                </h2>
+
+                ${
+                    offer.description
+                        ? `
+                            <p class="text-gray-400 text-sm leading-7 mt-3">
+                                ${offer.description}
+                            </p>
+                        `
+                        : ''
+                }
+
+                <div class="flex items-center justify-center gap-4 mt-5">
+
+                    ${
+                        oldPrice > 0
+                            ? `
+                                <span class="text-gray-500 line-through">
+                                    ${oldPrice.toLocaleString()} ج.م
+                                </span>
+                            `
+                            : ''
+                    }
+
+                    ${
+                        offerPrice > 0
+                            ? `
+                                <span class="text-brand-amber font-black text-2xl">
+                                    ${offerPrice.toLocaleString()} ج.م
+                                </span>
+                            `
+                            : ''
+                    }
+
+                </div>
+
+                ${
+                    offer.button_link
+                        ? `
+                            <a
+                                href="${offer.button_link}"
+                                onclick="closeOfferPopup()"
+                                class="inline-flex items-center justify-center mt-6 px-8 py-3 rounded-xl amber-gradient text-black font-extrabold"
+                            >
+                                ${offer.button_text || 'اطلب العرض'}
+                            </a>
+                        `
+                        : ''
+                }
+
+            </div>
+
+        </div>
+    `;
+
+    popup.onclick = function () {
+        closeOfferPopup();
+    };
+
+    popup.classList.remove('hidden');
+    popup.classList.add('flex');
+
+    sessionStorage.setItem(
+        'OSCAR_OFFER_POPUP_SHOWN',
+        'true'
+    );
+}
+
+
+// =====================================================
+// إغلاق Popup
+// =====================================================
+
+function closeOfferPopup() {
+
+    const popup =
+        document.getElementById(
+            'public-offer-popup'
+        );
+
+    if (!popup) {
+        return;
+    }
+
+    popup.classList.add('hidden');
+    popup.classList.remove('flex');
 }
 
 async function initializeStore() {
@@ -4769,7 +5146,291 @@ function renderAdminProducts() {
         </div>
     `).join('');
 }
-      function renderAdminCategories() {
+
+        function renderAdminOffers() {
+    const container = document.getElementById('admin-offers-list-grid');
+
+    if (!container) return;
+
+    const offers = Array.isArray(appState.offers)
+        ? appState.offers
+        : [];
+
+    if (offers.length === 0) {
+        container.innerHTML = `
+            <div class="col-span-full bg-neutral-900 border border-neutral-800 rounded-2xl p-8 text-center">
+                <i class="fas fa-fire text-brand-amber text-3xl mb-3"></i>
+
+                <h4 class="text-white font-bold text-lg">
+                    لا توجد عروض حاليًا
+                </h4>
+
+                <p class="text-gray-400 text-sm mt-2">
+                    اضغط على "إضافة عرض جديد" لإنشاء أول عرض.
+                </p>
+            </div>
+        `;
+
+        return;
+    }
+
+    container.innerHTML = offers.map(offer => {
+
+        const oldPrice =
+            Number(offer.old_price) || 0;
+
+        const offerPrice =
+            Number(offer.offer_price) || 0;
+
+        const image =
+            offer.image_url || '';
+
+        const isActive =
+            offer.is_active !== false;
+
+        const popup =
+            offer.show_popup !== false;
+
+        const homepage =
+            offer.show_homepage !== false;
+
+        return `
+            <div class="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden">
+
+                ${
+                    image
+                        ? `
+                            <img
+                                src="${image}"
+                                alt="${offer.title || 'العرض'}"
+                                class="w-full h-48 object-cover"
+                            >
+                        `
+                        : `
+                            <div class="w-full h-48 bg-neutral-800 flex items-center justify-center">
+                                <i class="fas fa-fire text-brand-amber text-4xl"></i>
+                            </div>
+                        `
+                }
+
+                <div class="p-4">
+
+                    <div class="flex items-start justify-between gap-3">
+
+                        <div>
+                            <h4 class="font-bold text-white text-base">
+                                ${offer.title || 'عرض بدون عنوان'}
+                            </h4>
+
+                            ${
+                                offer.description
+                                    ? `
+                                        <p class="text-gray-400 text-xs mt-2 line-clamp-2">
+                                            ${offer.description}
+                                        </p>
+                                    `
+                                    : ''
+                            }
+                        </div>
+
+                        <span class="${
+                            isActive
+                                ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                : 'bg-red-500/10 text-red-400 border-red-500/20'
+                        } border px-2 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap">
+                            ${
+                                isActive
+                                    ? 'فعال'
+                                    : 'متوقف'
+                            }
+                        </span>
+
+                    </div>
+
+                    <div class="mt-4 flex items-center gap-3">
+
+                        ${
+                            oldPrice > 0
+                                ? `
+                                    <span class="text-gray-500 line-through text-xs">
+                                        ${oldPrice.toLocaleString()} ج.م
+                                    </span>
+                                `
+                                : ''
+                        }
+
+                        ${
+                            offerPrice > 0
+                                ? `
+                                    <span class="text-brand-amber font-extrabold text-lg">
+                                        ${offerPrice.toLocaleString()} ج.م
+                                    </span>
+                                `
+                                : ''
+                        }
+
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mt-4">
+
+                        <div class="${
+                            popup
+                                ? 'bg-brand-amber/10 text-brand-amber'
+                                : 'bg-neutral-800 text-gray-500'
+                        } rounded-lg px-2 py-2 text-center text-[10px] font-bold">
+
+                            <i class="fas fa-window-maximize ml-1"></i>
+
+                            Popup:
+                            ${popup ? 'نعم' : 'لا'}
+
+                        </div>
+
+                        <div class="${
+                            homepage
+                                ? 'bg-green-500/10 text-green-400'
+                                : 'bg-neutral-800 text-gray-500'
+                        } rounded-lg px-2 py-2 text-center text-[10px] font-bold">
+
+                            <i class="fas fa-home ml-1"></i>
+
+                            الرئيسية:
+                            ${homepage ? 'نعم' : 'لا'}
+
+                        </div>
+
+                    </div>
+
+                    <div class="flex items-center justify-between gap-2 mt-4 pt-4 border-t border-neutral-800">
+
+                        <button
+                            type="button"
+                            onclick="editOffer('${offer.id}')"
+                            class="flex-1 bg-brand-amber/10 text-brand-amber hover:bg-brand-amber/20 rounded-xl py-2.5 font-bold text-xs"
+                        >
+                            <i class="fas fa-edit ml-1"></i>
+                            تعديل
+                        </button>
+
+                        <button
+                            type="button"
+                            onclick="deleteOffer('${offer.id}')"
+                            class="flex-1 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl py-2.5 font-bold text-xs"
+                        >
+                            <i class="fas fa-trash ml-1"></i>
+                            حذف
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+        `;
+    }).join('');
+}
+
+
+async function deleteOffer(id) {
+
+    if (!id) return;
+
+    const offer =
+        (appState.offers || []).find(
+            item => String(item.id) === String(id)
+        );
+
+    const offerName =
+        offer?.title || 'هذا العرض';
+
+    const confirmed =
+        confirm(
+            `هل أنت متأكد من حذف "${offerName}"؟\n\nلا يمكن التراجع عن الحذف.`
+        );
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+
+        const token =
+            sessionStorage.getItem(
+                'OSCAR_ADMIN_ACCESS_TOKEN'
+            );
+
+        if (!token) {
+
+            alert(
+                'انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.'
+            );
+
+            switchView('admin-login');
+
+            return;
+        }
+
+        const response =
+            await fetch('/api/offers', {
+                method: 'DELETE',
+
+                headers: {
+                    'Authorization':
+                        'Bearer ' + token
+                },
+
+                body: JSON.stringify({
+                    id: id
+                })
+            });
+
+        const text =
+            await response.text();
+
+        let data = {};
+
+        try {
+            data =
+                text
+                    ? JSON.parse(text)
+                    : {};
+        } catch {
+            data = {
+                error: text
+            };
+        }
+
+        if (!response.ok || !data.success) {
+
+            throw new Error(
+                data?.error ||
+                'فشل حذف العرض'
+            );
+        }
+
+        // تحديث البيانات من قاعدة البيانات
+        await loadStoreDataFromDatabase();
+
+        showToast(
+            'تم حذف العرض بنجاح 🗑️'
+        );
+
+    } catch (error) {
+
+        console.error(
+            'DELETE OFFER ERROR:',
+            error
+        );
+
+        showToast(
+            error?.message ||
+            'حدث خطأ أثناء حذف العرض',
+            'error'
+        );
+    }
+}
+        
+        function renderAdminCategories() {
     const container = document.getElementById('admin-categories-manage-grid');
 
     if (!container) return;
