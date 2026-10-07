@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>تم تسجيل طلبك | المتحدة للرتان والأثاث</title>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap"
+        rel="stylesheet"
+    >
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            wine: '#8B1E2B',
+                            amber: '#E87A18',
+                            gold: '#D4AF37'
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background:
+                radial-gradient(
+                    circle at top,
+                    #3a1018 0%,
+                    #111111 45%,
+                    #050505 100%
+                );
+        }
+    </style>
+</head>
+
+<body class="min-h-screen text-white">
+
+    <main class="min-h-screen flex items-center justify-center px-4 py-10">
+
+        <div
+            class="w-full max-w-4xl bg-neutral-950/95 border border-neutral-800 rounded-3xl shadow-2xl overflow-hidden"
+        >
+
+            <!-- Header -->
+            <div
+                class="text-center px-6 py-10 border-b border-neutral-800"
+            >
+
+                <div
+                    class="mx-auto mb-5 w-20 h-20 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center"
+                >
+                    <span class="text-4xl">✓</span>
+                </div>
+
+                <h1
+                    class="text-2xl md:text-3xl font-black text-brand-amber"
+                >
+                    شكرًا لاختيارك المتحدة للرتان والأثاث
+                </h1>
+
+                <p
+                    class="text-gray-300 mt-3 text-sm md:text-base"
+                >
+                    تم تسجيل طلبك بنجاح، وسنتواصل معك لتأكيد تفاصيل الطلب.
+                </p>
+
+            </div>
+
+            <!-- Order Info -->
+            <div class="p-6 md:p-8">
+
+                <div
+                    class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8"
+                >
+
+                    <div
+                        class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5"
+                    >
+                        <p class="text-xs text-gray-500 mb-2">
+                            رقم الطلب
+                        </p>
+
+                        <p
+                            id="order-id"
+                            class="text-xl font-black text-brand-amber"
+                        >
+                            -
+                        </p>
+                    </div>
+
+                    <div
+                        class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5"
+                    >
+                        <p class="text-xs text-gray-500 mb-2">
+                            حالة الطلب
+                        </p>
+
+                        <p
+                            id="order-status"
+                            class="text-lg font-bold text-green-400"
+                        >
+                            جديد
+                        </p>
+                    </div>
+
+                </div>
+
+                <!-- Customer -->
+                <section class="mb-8">
+
+                    <h2
+                        class="text-lg font-black text-brand-amber mb-4"
+                    >
+                        بيانات العميل
+                    </h2>
+
+                    <div
+                        class="grid grid-cols-1 md:grid-cols-2 gap-3"
+                    >
+
+                        <div class="info-box">
+                            <span>الاسم</span>
+                            <strong id="customer-name">-</strong>
+                        </div>
+
+                        <div class="info-box">
+                            <span>الهاتف</span>
+                            <strong id="customer-phone">-</strong>
+                        </div>
+
+                        <div class="info-box">
+                            <span>المحافظة</span>
+                            <strong id="customer-gov">-</strong>
+                        </div>
+
+                        <div class="info-box">
+                            <span>المدينة</span>
+                            <strong id="customer-city">-</strong>
+                        </div>
+
+                        <div
+                            class="info-box md:col-span-2"
+                        >
+                            <span>العنوان</span>
+                            <strong id="customer-address">-</strong>
+                        </div>
+
+                    </div>
+
+                </section>
+
+                <!-- Products -->
+                <section class="mb-8">
+
+                    <h2
+                        class="text-lg font-black text-brand-amber mb-4"
+                    >
+                        تفاصيل الطلب
+                    </h2>
+
+                    <div
+                        id="order-items"
+                        class="space-y-3"
+                    ></div>
+
+                </section>
+
+                <!-- Totals -->
+                <section class="mb-8">
+
+                    <div
+                        class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 space-y-3"
+                    >
+
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">
+                                إجمالي المنتجات
+                            </span>
+
+                            <strong id="subtotal">
+                                0 ج.م
+                            </strong>
+                        </div>
+
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">
+                                الشحن
+                            </span>
+
+                            <strong id="shipping">
+                                0 ج.م
+                            </strong>
+                        </div>
+
+                        <div
+                            class="border-t border-neutral-800 pt-3 flex justify-between"
+                        >
+                            <span class="font-bold">
+                                الإجمالي
+                            </span>
+
+                            <strong
+                                id="total"
+                                class="text-xl text-brand-amber"
+                            >
+                                0 ج.م
+                            </strong>
+                        </div>
+
+                    </div>
+
+                </section>
+
+                <!-- Payment -->
+                <section class="mb-8">
+
+                    <h2
+                        class="text-lg font-black text-brand-amber mb-4"
+                    >
+                        الدفع والاستلام
+                    </h2>
+
+                    <div
+                        class="grid grid-cols-1 md:grid-cols-2 gap-3"
+                    >
+
+                        <div class="info-box">
+                            <span>طريقة الاستلام</span>
+                            <strong id="shipping-method">-</strong>
+                        </div>
+
+                        <div class="info-box">
+                            <span>طريقة الدفع</span>
+                            <strong id="payment-method">-</strong>
+                        </div>
+
+                        <div class="info-box">
+                            <span>نسبة الـ Deposit</span>
+                            <strong id="deposit-percent">-</strong>
+                        </div>
+
+                        <div class="info-box">
+                            <span>قيمة الـ Deposit</span>
+                            <strong id="deposit-amount">-</strong>
+                        </div>
+
+                        <div
+                            class="info-box md:col-span-2"
+                        >
+                            <span>المبلغ المتبقي</span>
+                            <strong
+                                id="remaining-amount"
+                                class="text-brand-amber"
+                            >
+                                -
+                            </strong>
+                        </div>
+
+                    </div>
+
+                </section>
+
+                <!-- Home -->
+                <a
+                    href="/"
+                    class="block w-full text-center bg-brand-wine hover:opacity-90 text-white font-black py-4 rounded-2xl transition"
+                >
+                    العودة للرئيسية
+                </a>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <script>
+
+        const style = document.createElement('style');
+
+        style.innerHTML = `
+            .info-box {
+                background: #111;
+                border: 1px solid #262626;
+                border-radius: 16px;
+                padding: 16px;
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+
+            .info-box span {
+                color: #737373;
+                font-size: 11px;
+            }
+
+            .info-box strong {
+                color: #fff;
+                font-size: 13px;
+            }
+
+            .order-item {
+                background: #111;
+                border: 1px solid #262626;
+                border-radius: 16px;
+                padding: 14px;
+                display: flex;
+                gap: 14px;
+                align-items: center;
+            }
+
+            .order-item img {
+                width: 72px;
+                height: 72px;
+                object-fit: cover;
+                border-radius: 12px;
+                background: #222;
+            }
+        `;
+
+        document.head.appendChild(style);
+
+
+        // =====================================
+        // قراءة آخر طلب
+        // =====================================
+
+        const rawOrder =
+            sessionStorage.getItem('lastOrder');
+
+
+        if (!rawOrder) {
+
+            document.body.innerHTML = `
+
+                <div
+                    class="min-h-screen flex items-center justify-center p-6 text-center"
+                >
+
+                    <div>
+
+                        <h1
+                            class="text-2xl font-black text-brand-amber mb-3"
+                        >
+                            لا يوجد طلب لعرضه
+                        </h1>
+
+                        <p class="text-gray-400 mb-6">
+                            لم يتم العثور على بيانات الطلب.
+                        </p>
+
+                        <a
+                            href="/"
+                            class="inline-block bg-brand-wine text-white px-8 py-3 rounded-xl font-bold"
+                        >
+                            العودة للرئيسية
+                        </a>
+
+                    </div>
+
+                </div>
+
+            `;
+
+        } else {
+
+            try {
+
+                const order =
+                    JSON.parse(rawOrder);
+
+
+                // =====================================
+                // رقم الطلب والحالة
+                // =====================================
+
+                document.getElementById(
+                    'order-id'
+                ).textContent =
+                    order.id || '-';
+
+
+                const statusMap = {
+
+                    New:
+                        'جديد',
+
+                    Confirmed:
+                        'مؤكد',
+
+                    Shipped:
+                        'تم الشحن',
+
+                    Delivered:
+                        'تم التسليم',
+
+                    Cancelled:
+                        'ملغي'
+                };
+
+
+                document.getElementById(
+                    'order-status'
+                ).textContent =
+                    statusMap[
+                        order.status
+                    ] ||
+                    'جديد';
+
+
+                // =====================================
+                // بيانات العميل
+                // =====================================
+
+                const customer =
+                    order.customer || {};
+
+
+                document.getElementById(
+                    'customer-name'
+                ).textContent =
+                    customer.name || '-';
+
+
+                document.getElementById(
+                    'customer-phone'
+                ).textContent =
+                    customer.phone || '-';
+
+
+                document.getElementById(
+                    'customer-gov'
+                ).textContent =
+                    customer.gov || '-';
+
+
+                document.getElementById(
+                    'customer-city'
+                ).textContent =
+                    customer.city || '-';
+
+
+                document.getElementById(
+                    'customer-address'
+                ).textContent =
+                    customer.address || '-';
+
+
+                // =====================================
+                // المنتجات
+                // =====================================
+
+                const items =
+                    Array.isArray(order.items)
+                        ? order.items
+                        : [];
+
+
+                const itemsContainer =
+                    document.getElementById(
+                        'order-items'
+                    );
+
+
+                if (!items.length) {
+
+                    itemsContainer.innerHTML = `
+                        <div class="text-center text-gray-500 py-8">
+                            لا توجد منتجات في الطلب.
+                        </div>
+                    `;
+
+                } else {
+
+                    itemsContainer.innerHTML =
+                        items.map(item => {
+
+                            const qty =
+                                Number(
+                                    item.qty || 0
+                                );
+
+                            const unitPrice =
+                                Number(
+                                    item.unitPrice ??
+                                    item.price ??
+                                    0
+                                );
+
+                            const itemTotal =
+                                unitPrice *
+                                qty;
+
+
+                            return `
+
+                                <div class="order-item">
+
+                                    <img
+                                        src="${
+                                            item.image ||
+                                            ''
+                                        }"
+                                        alt=""
+                                    >
+
+                                    <div class="flex-grow">
+
+                                        <h3
+                                            class="font-bold text-white text-sm mb-1"
+                                        >
+                                            ${
+                                                item.productTitle ||
+                                                item.title ||
+                                                item.name ||
+                                                'منتج'
+                                            }
+                                        </h3>
+
+                                        <p
+                                            class="text-[11px] text-gray-500"
+                                        >
+                                            الكمية:
+                                            ${qty}
+                                        </p>
+
+                                        ${
+                                            item.upholsteryName
+                                                ? `
+                                                    <p class="text-[11px] text-gray-500">
+                                                        التنجيد:
+                                                        ${item.upholsteryName}
+                                                    </p>
+                                                `
+                                                : ''
+                                        }
+
+                                        ${
+                                            item.cushionColor
+                                                ? `
+                                                    <p class="text-[11px] text-gray-500">
+                                                        لون المخدة:
+                                                        ${item.cushionColor}
+                                                    </p>
+                                                `
+                                                : ''
+                                        }
+
+                                        ${
+                                            item.wickerColor
+                                                ? `
+                                                    <p class="text-[11px] text-gray-500">
+                                                        لون الرتان:
+                                                        ${item.wickerColor}
+                                                    </p>
+                                                `
+                                                : ''
+                                        }
+
+                                    </div>
+
+                                    <strong
+                                        class="text-brand-amber text-sm whitespace-nowrap"
+                                    >
+                                        ${
+                                            itemTotal.toLocaleString(
+                                                'ar-EG'
+                                            )
+                                        }
+                                        ج.م
+                                    </strong>
+
+                                </div>
+
+                            `;
+
+                        }).join('');
+
+                }
+
+
+                // =====================================
+                // الإجماليات
+                // =====================================
+
+                document.getElementById(
+                    'subtotal'
+                ).textContent =
+                    `${
+                        Number(
+                            order.subtotal || 0
+                        ).toLocaleString(
+                            'ar-EG'
+                        )
+                    } ج.م`;
+
+
+                document.getElementById(
+                    'shipping'
+                ).textContent =
+                    `${
+                        Number(
+                            order.shippingCost || 0
+                        ).toLocaleString(
+                            'ar-EG'
+                        )
+                    } ج.م`;
+
+
+                document.getElementById(
+                    'total'
+                ).textContent =
+                    `${
+                        Number(
+                            order.total || 0
+                        ).toLocaleString(
+                            'ar-EG'
+                        )
+                    } ج.م`;
+
+
+                // =====================================
+                // الدفع والاستلام
+                // =====================================
+
+                document.getElementById(
+                    'shipping-method'
+                ).textContent =
+                    order.shippingMethod ||
+                    '-';
+
+
+                document.getElementById(
+                    'payment-method'
+                ).textContent =
+                    order.paymentMethod ||
+                    '-';
+
+
+                document.getElementById(
+                    'deposit-percent'
+                ).textContent =
+                    `${
+                        Number(
+                            order.depositPercent || 0
+                        )
+                    }%`;
+
+
+                document.getElementById(
+                    'deposit-amount'
+                ).textContent =
+                    `${
+                        Number(
+                            order.depositAmount || 0
+                        ).toLocaleString(
+                            'ar-EG'
+                        )
+                    } ج.م`;
+
+
+                document.getElementById(
+                    'remaining-amount'
+                ).textContent =
+                    `${
+                        Number(
+                            order.remainingAmount || 0
+                        ).toLocaleString(
+                            'ar-EG'
+                        )
+                    } ج.م`;
+
+            } catch (error) {
+
+                console.error(
+                    'THANK YOU PAGE ERROR:',
+                    error
+                );
+
+                document.body.innerHTML = `
+
+                    <div
+                        class="min-h-screen flex items-center justify-center p-6 text-center"
+                    >
+
+                        <div>
+
+                            <h1
+                                class="text-2xl font-black text-red-400 mb-3"
+                            >
+                                حدث خطأ في عرض الطلب
+                            </h1>
+
+                            <a
+                                href="/"
+                                class="inline-block bg-brand-wine text-white px-8 py-3 rounded-xl font-bold"
+                            >
+                                العودة للرئيسية
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                `;
+            }
+
+        }
+
+    </script>
+
+</body>
+</html>
