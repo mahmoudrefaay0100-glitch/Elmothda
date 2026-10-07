@@ -2871,9 +2871,25 @@ showToast('تم إضافة القسم بنجاح ✅');
                                 <span>الإجمالي النهائي:</span>
                                 <span class="gold-gradient-text font-extrabold text-base">${grandTotal.toLocaleString()} ج.م</span>
                             </div>
-                            <button onclick="confirmAddToCart()" class="w-full wine-gradient hover:opacity-90 text-white font-extrabold py-3 rounded-xl border border-brand-amber/30 transition shadow-lg text-xs mt-2">
-                                إضافة إلى سلة الطلبات <i class="fas fa-cart-plus mr-1"></i>
-                            </button>
+                           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+
+    <button
+        onclick="confirmAddToCart(false)"
+        class="w-full wine-gradient hover:opacity-90 text-white font-extrabold py-3 rounded-xl border border-brand-amber/30 transition shadow-lg text-xs"
+    >
+        <i class="fas fa-cart-plus ml-1"></i>
+        إضافة للسلة
+    </button>
+
+    <button
+        onclick="confirmAddToCart(true)"
+        class="w-full amber-gradient hover:opacity-90 text-black font-extrabold py-3 rounded-xl transition shadow-lg text-xs"
+    >
+        <i class="fas fa-bolt ml-1"></i>
+        إتمام الطلب
+    </button>
+
+</div>
                         </div>
                     </div>
                 </div>
@@ -2887,30 +2903,78 @@ showToast('تم إضافة القسم بنجاح ✅');
         function changeCustomizerQty(delta) { customizerQty = Math.max(1, customizerQty + delta); renderCustomizerModalContent(); }
         function closeProductModal() { document.getElementById('product-detail-modal').classList.add('hidden'); }
 
-        function confirmAddToCart() {
-            const p = activeCustomizerProduct;
-            const selectedUph = appState.upholsteryTypes.find(u => u.id === selectedUpholsteryId);
-            const chairsPerSet = p.isChairProduct ? (p.chairCount || 1) : 0;
-            const sunbrellaCost = sunbrellaChecked ? (chairsPerSet * appState.sunbrellaRatePerChair) : 0;
-            const unitPrice = p.price + (selectedUph?.extraFeePerUnit || 0) + sunbrellaCost;
+      function confirmAddToCart(goToCheckout = false) {
+    const p = activeCustomizerProduct;
 
-            currentCart.push({
-                cartItemId: "item-" + Date.now(),
-                productId: p.id,
-                productTitle: p.title,
-                image: p.images[0],
-                qty: customizerQty,
-                unitPrice: unitPrice,
-                upholsteryName: selectedUph?.name || 'أساسي',
-                cushionColor: selectedCushionColor,
-                wickerColor: selectedWickerColor,
-                sunbrellaAdded: sunbrellaChecked
-            });
-            closeProductModal();
-            updateCartBadge();
-            renderCartDrawer();
-            toggleCartDrawer(true);
-        }
+    const selectedUph =
+        appState.upholsteryTypes.find(
+            u => u.id === selectedUpholsteryId
+        );
+
+    const chairsPerSet =
+        p.isChairProduct
+            ? (p.chairCount || 1)
+            : 0;
+
+    const sunbrellaCost =
+        sunbrellaChecked
+            ? (
+                chairsPerSet *
+                appState.sunbrellaRatePerChair
+            )
+            : 0;
+
+    const unitPrice =
+        p.price +
+        (selectedUph?.extraFeePerUnit || 0) +
+        sunbrellaCost;
+
+    currentCart.push({
+        cartItemId:
+            "item-" + Date.now(),
+
+        productId:
+            p.id,
+
+        productTitle:
+            p.title,
+
+        image:
+            p.images[0],
+
+        qty:
+            customizerQty,
+
+        unitPrice:
+            unitPrice,
+
+        upholsteryName:
+            selectedUph?.name || 'أساسي',
+
+        cushionColor:
+            selectedCushionColor,
+
+        wickerColor:
+            selectedWickerColor,
+
+        sunbrellaAdded:
+            sunbrellaChecked
+    });
+
+    closeProductModal();
+
+    updateCartBadge();
+    renderCartDrawer();
+
+    // لو اختار "إتمام الطلب"
+    if (goToCheckout) {
+        openCheckoutModal();
+        return;
+    }
+
+    // لو اختار "إضافة للسلة"
+    toggleCartDrawer(true);
+}
 
         function toggleCartDrawer(open) {
             const drawer = document.getElementById('cart-drawer');
@@ -3434,6 +3498,10 @@ window.updateDepositAmount =
                 0
             );
 
+        // =====================================
+        // إنشاء بيانات الطلب
+        // =====================================
+
         const newOrder = {
 
             id:
@@ -3487,6 +3555,10 @@ window.updateDepositAmount =
                 'New'
         };
 
+        // =====================================
+        // تسجيل الطلب في قاعدة البيانات
+        // =====================================
+
         const response =
             await fetch('/api/orders', {
 
@@ -3505,47 +3577,102 @@ window.updateDepositAmount =
             await response.json();
 
         if (!response.ok || !result.success) {
+
             throw new Error(
                 result.error ||
                 'فشل تسجيل الطلب'
             );
         }
 
+        // =====================================
+        // إرسال إشعار WhatsApp
+        // =====================================
+
         try {
-    const whatsappResponse =
-        await fetch('/api/send-whatsapp-order', {
-            method: 'POST',
 
-            headers: {
-                'Content-Type':
-                    'application/json'
-            },
+            const whatsappResponse =
+                await fetch('/api/send-whatsapp-order', {
 
-            body:
-                JSON.stringify(newOrder)
-        });
+                    method: 'POST',
 
-    const whatsappResult =
-        await whatsappResponse.json();
+                    headers: {
+                        'Content-Type':
+                            'application/json'
+                    },
 
-    if (!whatsappResponse.ok || !whatsappResult.success) {
-        console.error(
-            'WHATSAPP NOTIFICATION ERROR:',
-            whatsappResult
+                    body:
+                        JSON.stringify(newOrder)
+                });
+
+            const whatsappResult =
+                await whatsappResponse.json();
+
+            if (
+                !whatsappResponse.ok ||
+                !whatsappResult.success
+            ) {
+
+                console.error(
+                    'WHATSAPP NOTIFICATION ERROR:',
+                    whatsappResult
+                );
+
+            } else {
+
+                console.log(
+                    'WHATSAPP ORDER NOTIFICATION SENT'
+                );
+            }
+
+        } catch (whatsappError) {
+
+            // فشل WhatsApp لا يمنع نجاح تسجيل الطلب
+            console.error(
+                'WHATSAPP NOTIFICATION FAILED:',
+                whatsappError
+            );
+        }
+
+        // =====================================
+        // حفظ الطلب لصفحة الشكر
+        // =====================================
+
+        sessionStorage.setItem(
+            'lastOrder',
+            JSON.stringify(newOrder)
         );
-    } else {
-        console.log(
-            'WHATSAPP ORDER NOTIFICATION SENT'
+
+        // =====================================
+        // تفريغ السلة
+        // =====================================
+
+        currentCart = [];
+
+        localStorage.removeItem('cart');
+
+        // =====================================
+        // الانتقال لصفحة الشكر
+        // =====================================
+
+        window.location.href =
+            '/thank-you.html';
+
+    } catch (error) {
+
+        console.error(
+            'SUBMIT DEPOSIT ORDER ERROR:',
+            error
+        );
+
+        alert(
+            'حدث خطأ أثناء تسجيل الطلب:\n' +
+            error.message
         );
     }
-
-} catch (whatsappError) {
-
-    console.error(
-        'WHATSAPP NOTIFICATION FAILED:',
-        whatsappError
-    );
 }
+
+window.submitDepositOrder =
+    submitDepositOrder;
         
         alert(
             `تم تسجيل طلبك بنجاح ✅\n\n` +
