@@ -3434,10 +3434,22 @@ window.updateDepositAmount =
         const address =
             document.getElementById('chk-address')?.value?.trim() || '';
 
+        // =====================================
+        // التحقق من بيانات العميل
+        // =====================================
+
         if (!name || !phone || !gov || !city || !address) {
-            alert('من فضلك أكمل بيانات العميل والعنوان أولاً.');
+
+            alert(
+                'من فضلك أكمل بيانات العميل والعنوان أولاً.'
+            );
+
             return;
         }
+
+        // =====================================
+        // طريقة الشحن
+        // =====================================
 
         const shipVal =
             document.querySelector(
@@ -3455,9 +3467,17 @@ window.updateDepositAmount =
             );
 
         if (!selectedShip) {
-            alert('من فضلك اختر طريقة الشحن.');
+
+            alert(
+                'من فضلك اختر طريقة الشحن.'
+            );
+
             return;
         }
+
+        // =====================================
+        // حساب المنتجات
+        // =====================================
 
         const subtotal =
             currentCart.reduce(
@@ -3469,16 +3489,33 @@ window.updateDepositAmount =
                             item.price ??
                             0
                         ) *
-                        Number(item.qty ?? 0)
+                        Number(
+                            item.qty ?? 0
+                        )
                     ),
                 0
             );
 
+        // =====================================
+        // حساب الشحن
+        // =====================================
+
         const shippingCost =
-            Number(selectedShip.price || 0);
+            Number(
+                selectedShip.price || 0
+            );
+
+        // =====================================
+        // الإجمالي
+        // =====================================
 
         const total =
-            subtotal + shippingCost;
+            subtotal +
+            shippingCost;
+
+        // =====================================
+        // حساب الـ Deposit
+        // =====================================
 
         const depositPercent =
             Number(
@@ -3494,7 +3531,8 @@ window.updateDepositAmount =
 
         const remainingAmount =
             Math.max(
-                total - depositAmount,
+                total -
+                depositAmount,
                 0
             );
 
@@ -3517,10 +3555,15 @@ window.updateDepositAmount =
                     .split('T')[0],
 
             customer: {
+
                 name,
+
                 phone,
+
                 gov,
+
                 city,
+
                 address
             },
 
@@ -3560,23 +3603,33 @@ window.updateDepositAmount =
         // =====================================
 
         const response =
-            await fetch('/api/orders', {
+            await fetch(
+                '/api/orders',
+                {
 
-                method: 'POST',
+                    method:
+                        'POST',
 
-                headers: {
-                    'Content-Type':
-                        'application/json'
-                },
+                    headers: {
 
-                body:
-                    JSON.stringify(newOrder)
-            });
+                        'Content-Type':
+                            'application/json'
+                    },
+
+                    body:
+                        JSON.stringify(
+                            newOrder
+                        )
+                }
+            );
 
         const result =
             await response.json();
 
-        if (!response.ok || !result.success) {
+        if (
+            !response.ok ||
+            !result.success
+        ) {
 
             throw new Error(
                 result.error ||
@@ -3591,18 +3644,25 @@ window.updateDepositAmount =
         try {
 
             const whatsappResponse =
-                await fetch('/api/send-whatsapp-order', {
+                await fetch(
+                    '/api/send-whatsapp-order',
+                    {
 
-                    method: 'POST',
+                        method:
+                            'POST',
 
-                    headers: {
-                        'Content-Type':
-                            'application/json'
-                    },
+                        headers: {
 
-                    body:
-                        JSON.stringify(newOrder)
-                });
+                            'Content-Type':
+                                'application/json'
+                        },
+
+                        body:
+                            JSON.stringify(
+                                newOrder
+                            )
+                    }
+                );
 
             const whatsappResult =
                 await whatsappResponse.json();
@@ -3624,9 +3684,12 @@ window.updateDepositAmount =
                 );
             }
 
-        } catch (whatsappError) {
+        } catch (
+            whatsappError
+        ) {
 
-            // فشل WhatsApp لا يمنع نجاح تسجيل الطلب
+            // فشل WhatsApp لا يمنع تسجيل الطلب
+
             console.error(
                 'WHATSAPP NOTIFICATION FAILED:',
                 whatsappError
@@ -3639,7 +3702,9 @@ window.updateDepositAmount =
 
         sessionStorage.setItem(
             'lastOrder',
-            JSON.stringify(newOrder)
+            JSON.stringify(
+                newOrder
+            )
         );
 
         // =====================================
@@ -3648,16 +3713,20 @@ window.updateDepositAmount =
 
         currentCart = [];
 
-        localStorage.removeItem('cart');
+        localStorage.removeItem(
+            'cart'
+        );
 
         // =====================================
-        // الانتقال لصفحة الشكر
+        // الانتقال إلى صفحة الشكر
         // =====================================
 
         window.location.href =
             '/thank-you.html';
 
-    } catch (error) {
+    } catch (
+        error
+    ) {
 
         console.error(
             'SUBMIT DEPOSIT ORDER ERROR:',
@@ -3671,55 +3740,9 @@ window.updateDepositAmount =
     }
 }
 
-window.submitDepositOrder =
-    submitDepositOrder;
-        
-        alert(
-            `تم تسجيل طلبك بنجاح ✅\n\n` +
-            `رقم الطلب: ${newOrder.id}\n` +
-            `Deposit: ${depositAmount.toLocaleString('ar-EG')} ج.م\n` +
-            `المتبقي: ${remainingAmount.toLocaleString('ar-EG')} ج.م\n\n` +
-            `سنتواصل معك لتأكيد دفع الـ Deposit.`
-        );
-
-        currentCart = [];
-
-        localStorage.removeItem('cart');
-
-        const checkoutModal =
-            document.getElementById(
-                'checkout-modal'
-            );
-
-        if (checkoutModal) {
-            checkoutModal.classList.add('hidden');
-        }
-
-        if (
-            typeof renderCart === 'function'
-        ) {
-            renderCart();
-        }
-
-        if (
-            typeof showOrderTracking === 'function'
-        ) {
-            showOrderTracking();
-        }
-
-    } catch (error) {
-
-        console.error(
-            'SUBMIT DEPOSIT ORDER ERROR:',
-            error
-        );
-
-        alert(
-            'حدث خطأ أثناء تسجيل الطلب:\n' +
-            error.message
-        );
-    }
-}
+// =====================================
+// جعل الدالة متاحة للأزرار
+// =====================================
 
 window.submitDepositOrder =
     submitDepositOrder;
