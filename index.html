@@ -4554,27 +4554,142 @@ if (receiptPage) {
         );
     }
 }
-        function trackOrderSubmit() {
-            const orderId = document.getElementById('track-order-id-input').value.trim();
-            const container = document.getElementById('track-result-container');
-            const order = appState.orders.find(o => o.id.toLowerCase() === orderId.toLowerCase());
-            container.classList.remove('hidden');
-            if (!order) { container.innerHTML = `<p class="text-red-400 text-center text-xs font-bold">لم يتم العثور على طلب بهذا الرقم.</p>`; return; }
-            container.innerHTML = `
-                <div class="bg-black p-4 rounded-2xl border border-neutral-800 space-y-3 text-xs">
-                    <div class="flex justify-between items-center border-b border-neutral-800 pb-2">
-                        <span class="font-bold text-white">رقم الطلب: ${order.id}</span>
-                        <span class="wine-gradient text-white text-[10px] px-2.5 py-0.5 rounded-full font-bold">الحالة: ${order.status}</span>
-                    </div>
-                    <p class="text-gray-300">العميل: ${order.customer.name} (${order.customer.phone})</p>
-                    <p class="text-gray-300">العنوان: ${order.customer.gov} - ${order.customer.city}</p>
-                    <div class="border-t border-neutral-800 pt-2 flex justify-between font-bold text-sm text-brand-amber">
-                        <span>الإجمالي:</span><span>${order.total.toLocaleString()} ج.م</span>
-                    </div>
-                </div>
-            `;
-        }
+       function trackOrderSubmit() {
 
+    const orderId =
+        document
+            .getElementById('track-order-id-input')
+            .value
+            .trim();
+
+    const container =
+        document.getElementById(
+            'track-result-container'
+        );
+
+    const orders =
+        Array.isArray(appState.orders)
+            ? appState.orders
+            : [];
+
+    const order =
+        orders.find(o =>
+            String(o?.id || '').toLowerCase() ===
+            orderId.toLowerCase()
+        );
+
+    container.classList.remove('hidden');
+
+    // =====================================
+    // الطلب غير موجود
+    // =====================================
+
+    if (!order) {
+
+        container.innerHTML = `
+            <p class="text-red-400 text-center text-xs font-bold">
+                لم يتم العثور على طلب بهذا الرقم.
+            </p>
+        `;
+
+        return;
+    }
+
+    // =====================================
+    // بيانات العميل بشكل آمن
+    // =====================================
+
+    const customer =
+        order.customer || {};
+
+    const customerName =
+        customer.name ||
+        order.customer_name ||
+        order.name ||
+        'غير متوفر';
+
+    const customerPhone =
+        customer.phone ||
+        order.customer_phone ||
+        order.phone ||
+        'غير متوفر';
+
+    const customerGov =
+        customer.gov ||
+        order.gov ||
+        'غير متوفر';
+
+    const customerCity =
+        customer.city ||
+        order.city ||
+        'غير متوفر';
+
+    const total =
+        Number(
+            order.total || 0
+        );
+
+    // =====================================
+    // عرض الطلب
+    // =====================================
+
+    container.innerHTML = `
+
+        <div
+            class="bg-black p-4 rounded-2xl border border-neutral-800 space-y-3 text-xs"
+        >
+
+            <div
+                class="flex justify-between items-center border-b border-neutral-800 pb-2"
+            >
+
+                <span class="font-bold text-white">
+                    رقم الطلب:
+                    ${order.id || '-'}
+                </span>
+
+                <span
+                    class="wine-gradient text-white text-[10px] px-2.5 py-0.5 rounded-full font-bold"
+                >
+                    الحالة:
+                    ${order.status || 'New'}
+                </span>
+
+            </div>
+
+            <p class="text-gray-300">
+                العميل:
+                ${customerName}
+                (${customerPhone})
+            </p>
+
+            <p class="text-gray-300">
+                العنوان:
+                ${customerGov}
+                -
+                ${customerCity}
+            </p>
+
+            <div
+                class="border-t border-neutral-800 pt-2 flex justify-between font-bold text-sm text-brand-amber"
+            >
+
+                <span>
+                    الإجمالي:
+                </span>
+
+                <span>
+                    ${total.toLocaleString('ar-EG')}
+                    ج.م
+                </span>
+
+            </div>
+
+        </div>
+
+    `;
+}
+        
 async function handleAdminLogin(e) {
     e.preventDefault();
 
