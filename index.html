@@ -6962,13 +6962,58 @@ async function loadOffers() {
 
     try {
 
+        // =========================
+        // جلب توكن الأدمن
+        // =========================
+
+        const token =
+            sessionStorage.getItem(
+                'OSCAR_ADMIN_ACCESS_TOKEN'
+            );
+
+        if (!token) {
+
+            throw new Error(
+                'انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.'
+            );
+        }
+
+
+        // =========================
+        // تحميل العروض بصلاحية الأدمن
+        // =========================
+
         const response =
-            await fetch('/api/offers');
+            await fetch(
+                '/api/offers',
+                {
+                    method: 'GET',
+
+                    headers: {
+                        'Authorization':
+                            'Bearer ' + token,
+
+                        'Content-Type':
+                            'application/json'
+                    },
+
+                    cache: 'no-store'
+                }
+            );
+
+
+        // =========================
+        // قراءة الرد
+        // =========================
 
         const data =
             await response.json();
 
-        if (!response.ok || !data.success) {
+
+        if (
+            !response.ok ||
+            !data.success
+        ) {
 
             throw new Error(
                 data?.error ||
@@ -6976,14 +7021,96 @@ async function loadOffers() {
             );
         }
 
+
+        // =========================
+        // تحديث قائمة العروض
+        // =========================
+
         appOffers =
-            Array.isArray(data.offers)
+            Array.isArray(
+                data.offers
+            )
                 ? data.offers
                 : [];
 
+
+        // =========================
+        // إعادة رسم العروض في لوحة التحكم
+        // =========================
+
         renderAdminOffers();
 
+
+        // =========================
+        // تحديث appState لو موجود
+        // =========================
+
+        if (
+            typeof appState === 'object' &&
+            appState !== null
+        ) {
+
+            appState.offers =
+                appOffers.map(
+                    offer => ({
+                        ...offer,
+
+                        old_price:
+                            Number(
+                                offer.old_price
+                            ) || 0,
+
+                        offer_price:
+                            Number(
+                                offer.offer_price
+                            ) || 0,
+
+                        is_active:
+                            offer.is_active !== false,
+
+                        show_popup:
+                            offer.show_popup !== false,
+
+                        show_homepage:
+                            offer.show_homepage !== false,
+
+                        sort_order:
+                            Number(
+                                offer.sort_order
+                            ) || 0
+                    })
+                );
+        }
+
+
+        // =========================
+        // تحديث عروض الموقع
+        // =========================
+
+        if (
+            typeof renderHomepageOffers ===
+            'function'
+        ) {
+
+            renderHomepageOffers();
+        }
+
+
+        // =========================
+        // تحديث Popup
+        // =========================
+
+        if (
+            typeof renderOfferPopup ===
+            'function'
+        ) {
+
+            renderOfferPopup();
+        }
+
+
         return appOffers;
+
 
     } catch (error) {
 
@@ -6992,21 +7119,19 @@ async function loadOffers() {
             error
         );
 
+
         showToast(
             error?.message ||
             'حدث خطأ أثناء تحميل العروض.',
             'error'
         );
 
+
         return [];
     }
 }
 
-
-// =====================================================
-// عرض العروض داخل لوحة التحكم
-// =====================================================
-
+        
 function renderAdminOffers() {
 
     const container =
