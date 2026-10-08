@@ -1,9 +1,10 @@
 ```javascript
 export default async function handler(req, res) {
-    const {
-        SUPABASE_URL,
-        SUPABASE_SERVICE_ROLE_KEY
-    } = process.env;
+    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_SERVICE_ROLE_KEY =
+        process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const ADMIN_EMAIL =
+        process.env.ADMIN_EMAIL || 'admin@elmothda.com';
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
         return res.status(500).json({
@@ -12,15 +13,17 @@ export default async function handler(req, res) {
         });
     }
 
-    const token = req.headers.authorization
-        ? req.headers.authorization.replace('Bearer ', '').trim()
-        : '';
-
     // =====================================================
     // التحقق من الأدمن
     // =====================================================
 
     let isAdmin = false;
+
+    const authHeader =
+        req.headers.authorization || '';
+
+    const token =
+        authHeader.replace('Bearer ', '').trim();
 
     if (token) {
         try {
@@ -29,26 +32,32 @@ export default async function handler(req, res) {
                 {
                     method: 'GET',
                     headers: {
-                        apikey: SUPABASE_SERVICE_ROLE_KEY,
-                        Authorization: 'Bearer ' + token
+                        apikey:
+                            SUPABASE_SERVICE_ROLE_KEY,
+                        Authorization:
+                            'Bearer ' + token
                     }
                 }
             );
 
             if (authResponse.ok) {
-                const user = await authResponse.json();
+                const user =
+                    await authResponse.json();
 
                 if (
                     user &&
                     user.email &&
-                    user.email.toLowerCase() ===
-                    String(process.env.ADMIN_EMAIL || '').toLowerCase()
+                    String(user.email).toLowerCase() ===
+                    String(ADMIN_EMAIL).toLowerCase()
                 ) {
                     isAdmin = true;
                 }
             }
-        } catch (authError) {
-            console.error('ADMIN AUTH ERROR:', authError);
+        } catch (error) {
+            console.error(
+                'ADMIN AUTH ERROR:',
+                error
+            );
         }
     }
 
@@ -58,88 +67,112 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET') {
         try {
-            const now = new Date();
-
             const response = await fetch(
                 SUPABASE_URL +
                 '/rest/v1/offers?select=*&is_active=eq.true&order=sort_order.asc,created_at.desc',
                 {
                     method: 'GET',
                     headers: {
-                        apikey: SUPABASE_SERVICE_ROLE_KEY,
+                        apikey:
+                            SUPABASE_SERVICE_ROLE_KEY,
                         Authorization:
-                            'Bearer ' + SUPABASE_SERVICE_ROLE_KEY
+                            'Bearer ' +
+                            SUPABASE_SERVICE_ROLE_KEY
                     },
                     cache: 'no-store'
                 }
             );
 
-            const text = await response.text();
+            const responseText =
+                await response.text();
 
             let offers = [];
 
             try {
-                offers = text ? JSON.parse(text) : [];
-            } catch (parseError) {
-                console.error('SUPABASE OFFERS PARSE ERROR:', text);
+                offers =
+                    responseText
+                        ? JSON.parse(responseText)
+                        : [];
+            } catch (error) {
+                console.error(
+                    'OFFERS JSON PARSE ERROR:',
+                    responseText
+                );
 
                 return res.status(500).json({
                     success: false,
-                    error: 'تعذر قراءة بيانات العروض من قاعدة البيانات'
+                    error:
+                        'تعذر قراءة بيانات العروض'
                 });
             }
 
             if (!response.ok) {
                 console.error(
-                    'SUPABASE OFFERS GET ERROR:',
+                    'SUPABASE OFFERS ERROR:',
                     response.status,
                     offers
                 );
 
-                return res.status(response.status).json({
+                return res.status(
+                    response.status
+                ).json({
                     success: false,
                     error:
                         offers &&
                         offers.message
                             ? offers.message
-                            : 'فشل تحميل العروض من قاعدة البيانات'
+                            : 'فشل تحميل العروض'
                 });
             }
 
             // =================================================
-            // مهم:
-            // لا نحذف العرض بسبب end_date.
-            //
-            // لو انتهى العرض، يظل موجودًا في الموقع
-            // ويظهر عليه "منتهي".
-            //
-            // فقط العروض التي يبدأ تاريخها في المستقبل
-            // لا تظهر للجمهور.
+            // العروض:
+            // - نستبعد غير النشط
+            // - نستبعد العرض الذي لم يبدأ بعد
+            // - لا نستبعد العرض المنتهي
+            //   حتى يظهر على الموقع كـ "منتهي"
             // =================================================
 
-            offers = Array.isArray(offers)
-                ? offers.filter(function (offer) {
-                    if (!offer) return false;
+            const now =
+                new Date();
 
-                    if (offer.is_active === false) {
-                        return false;
-                    }
+            offers =
+                Array.isArray(offers)
+                    ? offers.filter(
+                        function (offer) {
+                            if (!offer) {
+                                return false;
+                            }
 
-                    if (offer.start_date) {
-                        const startDate =
-                            new Date(offer.start_date);
+                            if (
+                                offer.is_active ===
+                                false
+                            ) {
+                                return false;
+                            }
 
-                        if (
-                            !Number.isNaN(startDate.getTime()) &&
-                            startDate > now
-                        ) {
-                            return false;
+                            if (
+                                offer.start_date
+                            ) {
+                                const startDate =
+                                    new Date(
+                                        offer.start_date
+                                    );
+
+                                if (
+                                    !Number.isNaN(
+                                        startDate.getTime()
+                                    ) &&
+                                    startDate > now
+                                ) {
+                                    return false;
+                                }
+                            }
+
+                            return true;
                         }
-                    }
-
-                    return true;
-                })
-                : [];
+                    )
+                    : [];
 
             return res.status(200).json({
                 success: true,
@@ -147,12 +180,16 @@ export default async function handler(req, res) {
             });
 
         } catch (error) {
-            console.error('GET OFFERS ERROR:', error);
+            console.error(
+                'GET OFFERS ERROR:',
+                error
+            );
 
             return res.status(500).json({
                 success: false,
                 error:
-                    error && error.message
+                    error &&
+                    error.message
                         ? error.message
                         : 'حدث خطأ أثناء تحميل العروض'
             });
@@ -167,53 +204,66 @@ export default async function handler(req, res) {
         if (!isAdmin) {
             return res.status(401).json({
                 success: false,
-                error: 'غير مصرح لك بتنفيذ هذا الإجراء'
+                error:
+                    'غير مصرح لك بتنفيذ هذا الإجراء'
             });
         }
 
         try {
-            const body = req.body || {};
+            const body =
+                req.body || {};
 
             const response = await fetch(
-                SUPABASE_URL + '/rest/v1/offers',
+                SUPABASE_URL +
+                '/rest/v1/offers',
                 {
                     method: 'POST',
                     headers: {
-                        apikey: SUPABASE_SERVICE_ROLE_KEY,
+                        apikey:
+                            SUPABASE_SERVICE_ROLE_KEY,
                         Authorization:
-                            'Bearer ' + SUPABASE_SERVICE_ROLE_KEY,
-                        'Content-Type': 'application/json',
-                        Prefer: 'return=representation'
+                            'Bearer ' +
+                            SUPABASE_SERVICE_ROLE_KEY,
+                        'Content-Type':
+                            'application/json',
+                        Prefer:
+                            'return=representation'
                     },
-                    body: JSON.stringify(body)
+                    body:
+                        JSON.stringify(body)
                 }
             );
 
-            const text = await response.text();
+            const responseText =
+                await response.text();
 
             let data = {};
 
             try {
-                data = text ? JSON.parse(text) : {};
-            } catch (parseError) {
+                data =
+                    responseText
+                        ? JSON.parse(
+                            responseText
+                        )
+                        : {};
+            } catch (error) {
                 data = {
-                    error: text
+                    error:
+                        responseText
                 };
             }
 
             if (!response.ok) {
-                console.error(
-                    'SUPABASE OFFERS POST ERROR:',
-                    response.status,
-                    data
-                );
-
-                return res.status(response.status).json({
+                return res.status(
+                    response.status
+                ).json({
                     success: false,
                     error:
-                        data && data.message
+                        data &&
+                        data.message
                             ? data.message
-                            : data && data.error
+                            : data &&
+                              data.error
                                 ? data.error
                                 : 'فشل إنشاء العرض'
                 });
@@ -228,12 +278,16 @@ export default async function handler(req, res) {
             });
 
         } catch (error) {
-            console.error('POST OFFERS ERROR:', error);
+            console.error(
+                'POST OFFERS ERROR:',
+                error
+            );
 
             return res.status(500).json({
                 success: false,
                 error:
-                    error && error.message
+                    error &&
+                    error.message
                         ? error.message
                         : 'حدث خطأ أثناء إنشاء العرض'
             });
@@ -248,13 +302,17 @@ export default async function handler(req, res) {
         if (!isAdmin) {
             return res.status(401).json({
                 success: false,
-                error: 'غير مصرح لك بتنفيذ هذا الإجراء'
+                error:
+                    'غير مصرح لك بتنفيذ هذا الإجراء'
             });
         }
 
         try {
-            const body = req.body || {};
-            const id = body.id;
+            const body =
+                req.body || {};
+
+            const id =
+                body.id;
 
             if (
                 id === undefined ||
@@ -263,56 +321,75 @@ export default async function handler(req, res) {
             ) {
                 return res.status(400).json({
                     success: false,
-                    error: 'رقم العرض مطلوب'
+                    error:
+                        'رقم العرض مطلوب'
                 });
             }
 
-            const updateData = Object.assign({}, body);
+            const updateData =
+                Object.assign(
+                    {},
+                    body
+                );
 
             delete updateData.id;
 
             const response = await fetch(
                 SUPABASE_URL +
                 '/rest/v1/offers?id=eq.' +
-                encodeURIComponent(String(id)),
+                encodeURIComponent(
+                    String(id)
+                ),
                 {
                     method: 'PATCH',
                     headers: {
-                        apikey: SUPABASE_SERVICE_ROLE_KEY,
+                        apikey:
+                            SUPABASE_SERVICE_ROLE_KEY,
                         Authorization:
-                            'Bearer ' + SUPABASE_SERVICE_ROLE_KEY,
-                        'Content-Type': 'application/json',
-                        Prefer: 'return=representation'
+                            'Bearer ' +
+                            SUPABASE_SERVICE_ROLE_KEY,
+                        'Content-Type':
+                            'application/json',
+                        Prefer:
+                            'return=representation'
                     },
-                    body: JSON.stringify(updateData)
+                    body:
+                        JSON.stringify(
+                            updateData
+                        )
                 }
             );
 
-            const text = await response.text();
+            const responseText =
+                await response.text();
 
             let data = {};
 
             try {
-                data = text ? JSON.parse(text) : {};
-            } catch (parseError) {
+                data =
+                    responseText
+                        ? JSON.parse(
+                            responseText
+                        )
+                        : {};
+            } catch (error) {
                 data = {
-                    error: text
+                    error:
+                        responseText
                 };
             }
 
             if (!response.ok) {
-                console.error(
-                    'SUPABASE OFFERS PUT ERROR:',
-                    response.status,
-                    data
-                );
-
-                return res.status(response.status).json({
+                return res.status(
+                    response.status
+                ).json({
                     success: false,
                     error:
-                        data && data.message
+                        data &&
+                        data.message
                             ? data.message
-                            : data && data.error
+                            : data &&
+                              data.error
                                 ? data.error
                                 : 'فشل تعديل العرض'
                 });
@@ -327,12 +404,16 @@ export default async function handler(req, res) {
             });
 
         } catch (error) {
-            console.error('PUT OFFERS ERROR:', error);
+            console.error(
+                'PUT OFFERS ERROR:',
+                error
+            );
 
             return res.status(500).json({
                 success: false,
                 error:
-                    error && error.message
+                    error &&
+                    error.message
                         ? error.message
                         : 'حدث خطأ أثناء تعديل العرض'
             });
@@ -347,13 +428,18 @@ export default async function handler(req, res) {
         if (!isAdmin) {
             return res.status(401).json({
                 success: false,
-                error: 'غير مصرح لك بتنفيذ هذا الإجراء'
+                error:
+                    'غير مصرح لك بتنفيذ هذا الإجراء'
             });
         }
 
         try {
-            const body = req.body || {};
-            const id = body.id || req.query.id;
+            const body =
+                req.body || {};
+
+            const id =
+                body.id ||
+                req.query.id;
 
             if (
                 id === undefined ||
@@ -362,50 +448,61 @@ export default async function handler(req, res) {
             ) {
                 return res.status(400).json({
                     success: false,
-                    error: 'رقم العرض مطلوب للحذف'
+                    error:
+                        'رقم العرض مطلوب للحذف'
                 });
             }
 
             const response = await fetch(
                 SUPABASE_URL +
                 '/rest/v1/offers?id=eq.' +
-                encodeURIComponent(String(id)),
+                encodeURIComponent(
+                    String(id)
+                ),
                 {
                     method: 'DELETE',
                     headers: {
-                        apikey: SUPABASE_SERVICE_ROLE_KEY,
+                        apikey:
+                            SUPABASE_SERVICE_ROLE_KEY,
                         Authorization:
-                            'Bearer ' + SUPABASE_SERVICE_ROLE_KEY,
-                        Prefer: 'return=representation'
+                            'Bearer ' +
+                            SUPABASE_SERVICE_ROLE_KEY,
+                        Prefer:
+                            'return=representation'
                     }
                 }
             );
 
-            const text = await response.text();
+            const responseText =
+                await response.text();
 
             let data = {};
 
             try {
-                data = text ? JSON.parse(text) : {};
-            } catch (parseError) {
+                data =
+                    responseText
+                        ? JSON.parse(
+                            responseText
+                        )
+                        : {};
+            } catch (error) {
                 data = {
-                    raw: text
+                    raw:
+                        responseText
                 };
             }
 
             if (!response.ok) {
-                console.error(
-                    'SUPABASE OFFERS DELETE ERROR:',
-                    response.status,
-                    data
-                );
-
-                return res.status(response.status).json({
+                return res.status(
+                    response.status
+                ).json({
                     success: false,
                     error:
-                        data && data.message
+                        data &&
+                        data.message
                             ? data.message
-                            : data && data.error
+                            : data &&
+                              data.error
                                 ? data.error
                                 : 'فشل حذف العرض'
                 });
@@ -420,21 +517,21 @@ export default async function handler(req, res) {
             });
 
         } catch (error) {
-            console.error('DELETE OFFERS ERROR:', error);
+            console.error(
+                'DELETE OFFERS ERROR:',
+                error
+            );
 
             return res.status(500).json({
                 success: false,
                 error:
-                    error && error.message
+                    error &&
+                    error.message
                         ? error.message
                         : 'حدث خطأ أثناء حذف العرض'
             });
         }
     }
-
-    // =====================================================
-    // Method غير مدعوم
-    // =====================================================
 
     res.setHeader(
         'Allow',
@@ -443,7 +540,8 @@ export default async function handler(req, res) {
 
     return res.status(405).json({
         success: false,
-        error: 'Method Not Allowed'
+        error:
+            'Method Not Allowed'
     });
 }
 ```
