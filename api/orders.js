@@ -15,7 +15,7 @@ export default async function handler(req, res) {
         }
 
         // =====================================================
-        // التحقق من الأدمن
+        // قراءة بيانات المصادقة
         // =====================================================
 
         const authHeader =
@@ -211,8 +211,142 @@ export default async function handler(req, res) {
 
 
         // =====================================================
-        // GET / PUT / DELETE
-        // للأدمن فقط
+        // تتبع طلب للعميل
+        //
+        // GET /api/orders?track=ORDER_ID
+        //
+        // هذا المسار لا يحتاج تسجيل دخول الأدمن.
+        // ويتم تنفيذ البحث عن طلب واحد فقط.
+        // =====================================================
+
+        if (
+            req.method === 'GET' &&
+            req.query?.track
+        ) {
+
+            const trackId =
+                String(
+                    req.query.track
+                ).trim();
+
+            if (!trackId) {
+
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        'رقم الطلب غير موجود'
+                });
+            }
+
+            console.log(
+                'TRACK ORDER REQUEST:',
+                trackId
+            );
+
+            const encodedId =
+                encodeURIComponent(
+                    trackId
+                );
+
+            const response =
+                await fetch(
+                    `${SUPABASE_URL}/rest/v1/orders?or=(id.eq.${encodedId},order_number.eq.${encodedId})&select=id,order_number,status,total,created_at`,
+                    {
+                        method: 'GET',
+
+                        headers: {
+                            apikey:
+                                SUPABASE_SERVICE_ROLE_KEY,
+
+                            Authorization:
+                                `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+
+                            'Content-Type':
+                                'application/json'
+                        }
+                    }
+                );
+
+            const text =
+                await response.text();
+
+            let data = [];
+
+            try {
+                data =
+                    text
+                        ? JSON.parse(text)
+                        : [];
+            } catch {
+                data = [];
+            }
+
+            console.log(
+                'TRACK ORDER RESPONSE:',
+                data
+            );
+
+            if (!response.ok) {
+
+                console.error(
+                    'SUPABASE TRACK ORDER ERROR:',
+                    data
+                );
+
+                return res.status(500).json({
+                    success: false,
+                    error:
+                        data?.message ||
+                        data?.error ||
+                        'فشل البحث عن الطلب'
+                });
+            }
+
+            if (
+                !Array.isArray(data) ||
+                data.length === 0
+            ) {
+
+                return res.status(404).json({
+                    success: false,
+                    error:
+                        'لم يتم العثور على طلب بهذا الرقم.'
+                });
+            }
+
+            const foundOrder =
+                data[0];
+
+            return res.status(200).json({
+                success: true,
+
+                order: {
+                    id:
+                        foundOrder.id,
+
+                    order_number:
+                        foundOrder.order_number,
+
+                    status:
+                        foundOrder.status ||
+                        'New',
+
+                    total:
+                        Number(
+                            foundOrder.total ||
+                            0
+                        ),
+
+                    created_at:
+                        foundOrder.created_at ||
+                        null
+                }
+            });
+        }
+
+
+        // =====================================================
+        // من هنا جميع العمليات التالية للأدمن فقط
         // =====================================================
 
         if (!token) {
@@ -415,6 +549,7 @@ export default async function handler(req, res) {
 
             return res.status(200).json({
                 success: true,
+
                 order:
                     data[0]
             });
@@ -508,8 +643,10 @@ export default async function handler(req, res) {
 
             return res.status(200).json({
                 success: true,
+
                 message:
                     'تم حذف الطلب نهائياً',
+
                 order:
                     data[0]
             });
@@ -535,9 +672,11 @@ export default async function handler(req, res) {
 
         return res.status(500).json({
             success: false,
+
             error:
                 error?.message ||
                 'حدث خطأ في نظام الطلبات'
         });
     }
 }
+
