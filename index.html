@@ -9138,122 +9138,298 @@ async function saveOfferFromEditor(e) {
 
 
         // =========================
-        // تعديل عرض موجود
-        // =========================
+// تعديل عرض موجود
+// =========================
 
-        if (editingOfferId) {
+if (
+    editingOfferId !== null &&
+    editingOfferId !== undefined &&
+    String(editingOfferId).trim() !== ''
+) {
 
-            const oldOffer =
-                (appState.offers || []).find(
-                    item =>
-                        String(item.id) ===
-                        String(editingOfferId)
-                );
+    console.log(
+        '================ UPDATE OFFER ================'
+    );
 
-            offerData.id =
-                editingOfferId;
+    console.log(
+        'EDITING OFFER ID:',
+        editingOfferId
+    );
 
-            offerData.image_url =
-                uploadedImage ||
-                oldOffer?.image_url ||
-                '';
-
-
-            const response =
-                await fetch(
-                    '/api/offers',
-                    {
-                        method: 'PUT',
-
-                        headers: {
-                            'Content-Type':
-                                'application/json',
-
-                            'Authorization':
-                                'Bearer ' + token
-                        },
-
-                        body:
-                            JSON.stringify(
-                                offerData
-                            )
-                    }
-                );
+    console.log(
+        'EDITING OFFER ID TYPE:',
+        typeof editingOfferId
+    );
 
 
-            const data =
-                await response.json();
+    const oldOffer =
+        (appState.offers || []).find(
+            item =>
+                String(item.id).trim() ===
+                String(editingOfferId).trim()
+        );
 
 
-            if (
-                !response.ok ||
-                !data.success
-            ) {
+    console.log(
+        'OLD OFFER FOUND:',
+        oldOffer
+    );
 
-                throw new Error(
-                    data?.error ||
-                    'فشل تحديث العرض في قاعدة البيانات'
-                );
+
+    if (!oldOffer) {
+
+        throw new Error(
+            'لم يتم العثور على العرض الأصلي داخل بيانات لوحة التحكم'
+        );
+    }
+
+
+    // ==========================================
+    // استخدام ID قاعدة البيانات الحقيقي
+    // وليس idx
+    // ==========================================
+
+    const realOfferId =
+        Number(oldOffer.id);
+
+
+    if (
+        !Number.isFinite(realOfferId) ||
+        realOfferId <= 0
+    ) {
+
+        throw new Error(
+            'رقم العرض غير صحيح: ' +
+            oldOffer.id
+        );
+    }
+
+
+    offerData.id =
+        realOfferId;
+
+
+    // الاحتفاظ بالصورة القديمة إذا لم يتم اختيار صورة جديدة
+
+    offerData.image_url =
+        uploadedImage ||
+        oldOffer.image_url ||
+        '';
+
+
+    console.log(
+        'DATA SENT TO /api/offers:',
+        offerData
+    );
+
+
+    // ==========================================
+    // إرسال التعديل
+    // ==========================================
+
+    const response =
+        await fetch(
+            '/api/offers',
+            {
+                method: 'PUT',
+
+                headers: {
+                    'Content-Type':
+                        'application/json',
+
+                    'Authorization':
+                        'Bearer ' + token
+                },
+
+                body:
+                    JSON.stringify(
+                        offerData
+                    )
             }
+        );
 
 
-            alert(
-                'تم تعديل العرض بنجاح.'
-            );
-
-        } else {
-
-            // =========================
-            // إضافة عرض جديد
-            // =========================
-
-            offerData.image_url =
-                uploadedImage || '';
+    const responseText =
+        await response.text();
 
 
-            const response =
-                await fetch(
-                    '/api/offers',
-                    {
-                        method: 'POST',
-
-                        headers: {
-                            'Content-Type':
-                                'application/json',
-
-                            'Authorization':
-                                'Bearer ' + token
-                        },
-
-                        body:
-                            JSON.stringify(
-                                offerData
-                            )
-                    }
-                );
+    console.log(
+        'PUT RESPONSE STATUS:',
+        response.status
+    );
 
 
-            const data =
-                await response.json();
+    console.log(
+        'PUT RESPONSE:',
+        responseText
+    );
 
 
-            if (
-                !response.ok ||
-                !data.success
-            ) {
+    let data = {};
 
-                throw new Error(
-                    data?.error ||
-                    'فشل إضافة العرض إلى قاعدة البيانات'
-                );
+
+    try {
+
+        data =
+            responseText
+                ? JSON.parse(
+                    responseText
+                )
+                : {};
+
+    } catch {
+
+        data = {
+            error: responseText
+        };
+    }
+
+
+    if (
+        !response.ok ||
+        !data.success
+    ) {
+
+        throw new Error(
+            data?.error ||
+            data?.message ||
+            'فشل تحديث العرض في قاعدة البيانات'
+        );
+    }
+
+
+    console.log(
+        '✅ OFFER UPDATED SUCCESSFULLY:',
+        data
+    );
+
+
+    // ==========================================
+    // إعادة تحميل العروض من قاعدة البيانات
+    // ==========================================
+
+    await loadStoreDataFromDatabase();
+
+
+    // ==========================================
+    // إنهاء وضع التعديل
+    // ==========================================
+
+    editingOfferId = null;
+
+
+    alert(
+        'تم تعديل العرض بنجاح.'
+    );
+
+
+    // الرجوع إلى قائمة العروض
+
+    switchView(
+        'admin-offers'
+    );
+
+
+} else {
+
+    // =========================
+    // إضافة عرض جديد
+    // =========================
+
+    offerData.image_url =
+        uploadedImage || '';
+
+
+    console.log(
+        '================ CREATE OFFER ================'
+    );
+
+
+    console.log(
+        'DATA SENT TO /api/offers:',
+        offerData
+    );
+
+
+    const response =
+        await fetch(
+            '/api/offers',
+            {
+                method: 'POST',
+
+                headers: {
+                    'Content-Type':
+                        'application/json',
+
+                    'Authorization':
+                        'Bearer ' + token
+                },
+
+                body:
+                    JSON.stringify(
+                        offerData
+                    )
             }
+        );
 
 
-            alert(
-                'تمت إضافة العرض بنجاح.'
-            );
-        }
+    const responseText =
+        await response.text();
 
+
+    let data = {};
+
+
+    try {
+
+        data =
+            responseText
+                ? JSON.parse(
+                    responseText
+                )
+                : {};
+
+    } catch {
+
+        data = {
+            error: responseText
+        };
+    }
+
+
+    if (
+        !response.ok ||
+        !data.success
+    ) {
+
+        throw new Error(
+            data?.error ||
+            data?.message ||
+            'فشل إضافة العرض إلى قاعدة البيانات'
+        );
+    }
+
+
+    console.log(
+        '✅ OFFER CREATED SUCCESSFULLY:',
+        data
+    );
+
+
+    // تحديث البيانات
+
+    await loadStoreDataFromDatabase();
+
+
+    alert(
+        'تمت إضافة العرض بنجاح.'
+    );
+
+
+    switchView(
+        'admin-offers'
+    );
+}
 
         // =========================
         // إعادة تحميل بيانات المتجر
