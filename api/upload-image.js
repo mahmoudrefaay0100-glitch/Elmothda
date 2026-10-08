@@ -1,6 +1,7 @@
 export default async function handler(req, res) {
     if (req.method !== "POST") {
         res.setHeader("Allow", "POST");
+
         return res.status(405).json({
             success: false,
             error: "Method not allowed"
@@ -12,10 +13,10 @@ export default async function handler(req, res) {
             process.env.SUPABASE_URL || ""
         ).replace(/\/+$/, "");
 
-        const SUPABASE_SERVICE_ROLE_KEY =
+        const SUPABASE_SECRET_KEY =
             process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
-        if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+        if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
             return res.status(500).json({
                 success: false,
                 error: "متغيرات Supabase غير موجودة في Vercel"
@@ -97,7 +98,8 @@ export default async function handler(req, res) {
             ? fileData.substring(fileData.indexOf(",") + 1)
             : fileData;
 
-        const normalizedBase64 = base64Data.replace(/\s/g, "");
+        const normalizedBase64 =
+            base64Data.replace(/\s/g, "");
 
         if (
             !normalizedBase64 ||
@@ -128,7 +130,7 @@ export default async function handler(req, res) {
             });
         }
 
-        // التحقق من نوع الملف الحقيقي لتقليل رفع ملفات غير الصور.
+        // التحقق من نوع الصورة الفعلي
         const isJpeg =
             fileBuffer.length >= 3 &&
             fileBuffer[0] === 0xff &&
@@ -149,35 +151,28 @@ export default async function handler(req, res) {
             fileBuffer.toString("ascii", 0, 4) === "RIFF" &&
             fileBuffer.toString("ascii", 8, 12) === "WEBP";
 
-        const actualType = isJpeg
-            ? "image/jpeg"
-            : isPng
-                ? "image/png"
-                : isWebp
-                    ? "image/webp"
-                    : null;
+        let actualType = null;
 
-        if (!actualType) {
-            return res.status(400).json({
-                success: false,
-                error: "محتوى الملف ليس صورة JPG أو PNG أو WEBP صالحة"
-            });
+        if (isJpeg) {
+            actualType = "image/jpeg";
+        } else if (isPng) {
+            actualType = "image/png";
+        } else if (isWebp) {
+            actualType = "image/webp";
         }
 
+        const normalizedFileType =
+            fileType === "image/jpg"
+                ? "image/jpeg"
+                : fileType;
+
         if (
-            actualType === "image/jpeg" &&
-            !["image/jpeg", "image/jpg"].includes(fileType)
+            !actualType ||
+            actualType !== normalizedFileType
         ) {
             return res.status(400).json({
                 success: false,
-                error: "امتداد الصورة لا يتوافق مع محتواها"
-            });
-        }
-
-        if (actualType !== fileType) {
-            return res.status(400).json({
-                success: false,
-                error: "نوع الصورة المرسل لا يتوافق مع محتواها"
+                error: "محتوى الصورة غير صالح أو لا يتوافق مع نوع الملف"
             });
         }
 
@@ -195,18 +190,24 @@ export default async function handler(req, res) {
             `${SUPABASE_URL}/storage/v1/object/` +
             `${destination.bucket}/${filePath}`;
 
+        /*
+         * مهم:
+         * المفتاح الجديد sb_secret_ ليس JWT.
+         * نرسله في apikey فقط، ولا نرسله في Authorization: Bearer.
+         */
+
         const uploadResponse = await fetch(uploadUrl, {
             method: "POST",
             headers: {
-                apikey: SUPABASE_SERVICE_ROLE_KEY,
-                Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                apikey: SUPABASE_SECRET_KEY,
                 "Content-Type": actualType,
                 "x-upsert": "true"
             },
             body: fileBuffer
         });
 
-        const responseText = await uploadResponse.text();
+        const responseText =
+            await uploadResponse.text();
 
         if (!uploadResponse.ok) {
             console.error("SUPABASE STORAGE ERROR:", {
@@ -220,32 +221,20 @@ export default async function handler(req, res) {
 
             try {
                 const parsed = JSON.parse(responseText);
+
                 storageError =
                     parsed.message ||
                     parsed.error ||
                     responseText;
             } catch {
-                // الاحتفاظ برسالة الخطأ الأصلية.
-            }
-
-            if (
-                uploadResponse.status === 401 ||
-                uploadResponse.status === 403
-            ) {
-                return res.status(502).json({
-                    success: false,
-                    error:
-                        "Supabase رفض رفع الصورة بسبب صلاحيات المفتاح أو سياسة Storage. " +
-                        "راجع مفتاح الخادم في Vercel وتأكد أنه من نفس مشروع Supabase. " +
-                        "لا تنشئ سياسة رفع عامة.",
-                    details: storageError
-                });
+                // نحتفظ برسالة الخطأ الأصلية.
             }
 
             return res.status(502).json({
                 success: false,
                 error: "فشل رفع الصورة إلى Supabase Storage",
-                details: storageError
+                details: storageError,
+                status: uploadResponse.status
             });
         }
 
