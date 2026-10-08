@@ -7914,22 +7914,41 @@ async function editOffer(id) {
 
     try {
 
-        const response = await fetch(
-            '/api/offers',
-            {
-                method: 'GET',
-                cache: 'no-store'
-            }
+        const token =
+            sessionStorage.getItem(
+                'OSCAR_ADMIN_ACCESS_TOKEN'
+            ) || '';
+
+        const response =
+            await fetch(
+                '/api/offers',
+                {
+                    method: 'GET',
+                    cache: 'no-store',
+                    headers: token
+                        ? {
+                            Authorization:
+                                `Bearer ${token}`
+                        }
+                        : {}
+                }
+            );
+
+        const result =
+            await response.json();
+
+        console.log(
+            'EDIT OFFER API RESULT:',
+            result
         );
 
-        const result = await response.json();
-
-        console.log('EDIT OFFER API RESULT:', result);
-        console.log('EDIT OFFER ID:', id);
-
-        if (!response.ok || !result.success) {
+        if (
+            !response.ok ||
+            !result.success
+        ) {
             throw new Error(
-                result.error || 'فشل تحميل العروض'
+                result.error ||
+                'فشل تحميل العروض'
             );
         }
 
@@ -7938,11 +7957,12 @@ async function editOffer(id) {
                 ? result.offers
                 : [];
 
-        const offer = offers.find(
-            item =>
-                String(item.id).trim() ===
-                String(id).trim()
-        );
+        const offer =
+            offers.find(
+                item =>
+                    String(item.id).trim() ===
+                    String(id).trim()
+            );
 
         if (!offer) {
 
@@ -7952,46 +7972,54 @@ async function editOffer(id) {
             );
 
             console.error(
-                'OFFER NOT FOUND. ID:',
+                'OFFER NOT FOUND:',
                 id,
-                'OFFERS:',
                 offers
             );
 
             return;
         }
 
-        // تحديث الحالة المحلية
-        appState.offers = offers;
+        appState.offers =
+            offers;
 
-        editingOfferId = offer.id;
+        editingOfferId =
+            offer.id;
 
-        switchView('admin-offer-editor');
+        switchView(
+            'admin-offer-editor'
+        );
 
         document.getElementById(
             'offer-editor-heading'
-        ).textContent = 'تعديل العرض';
+        ).textContent =
+            'تعديل العرض';
 
         document.getElementById(
             'offer-editor-title'
-        ).value = offer.title || '';
+        ).value =
+            offer.title || '';
 
         document.getElementById(
             'offer-editor-description'
-        ).value = offer.description || '';
+        ).value =
+            offer.description || '';
 
         document.getElementById(
             'offer-editor-old-price'
-        ).value = offer.old_price || '';
+        ).value =
+            offer.old_price || '';
 
         document.getElementById(
             'offer-editor-offer-price'
-        ).value = offer.offer_price || '';
+        ).value =
+            offer.offer_price || '';
 
         document.getElementById(
             'offer-editor-button-text'
         ).value =
-            offer.button_text || 'اطلب العرض';
+            offer.button_text ||
+            'اطلب العرض';
 
         document.getElementById(
             'offer-editor-button-link'
@@ -8001,7 +8029,9 @@ async function editOffer(id) {
         document.getElementById(
             'offer-editor-sort-order'
         ).value =
-            Number(offer.sort_order) || 0;
+            Number(
+                offer.sort_order
+            ) || 0;
 
         document.getElementById(
             'offer-editor-active'
@@ -8021,12 +8051,16 @@ async function editOffer(id) {
         document.getElementById(
             'offer-editor-start-date'
         ).value =
-            toDateTimeLocal(offer.start_date);
+            toDateTimeLocal(
+                offer.start_date
+            );
 
         document.getElementById(
             'offer-editor-end-date'
         ).value =
-            toDateTimeLocal(offer.end_date);
+            toDateTimeLocal(
+                offer.end_date
+            );
 
         const preview =
             document.getElementById(
@@ -8043,13 +8077,18 @@ async function editOffer(id) {
             previewImg.src =
                 offer.image_url;
 
-            preview.classList.remove('hidden');
+            preview.classList.remove(
+                'hidden'
+            );
 
         } else {
 
-            preview.classList.add('hidden');
+            preview.classList.add(
+                'hidden'
+            );
 
-            previewImg.src = '';
+            previewImg.src =
+                '';
         }
 
         document.getElementById(
@@ -8065,12 +8104,12 @@ async function editOffer(id) {
         );
 
         showToast(
+            error.message ||
             'حدث خطأ أثناء تحميل العرض',
             'error'
         );
     }
 }
-
 function toDateTimeLocal(value) {
 
     if (!value) {
