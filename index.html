@@ -6498,13 +6498,51 @@ function renderAdminShipping() {
                     </td>
 
                     <!-- حالة الدفع -->
-                    <td class="p-4">
+<td class="p-4">
 
-                        <span class="text-yellow-400 font-bold">
-                            ${paymentStatus}
-                        </span>
+    <select
+        onchange="updatePaymentStatus('${order.id || order.order_number}', this.value)"
+        class="bg-black border border-neutral-700 rounded-lg px-3 py-2 text-white text-xs font-bold"
+    >
 
-                    </td>
+        <option
+            value="Pending"
+            ${paymentStatus === 'Pending' ? 'selected' : ''}
+        >
+            ⏳ في انتظار الدفع
+        </option>
+
+        <option
+            value="Partial"
+            ${paymentStatus === 'Partial' ? 'selected' : ''}
+        >
+            💰 تم دفع العربون
+        </option>
+
+        <option
+            value="Paid"
+            ${paymentStatus === 'Paid' ? 'selected' : ''}
+        >
+            ✅ تم الدفع بالكامل
+        </option>
+
+        <option
+            value="Failed"
+            ${paymentStatus === 'Failed' ? 'selected' : ''}
+        >
+            ❌ فشل الدفع
+        </option>
+
+        <option
+            value="Refunded"
+            ${paymentStatus === 'Refunded' ? 'selected' : ''}
+        >
+            🔄 تم الاسترداد
+        </option>
+
+    </select>
+
+</td>
 
                     <!-- حالة الطلب -->
                     <td class="p-4">
@@ -6745,6 +6783,91 @@ window.loadAdminOrders =
 
 window.updateOrderStatus =
     updateOrderStatus;
+
+async function updatePaymentStatus(orderId, newPaymentStatus) {
+
+    const order = appState.orders.find(
+        o => String(o.id || o.order_number) === String(orderId)
+    );
+
+    if (!order) {
+        alert('لم يتم العثور على الطلب.');
+        return;
+    }
+
+    try {
+
+        const token =
+            sessionStorage.getItem(
+                'OSCAR_ADMIN_ACCESS_TOKEN'
+            );
+
+        if (!token) {
+            alert(
+                'جلسة لوحة التحكم انتهت. من فضلك سجل الدخول مرة أخرى.'
+            );
+            return;
+        }
+
+        const response = await fetch(
+            `/api/orders?id=${encodeURIComponent(orderId)}`,
+            {
+                method: 'PUT',
+
+                headers: {
+                    'Content-Type': 'application/json',
+
+                    'Authorization': `Bearer ${token}`,
+
+                    'x-admin-token': token
+                },
+
+                body: JSON.stringify({
+                    paymentStatus: newPaymentStatus
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data?.error ||
+                'فشل تحديث حالة الدفع'
+            );
+        }
+
+        // تحديث الحالة داخل الصفحة
+        order.paymentStatus = newPaymentStatus;
+
+        // حفظ نسخة محلية
+        saveState();
+
+        // إعادة عرض الطلبات
+        renderAdminOrders();
+
+        showToast(
+            'تم تحديث حالة الدفع وحفظها في قاعدة البيانات ✅'
+        );
+
+    } catch (error) {
+
+        console.error(
+            'UPDATE PAYMENT STATUS ERROR:',
+            error
+        );
+
+        alert(
+            error?.message ||
+            'حدث خطأ أثناء تحديث حالة الدفع'
+        );
+
+        renderAdminOrders();
+    }
+}
+
+window.updatePaymentStatus =
+    updatePaymentStatus;
         
 async function deleteAdminOrder(orderId) {
 
