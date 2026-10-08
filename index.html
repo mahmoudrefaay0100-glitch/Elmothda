@@ -9301,12 +9301,25 @@ async function deleteOfferFromDatabase(
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
 }    
-       async function saveProductFromEditor(e) {
+       
+async function saveProductFromEditor(e) {
     e.preventDefault();
 
+    const form = document.getElementById('product-editor-form');
+
+    const saveButton =
+        e.submitter ||
+        form?.querySelector('button[type="submit"]');
+
+    const originalButtonText =
+        saveButton?.innerHTML || 'حفظ المنتج';
+
     try {
+        const imageInput =
+            document.getElementById('product-editor-image');
+
         const imageFile =
-            document.getElementById('product-editor-image').files[0];
+            imageInput?.files?.[0] || null;
 
         const token =
             sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
@@ -9317,105 +9330,100 @@ async function deleteOfferFromDatabase(
             return;
         }
 
-        const saveButton =
-            e.submitter ||
-            document.querySelector(
-                '#product-editor-form button[type="submit"]'
-            );
-
         if (saveButton) {
             saveButton.disabled = true;
             saveButton.innerHTML = 'جاري حفظ المنتج...';
         }
 
         let uploadedImage = '';
-if (imageFile) {
 
-    const fileData = await new Promise((resolve, reject) => {
+        // =====================================
+        // رفع صورة المنتج
+        // =====================================
 
-        const reader = new FileReader();
+        if (imageFile) {
+            if (!imageFile.type.startsWith('image/')) {
+                throw new Error('الملف المختار ليس صورة صالحة.');
+            }
 
-        reader.onload = function () {
-            resolve(reader.result);
-        };
+            if (imageFile.size > 10 * 1024 * 1024) {
+                throw new Error('حجم الصورة يجب ألا يتجاوز 10 ميجابايت.');
+            }
 
-        reader.onerror = function () {
-            reject(
-                new Error('فشل قراءة الصورة من الجهاز')
-            );
-        };
+            const fileData = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
 
-        reader.readAsDataURL(imageFile);
-    });
+                reader.onload = () => resolve(reader.result);
 
-    const uploadResponse = await fetch(
-        '/api/upload-image',
-        {
-            method: 'POST',
+                reader.onerror = () => {
+                    reject(new Error('فشل قراءة الصورة من الجهاز.'));
+                };
 
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
-            },
+                reader.readAsDataURL(imageFile);
+            });
 
-           body: JSON.stringify({
-    fileName: imageFile.name,
-    fileType: imageFile.type,
-    fileData: fileData,
-    folder: 'offers'
-})
+            const uploadResponse = await fetch('/api/upload-image', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({
+                    fileName: imageFile.name,
+                    fileType: imageFile.type,
+                    fileData: fileData,
+                    folder: 'products'
+                })
+            });
+
+            const uploadText = await uploadResponse.text();
+
+            let uploadData;
+
+            try {
+                uploadData = uploadText
+                    ? JSON.parse(uploadText)
+                    : {};
+            } catch {
+                uploadData = { error: uploadText };
+            }
+
+            if (!uploadResponse.ok || !uploadData.success) {
+                console.error('IMAGE UPLOAD ERROR:', {
+                    status: uploadResponse.status,
+                    response: uploadData
+                });
+
+                const uploadError =
+                    typeof uploadData.error === 'string'
+                        ? uploadData.error
+                        : JSON.stringify(uploadData.error || uploadData);
+
+                throw new Error(
+                    'فشل رفع الصورة (' +
+                    uploadResponse.status +
+                    '): ' +
+                    (uploadError || 'خطأ غير معروف')
+                );
+            }
+
+            uploadedImage = uploadData.image_url || '';
+
+            if (!uploadedImage) {
+                throw new Error(
+                    'لم يرجع السيرفر رابط الصورة بعد رفعها.'
+                );
+            }
         }
-    );
 
-    const uploadText =
-        await uploadResponse.text();
-
-    let uploadData = {};
-
-    try {
-        uploadData =
-            uploadText
-                ? JSON.parse(uploadText)
-                : {};
-    } catch {
-        uploadData = {
-            error: uploadText
-        };
-    }
-
-  
-if (!uploadResponse.ok || !uploadData.success) {
-    console.error("IMAGE UPLOAD DEBUG:", {
-        status: uploadResponse.status,
-        response: uploadData
-    });
-
-    throw new Error(
-        `فشل رفع الصورة (${uploadResponse.status}): ` +
-        (typeof uploadData?.error === "string"
-            ? uploadData.error
-            : JSON.stringify(uploadData?.error || uploadData))
-    );
-}
-
-    uploadedImage =
-        uploadData.image_url;
-
-    if (!uploadedImage) {
-        throw new Error(
-            'تم رفع الصورة ولكن لم يتم الحصول على رابطها'
-        );
-    }
-}
-        // =========================
-        // بيانات المنتج
-        // =========================
+        // =====================================
+        // تجهيز بيانات المنتج
+        // =====================================
 
         const productData = {
             name: document
                 .getElementById('product-editor-title')
-                .value
-                .trim(),
+                .value.trim(),
 
             category: document
                 .getElementById('product-editor-category')
@@ -9427,151 +9435,151 @@ if (!uploadResponse.ok || !uploadData.success) {
 
             description: document
                 .getElementById('product-editor-description')
-                .value
-                .trim(),
+                .value.trim(),
 
             dimensions: document
                 .getElementById('product-editor-dimensions')
-                .value
-                .trim(),
+                .value.trim(),
 
-chair_count: Number(
-    document.getElementById('product-editor-chair-count').value
-),
+            chair_count: Number(
+                document.getElementById('product-editor-chair-count').value
+            ) || 0,
 
-sofa_2_count: Number(
-    document.getElementById('product-editor-sofa-2-count').value
-),
+            sofa_2_count: Number(
+                document.getElementById('product-editor-sofa-2-count').value
+            ) || 0,
 
-sofa_3_count: Number(
-    document.getElementById('product-editor-sofa-3-count').value
-),
+            sofa_3_count: Number(
+                document.getElementById('product-editor-sofa-3-count').value
+            ) || 0,
 
-table_count: Number(
-    document.getElementById('product-editor-table-count').value
-),
+            table_count: Number(
+                document.getElementById('product-editor-table-count').value
+            ) || 0,
 
             visible: true,
             featured: false
         };
 
-        // =========================
-        // تعديل منتج موجود
-        // =========================
+        if (!productData.name) {
+            throw new Error('اكتب اسم المنتج أولاً.');
+        }
 
-      if (editingProductId) {
+        if (!productData.category) {
+            throw new Error('اختار قسم المنتج أولاً.');
+        }
 
-    const oldProduct = appState.products.find(
-        p => p.id === editingProductId
-    );
+        if (productData.price <= 0) {
+            throw new Error('اكتب سعرًا صحيحًا للمنتج.');
+        }
 
-    productData.id = editingProductId;
+        // =====================================
+        // تحديد الإضافة أو التعديل
+        // =====================================
 
-    productData.image_url =
-        uploadedImage ||
-        oldProduct?.image_url ||
-        '';
+        const isEditing = Boolean(editingProductId);
 
-            const response = await fetch('/api/products', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token
-                },
-                body: JSON.stringify(productData)
-            });
+        let oldProduct = null;
 
-            const data = await response.json();
+        if (isEditing) {
+            oldProduct = appState.products.find(
+                p => String(p.id) === String(editingProductId)
+            );
 
-            if (!response.ok || !data.success) {
+            if (!oldProduct) {
                 throw new Error(
-                    data?.error ||
-                    'فشل تحديث المنتج في قاعدة البيانات'
+                    'لم يتم العثور على المنتج المراد تعديله. حدّث المنتجات وحاول مرة أخرى.'
                 );
             }
 
-            alert('تم تعديل المنتج بنجاح.');
+            productData.id = editingProductId;
 
+            productData.image_url =
+                uploadedImage ||
+                oldProduct.image_url ||
+                oldProduct.imageUrl ||
+                '';
         } else {
-
-            // =========================
-            // إضافة منتج جديد
-            // =========================
-
             productData.id =
                 'prod-' +
                 Date.now() +
                 '-' +
-                Math.random()
-                    .toString(36)
-                    .substring(2, 8);
+                Math.random().toString(36).substring(2, 8);
 
-            productData.image_url = uploadedImage || '';
-
-            const response = await fetch('/api/products', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token
-                },
-                body: JSON.stringify(productData)
-            });
-
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-                throw new Error(
-                    data?.error ||
-                    'فشل إضافة المنتج إلى قاعدة البيانات'
-                );
-            }
-
-            alert('تمت إضافة المنتج بنجاح.');
+            productData.image_url = uploadedImage;
         }
 
-        // =========================
-        // إعادة تحميل المنتجات
-        // =========================
+        // =====================================
+        // حفظ المنتج في قاعدة البيانات
+        // =====================================
 
-       await loadStoreDataFromDatabase();
+        const response = await fetch('/api/products', {
+            method: isEditing ? 'PUT' : 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify(productData)
+        });
 
-editingProductId = null;
+        const responseText = await response.text();
 
-closeProductEditor();
+        let data;
 
-showToast('تم حفظ المنتج بنجاح ✅');
-    } catch (error) {
+        try {
+            data = responseText
+                ? JSON.parse(responseText)
+                : {};
+        } catch {
+            data = { error: responseText };
+        }
 
-        console.error(
-            'SAVE PRODUCT ERROR:',
-            error
+        if (!response.ok || !data.success) {
+            console.error('SAVE PRODUCT API ERROR:', {
+                status: response.status,
+                response: data
+            });
+
+            throw new Error(
+                data.error ||
+                (isEditing
+                    ? 'فشل تحديث المنتج في قاعدة البيانات.'
+                    : 'فشل إضافة المنتج إلى قاعدة البيانات.')
+            );
+        }
+
+        // =====================================
+        // إعادة تحميل بيانات الموقع
+        // =====================================
+
+        await loadStoreDataFromDatabase();
+
+        editingProductId = null;
+
+        closeProductEditor();
+
+        showToast(
+            isEditing
+                ? 'تم تعديل المنتج بنجاح ✅'
+                : 'تمت إضافة المنتج بنجاح ✅'
         );
 
-       showToast(
-    error?.message ||
-    'حدث خطأ أثناء حفظ المنتج.',
-    'error'
-);
+    } catch (error) {
+        console.error('SAVE PRODUCT ERROR:', error);
+
+        showToast(
+            error?.message || 'حدث خطأ أثناء حفظ المنتج.',
+            'error'
+        );
 
     } finally {
-
-        const saveButton =
-            e.submitter ||
-            document.querySelector(
-                '#product-editor-form button[type="submit"]'
-            );
-
         if (saveButton) {
             saveButton.disabled = false;
-            saveButton.innerHTML = 'حفظ المنتج';
+            saveButton.innerHTML = originalButtonText;
         }
     }
 }
-
-// =========================
-// فتح إضافة عرض جديد
-// =========================
-
+        
 function openOfferModal() {
 
     editingOfferId = null;
