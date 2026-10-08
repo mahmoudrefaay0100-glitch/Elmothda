@@ -5007,131 +5007,306 @@ async function trackOrderSubmit() {
         return;
     }
 
-    const orderId =
+    // الرقم الذي يدخله العميل
+    let enteredOrderId =
         input.value.trim();
 
-    // إخفاء النتيجة القديمة
     container.classList.remove('hidden');
 
-    if (!orderId) {
+
+    // =====================================================
+    // التحقق من الرقم
+    // =====================================================
+
+    if (!enteredOrderId) {
 
         container.innerHTML = `
-            <p class="text-red-400 text-center text-xs font-bold">
-                من فضلك أدخل رقم الطلب.
-            </p>
+            <div
+                class="bg-black p-4 rounded-2xl border border-red-900/50"
+                dir="rtl"
+            >
+                <p class="text-red-400 text-center text-xs font-bold">
+                    من فضلك أدخل رقم الطلب.
+                </p>
+            </div>
         `;
 
         return;
     }
 
-    // حالة التحميل
-    container.innerHTML = `
-        <div class="text-center py-4">
-            <i class="fas fa-spinner fa-spin text-brand-amber text-xl"></i>
 
-            <p class="text-gray-400 text-xs mt-2">
+    // =====================================================
+    // دعم الحالتين:
+    //
+    // العميل يكتب:
+    // 25121
+    //
+    // أو:
+    // ORD-25121
+    //
+    // وفي الحالتين نرسل للـAPI:
+    // ORD-25121
+    // =====================================================
+
+    let orderId =
+        enteredOrderId.toUpperCase();
+
+    if (
+        !orderId.startsWith('ORD-')
+    ) {
+        orderId =
+            `ORD-${orderId}`;
+    }
+
+
+    // =====================================================
+    // حالة التحميل
+    // =====================================================
+
+    container.innerHTML = `
+        <div
+            class="bg-black p-5 rounded-2xl border border-neutral-800 text-center"
+            dir="rtl"
+        >
+
+            <i
+                class="fas fa-spinner fa-spin text-brand-amber text-2xl"
+            ></i>
+
+            <p class="text-gray-400 text-xs mt-3">
                 جاري البحث عن الطلب...
             </p>
+
         </div>
     `;
 
+
     try {
+
+        // =================================================
+        // طلب التتبع العام
+        // =================================================
 
         const response =
             await fetch(
                 `/api/orders?track=${encodeURIComponent(orderId)}`,
                 {
                     method: 'GET',
+
                     cache: 'no-store',
+
                     headers: {
-                        'Accept': 'application/json'
+                        'Accept':
+                            'application/json'
                     }
                 }
             );
 
+
         const data =
             await response.json();
 
+
+        console.log(
+            'TRACK ORDER RESPONSE:',
+            response.status,
+            data
+        );
+
+
+        // =================================================
         // الطلب غير موجود
+        // =================================================
+
         if (
-            !response.ok ||
+            response.status === 404 ||
             !data.success ||
             !data.order
         ) {
 
             container.innerHTML = `
-                <div class="bg-black p-4 rounded-2xl border border-red-900/50">
-                    <p class="text-red-400 text-center text-xs font-bold">
-                        ${data?.error || 'لم يتم العثور على طلب بهذا الرقم.'}
+                <div
+                    class="bg-black p-5 rounded-2xl border border-red-900/50"
+                    dir="rtl"
+                >
+
+                    <i
+                        class="fas fa-circle-exclamation text-red-400 text-2xl"
+                    ></i>
+
+                    <p class="text-red-400 text-center text-xs font-bold mt-3">
+                        لم يتم العثور على طلب بهذا الرقم.
                     </p>
+
+                    <p class="text-gray-500 text-[10px] text-center mt-2">
+                        تأكد من كتابة رقم الطلب بشكل صحيح.
+                    </p>
+
                 </div>
             `;
 
             return;
         }
 
+
+        // =================================================
+        // أي خطأ آخر
+        // =================================================
+
+        if (!response.ok) {
+
+            throw new Error(
+                `HTTP ${response.status}`
+            );
+        }
+
+
+        // =================================================
+        // بيانات الطلب
+        // =================================================
+
         const order =
             data.order;
 
+
         const status =
-            order.status || 'New';
+            order.status ||
+            'New';
+
 
         const total =
-            Number(order.total || 0);
-
-        const createdAt =
-            order.created_at
-                ? new Date(order.created_at)
-                    .toLocaleDateString(
-                        'ar-EG',
-                        {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        }
-                    )
-                : 'غير متوفر';
+            Number(
+                order.total || 0
+            );
 
 
-        // =====================================================
-        // ترجمة حالات الطلب
-        // =====================================================
+        // =================================================
+        // ترجمة الحالات
+        // =================================================
 
         const statusLabels = {
-            New: 'جديد',
-            Confirmed: 'تم تأكيد الطلب',
-            Shipped: 'تم الشحن',
-            Delivered: 'تم التسليم',
-            Cancelled: 'ملغي'
+
+            New:
+                'جديد',
+
+            Confirmed:
+                'تم تأكيد الطلب',
+
+            Shipped:
+                'تم الشحن',
+
+            Delivered:
+                'تم التسليم',
+
+            Cancelled:
+                'ملغي'
         };
+
 
         const statusLabel =
             statusLabels[status] ||
             status;
 
 
-        // =====================================================
-        // أيقونة حالة الطلب
-        // =====================================================
+        // =================================================
+        // أيقونات الحالات
+        // =================================================
 
         const statusIcons = {
-            New: 'fa-clock',
-            Confirmed: 'fa-circle-check',
-            Shipped: 'fa-truck',
-            Delivered: 'fa-box-open',
-            Cancelled: 'fa-circle-xmark'
+
+            New:
+                'fa-clock',
+
+            Confirmed:
+                'fa-circle-check',
+
+            Shipped:
+                'fa-truck',
+
+            Delivered:
+                'fa-box-open',
+
+            Cancelled:
+                'fa-circle-xmark'
         };
+
 
         const statusIcon =
             statusIcons[status] ||
             'fa-clock';
 
 
-        // =====================================================
-        // عرض النتيجة
-        // =====================================================
+        // =================================================
+        // ألوان الحالة
+        // =================================================
+
+        const statusClasses = {
+
+            New:
+                'text-yellow-400',
+
+            Confirmed:
+                'text-green-400',
+
+            Shipped:
+                'text-blue-400',
+
+            Delivered:
+                'text-green-400',
+
+            Cancelled:
+                'text-red-400'
+        };
+
+
+        const statusClass =
+            statusClasses[status] ||
+            'text-brand-amber';
+
+
+        // =================================================
+        // تاريخ الطلب
+        // =================================================
+
+        let createdAt =
+            'غير متوفر';
+
+
+        if (order.created_at) {
+
+            try {
+
+                createdAt =
+                    new Date(
+                        order.created_at
+                    ).toLocaleDateString(
+                        'ar-EG',
+                        {
+                            year:
+                                'numeric',
+
+                            month:
+                                'long',
+
+                            day:
+                                'numeric'
+                        }
+                    );
+
+            } catch {
+
+                createdAt =
+                    'غير متوفر';
+            }
+        }
+
+
+        // =================================================
+        // عرض الطلب
+        // =================================================
 
         container.innerHTML = `
+
             <div
                 class="bg-black p-5 rounded-2xl border border-neutral-800 space-y-4"
                 dir="rtl"
@@ -5143,79 +5318,117 @@ async function trackOrderSubmit() {
                 >
 
                     <div>
-                        <p class="text-gray-500 text-[10px] mb-1">
+
+                        <p
+                            class="text-gray-500 text-[10px] mb-1"
+                        >
                             رقم الطلب
                         </p>
 
-                        <p class="font-bold text-white text-sm break-all">
-                            ${order.id || order.order_number || '-'}
+                        <p
+                            class="font-bold text-white text-sm"
+                        >
+                            ${order.order_number || order.id}
                         </p>
+
                     </div>
 
-                    <div
+
+                    <span
                         class="wine-gradient text-white text-[10px] px-3 py-1.5 rounded-full font-bold whitespace-nowrap"
                     >
                         ${statusLabel}
-                    </div>
+                    </span>
 
                 </div>
 
 
                 <!-- حالة الطلب -->
                 <div
-                    class="border border-neutral-800 rounded-xl p-4 text-center"
+                    class="border border-neutral-800 rounded-2xl p-5 text-center"
                 >
 
                     <i
-                        class="fas ${statusIcon} text-brand-amber text-3xl mb-2"
+                        class="fas ${statusIcon} ${statusClass} text-3xl mb-3"
                     ></i>
 
-                    <p class="text-gray-400 text-xs mb-1">
-                        حالة الطلب
+                    <p
+                        class="text-gray-500 text-[10px] mb-1"
+                    >
+                        حالة الطلب الحالية
                     </p>
 
-                    <p class="text-white font-bold text-base">
+                    <p
+                        class="text-white font-bold text-lg"
+                    >
                         ${statusLabel}
                     </p>
 
                 </div>
 
 
-                <!-- التفاصيل -->
+                <!-- تفاصيل الطلب -->
                 <div
                     class="grid grid-cols-2 gap-3"
                 >
 
                     <div
-                        class="bg-neutral-900 rounded-xl p-3"
+                        class="bg-neutral-900 border border-neutral-800 rounded-xl p-3"
                     >
-                        <p class="text-gray-500 text-[10px] mb-1">
+
+                        <p
+                            class="text-gray-500 text-[10px] mb-1"
+                        >
                             إجمالي الطلب
                         </p>
 
-                        <p class="text-brand-amber font-bold text-sm">
+                        <p
+                            class="text-brand-amber font-bold text-sm"
+                        >
                             ${total.toLocaleString('ar-EG')}
                             ج.م
                         </p>
+
                     </div>
 
 
                     <div
-                        class="bg-neutral-900 rounded-xl p-3"
+                        class="bg-neutral-900 border border-neutral-800 rounded-xl p-3"
                     >
-                        <p class="text-gray-500 text-[10px] mb-1">
+
+                        <p
+                            class="text-gray-500 text-[10px] mb-1"
+                        >
                             تاريخ الطلب
                         </p>
 
-                        <p class="text-white font-bold text-xs">
+                        <p
+                            class="text-white font-bold text-xs"
+                        >
                             ${createdAt}
                         </p>
+
                     </div>
+
+                </div>
+
+
+                <!-- تحديث الحالة -->
+                <div
+                    class="text-center pt-2"
+                >
+
+                    <p
+                        class="text-gray-500 text-[10px]"
+                    >
+                        يتم تحديث حالة الطلب من خلال المتحدة للرتان والأثاث
+                    </p>
 
                 </div>
 
             </div>
         `;
+
 
     } catch (error) {
 
@@ -5224,18 +5437,34 @@ async function trackOrderSubmit() {
             error
         );
 
+
         container.innerHTML = `
             <div
-                class="bg-black p-4 rounded-2xl border border-red-900/50"
+                class="bg-black p-5 rounded-2xl border border-red-900/50"
                 dir="rtl"
             >
-                <p class="text-red-400 text-center text-xs font-bold">
-                    حدث خطأ أثناء البحث عن الطلب. حاول مرة أخرى.
+
+                <i
+                    class="fas fa-triangle-exclamation text-red-400 text-2xl"
+                ></i>
+
+                <p
+                    class="text-red-400 text-center text-xs font-bold mt-3"
+                >
+                    حدث خطأ أثناء البحث عن الطلب.
                 </p>
+
+                <p
+                    class="text-gray-500 text-[10px] text-center mt-2"
+                >
+                    حاول مرة أخرى بعد قليل.
+                </p>
+
             </div>
         `;
     }
 }
+
         
 async function handleAdminLogin(e) {
     e.preventDefault();
