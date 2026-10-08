@@ -7910,206 +7910,148 @@ function closeOfferEditor() {
 // تعديل عرض
 // =========================
 
-async function editOffer(id) {
+function editOffer(id) {
 
-    try {
+    console.log('EDIT OFFER CLICKED:', id);
+    console.log('CURRENT OFFERS:', appState.offers);
 
-        const token =
-            sessionStorage.getItem(
-                'OSCAR_ADMIN_ACCESS_TOKEN'
-            ) || '';
+    const offers =
+        Array.isArray(appState.offers)
+            ? appState.offers
+            : [];
 
-        const response =
-            await fetch(
-                '/api/offers',
-                {
-                    method: 'GET',
-                    cache: 'no-store',
-                    headers: token
-                        ? {
-                            Authorization:
-                                `Bearer ${token}`
-                        }
-                        : {}
-                }
-            );
-
-        const result =
-            await response.json();
-
-        console.log(
-            'EDIT OFFER API RESULT:',
-            result
+    const offer =
+        offers.find(
+            item =>
+                String(item.id).trim() ===
+                String(id).trim()
         );
 
-        if (
-            !response.ok ||
-            !result.success
-        ) {
-            throw new Error(
-                result.error ||
-                'فشل تحميل العروض'
-            );
-        }
+    console.log('FOUND OFFER:', offer);
 
-        const offers =
-            Array.isArray(result.offers)
-                ? result.offers
-                : [];
-
-        const offer =
-            offers.find(
-                item =>
-                    String(item.id).trim() ===
-                    String(id).trim()
-            );
-
-        if (!offer) {
-
-            showToast(
-                'لم يتم العثور على العرض',
-                'error'
-            );
-
-            console.error(
-                'OFFER NOT FOUND:',
-                id,
-                offers
-            );
-
-            return;
-        }
-
-        appState.offers =
-            offers;
-
-        editingOfferId =
-            offer.id;
-
-        switchView(
-            'admin-offer-editor'
-        );
-
-        document.getElementById(
-            'offer-editor-heading'
-        ).textContent =
-            'تعديل العرض';
-
-        document.getElementById(
-            'offer-editor-title'
-        ).value =
-            offer.title || '';
-
-        document.getElementById(
-            'offer-editor-description'
-        ).value =
-            offer.description || '';
-
-        document.getElementById(
-            'offer-editor-old-price'
-        ).value =
-            offer.old_price || '';
-
-        document.getElementById(
-            'offer-editor-offer-price'
-        ).value =
-            offer.offer_price || '';
-
-        document.getElementById(
-            'offer-editor-button-text'
-        ).value =
-            offer.button_text ||
-            'اطلب العرض';
-
-        document.getElementById(
-            'offer-editor-button-link'
-        ).value =
-            offer.button_link || '';
-
-        document.getElementById(
-            'offer-editor-sort-order'
-        ).value =
-            Number(
-                offer.sort_order
-            ) || 0;
-
-        document.getElementById(
-            'offer-editor-active'
-        ).checked =
-            offer.is_active !== false;
-
-        document.getElementById(
-            'offer-editor-show-popup'
-        ).checked =
-            offer.show_popup !== false;
-
-        document.getElementById(
-            'offer-editor-show-homepage'
-        ).checked =
-            offer.show_homepage !== false;
-
-        document.getElementById(
-            'offer-editor-start-date'
-        ).value =
-            toDateTimeLocal(
-                offer.start_date
-            );
-
-        document.getElementById(
-            'offer-editor-end-date'
-        ).value =
-            toDateTimeLocal(
-                offer.end_date
-            );
-
-        const preview =
-            document.getElementById(
-                'offer-image-preview'
-            );
-
-        const previewImg =
-            document.getElementById(
-                'offer-image-preview-img'
-            );
-
-        if (offer.image_url) {
-
-            previewImg.src =
-                offer.image_url;
-
-            preview.classList.remove(
-                'hidden'
-            );
-
-        } else {
-
-            preview.classList.add(
-                'hidden'
-            );
-
-            previewImg.src =
-                '';
-        }
-
-        document.getElementById(
-            'offer-save-button'
-        ).innerHTML =
-            'حفظ التعديلات';
-
-    } catch (error) {
-
-        console.error(
-            'EDIT OFFER ERROR:',
-            error
-        );
+    if (!offer) {
 
         showToast(
-            error.message ||
-            'حدث خطأ أثناء تحميل العرض',
+            'لم يتم العثور على العرض',
             'error'
         );
+
+        return;
     }
+
+    editingOfferId =
+        offer.id;
+
+    switchView(
+        'admin-offer-editor'
+    );
+
+    document.getElementById(
+        'offer-editor-heading'
+    ).textContent =
+        'تعديل العرض';
+
+    document.getElementById(
+        'offer-editor-title'
+    ).value =
+        offer.title || '';
+
+    document.getElementById(
+        'offer-editor-description'
+    ).value =
+        offer.description || '';
+
+    document.getElementById(
+        'offer-editor-old-price'
+    ).value =
+        offer.old_price ?? '';
+
+    document.getElementById(
+        'offer-editor-offer-price'
+    ).value =
+        offer.offer_price ?? '';
+
+    document.getElementById(
+        'offer-editor-button-text'
+    ).value =
+        offer.button_text ||
+        'اطلب العرض';
+
+    document.getElementById(
+        'offer-editor-button-link'
+    ).value =
+        offer.button_link || '';
+
+    document.getElementById(
+        'offer-editor-sort-order'
+    ).value =
+        Number(
+            offer.sort_order
+        ) || 0;
+
+    document.getElementById(
+        'offer-editor-active'
+    ).checked =
+        offer.is_active !== false;
+
+    document.getElementById(
+        'offer-editor-show-popup'
+    ).checked =
+        offer.show_popup !== false;
+
+    document.getElementById(
+        'offer-editor-show-homepage'
+    ).checked =
+        offer.show_homepage !== false;
+
+    document.getElementById(
+        'offer-editor-start-date'
+    ).value =
+        typeof toDateTimeLocal === 'function'
+            ? toDateTimeLocal(offer.start_date)
+            : '';
+
+    document.getElementById(
+        'offer-editor-end-date'
+    ).value =
+        typeof toDateTimeLocal === 'function'
+            ? toDateTimeLocal(offer.end_date)
+            : '';
+
+    const preview =
+        document.getElementById(
+            'offer-image-preview'
+        );
+
+    const previewImg =
+        document.getElementById(
+            'offer-image-preview-img'
+        );
+
+    if (offer.image_url) {
+
+        previewImg.src =
+            offer.image_url;
+
+        preview.classList.remove(
+            'hidden'
+        );
+
+    } else {
+
+        preview.classList.add(
+            'hidden'
+        );
+
+        previewImg.src = '';
+    }
+
+    document.getElementById(
+        'offer-save-button'
+    ).innerHTML =
+        'حفظ التعديلات';
 }
+        
 function toDateTimeLocal(value) {
 
     if (!value) {
