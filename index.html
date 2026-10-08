@@ -4991,23 +4991,32 @@ if (receiptPage) {
     }
 }
 
-        async function trackOrderSubmit() {
+async function trackOrderSubmit() {
 
     const input =
-        document.getElementById('track-order-id-input');
+        document.getElementById(
+            'track-order-id-input'
+        );
 
     const container =
-        document.getElementById('track-result-container');
+        document.getElementById(
+            'track-result-container'
+        );
 
-    if (!input || !container) return;
+    if (!input || !container) {
+        return;
+    }
 
-    const orderId = input.value.trim();
+    const orderId =
+        input.value.trim();
+
+    // إخفاء النتيجة القديمة
+    container.classList.remove('hidden');
 
     if (!orderId) {
-        container.classList.remove('hidden');
 
         container.innerHTML = `
-            <p class="text-yellow-400 text-center text-xs font-bold">
+            <p class="text-red-400 text-center text-xs font-bold">
                 من فضلك أدخل رقم الطلب.
             </p>
         `;
@@ -5015,198 +5024,215 @@ if (receiptPage) {
         return;
     }
 
-    // إظهار حالة التحميل
-    container.classList.remove('hidden');
-
+    // حالة التحميل
     container.innerHTML = `
-        <p class="text-gray-400 text-center text-xs font-bold">
-            جاري البحث عن الطلب...
-        </p>
+        <div class="text-center py-4">
+            <i class="fas fa-spinner fa-spin text-brand-amber text-xl"></i>
+
+            <p class="text-gray-400 text-xs mt-2">
+                جاري البحث عن الطلب...
+            </p>
+        </div>
     `;
 
     try {
 
-        const response = await fetch(
-            '/api/orders',
-            {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                cache: 'no-store'
-            }
-        );
-
-        if (!response.ok) {
-            throw new Error(
-                'HTTP ' + response.status
+        const response =
+            await fetch(
+                `/api/orders?track=${encodeURIComponent(orderId)}`,
+                {
+                    method: 'GET',
+                    cache: 'no-store',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                }
             );
-        }
 
-        const result =
+        const data =
             await response.json();
 
-        const orders =
-            Array.isArray(result?.orders)
-                ? result.orders
-                : Array.isArray(result)
-                    ? result
-                    : [];
-
-        const normalizedOrderId =
-            String(orderId)
-                .trim()
-                .toLowerCase();
-
-        const order =
-            orders.find(o => {
-
-                const id =
-                    String(o?.id ?? '')
-                        .trim()
-                        .toLowerCase();
-
-                const orderNumber =
-                    String(o?.order_number ?? '')
-                        .trim()
-                        .toLowerCase();
-
-                return (
-                    id === normalizedOrderId ||
-                    orderNumber === normalizedOrderId
-                );
-
-            });
-
-        // =====================================
         // الطلب غير موجود
-        // =====================================
-
-        if (!order) {
+        if (
+            !response.ok ||
+            !data.success ||
+            !data.order
+        ) {
 
             container.innerHTML = `
-                <p class="text-red-400 text-center text-xs font-bold">
-                    لم يتم العثور على طلب بهذا الرقم.
-                </p>
+                <div class="bg-black p-4 rounded-2xl border border-red-900/50">
+                    <p class="text-red-400 text-center text-xs font-bold">
+                        ${data?.error || 'لم يتم العثور على طلب بهذا الرقم.'}
+                    </p>
+                </div>
             `;
 
             return;
         }
 
-        // =====================================
-        // بيانات العميل
-        // =====================================
-
-        const customer =
-            order.customer || {};
-
-        const customerName =
-            customer.name ||
-            order.customer_name ||
-            order.name ||
-            'غير متوفر';
-
-        const customerPhone =
-            customer.phone ||
-            order.customer_phone ||
-            order.phone ||
-            'غير متوفر';
-
-        const customerGov =
-            customer.gov ||
-            order.gov ||
-            order.governorate ||
-            'غير متوفر';
-
-        const customerCity =
-            customer.city ||
-            order.city ||
-            'غير متوفر';
-
-        const total =
-            Number(
-                order.total || 0
-            );
-
-        // =====================================
-        // حالة الطلب
-        // =====================================
+        const order =
+            data.order;
 
         const status =
-            order.status ||
-            'New';
+            order.status || 'New';
 
-        // =====================================
-        // عرض الطلب
-        // =====================================
+        const total =
+            Number(order.total || 0);
+
+        const createdAt =
+            order.created_at
+                ? new Date(order.created_at)
+                    .toLocaleDateString(
+                        'ar-EG',
+                        {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        }
+                    )
+                : 'غير متوفر';
+
+
+        // =====================================================
+        // ترجمة حالات الطلب
+        // =====================================================
+
+        const statusLabels = {
+            New: 'جديد',
+            Confirmed: 'تم تأكيد الطلب',
+            Shipped: 'تم الشحن',
+            Delivered: 'تم التسليم',
+            Cancelled: 'ملغي'
+        };
+
+        const statusLabel =
+            statusLabels[status] ||
+            status;
+
+
+        // =====================================================
+        // أيقونة حالة الطلب
+        // =====================================================
+
+        const statusIcons = {
+            New: 'fa-clock',
+            Confirmed: 'fa-circle-check',
+            Shipped: 'fa-truck',
+            Delivered: 'fa-box-open',
+            Cancelled: 'fa-circle-xmark'
+        };
+
+        const statusIcon =
+            statusIcons[status] ||
+            'fa-clock';
+
+
+        // =====================================================
+        // عرض النتيجة
+        // =====================================================
 
         container.innerHTML = `
-
             <div
-                class="bg-black p-4 rounded-2xl border border-neutral-800 space-y-3 text-xs"
+                class="bg-black p-5 rounded-2xl border border-neutral-800 space-y-4"
+                dir="rtl"
             >
 
+                <!-- رقم الطلب -->
                 <div
-                    class="flex justify-between items-center border-b border-neutral-800 pb-2"
+                    class="flex justify-between items-center border-b border-neutral-800 pb-3 gap-3"
                 >
 
-                    <span class="font-bold text-white">
-                        رقم الطلب:
-                        ${order.id || order.order_number || '-'}
-                    </span>
+                    <div>
+                        <p class="text-gray-500 text-[10px] mb-1">
+                            رقم الطلب
+                        </p>
 
-                    <span
-                        class="wine-gradient text-white text-[10px] px-2.5 py-0.5 rounded-full font-bold"
+                        <p class="font-bold text-white text-sm break-all">
+                            ${order.id || order.order_number || '-'}
+                        </p>
+                    </div>
+
+                    <div
+                        class="wine-gradient text-white text-[10px] px-3 py-1.5 rounded-full font-bold whitespace-nowrap"
                     >
-                        الحالة:
-                        ${status}
-                    </span>
+                        ${statusLabel}
+                    </div>
 
                 </div>
 
-                <p class="text-gray-300">
-                    العميل:
-                    ${customerName}
-                    (${customerPhone})
-                </p>
 
-                <p class="text-gray-300">
-                    العنوان:
-                    ${customerGov}
-                    -
-                    ${customerCity}
-                </p>
-
+                <!-- حالة الطلب -->
                 <div
-                    class="border-t border-neutral-800 pt-2 flex justify-between font-bold text-sm text-brand-amber"
+                    class="border border-neutral-800 rounded-xl p-4 text-center"
                 >
 
-                    <span>
-                        الإجمالي:
-                    </span>
+                    <i
+                        class="fas ${statusIcon} text-brand-amber text-3xl mb-2"
+                    ></i>
 
-                    <span>
-                        ${total.toLocaleString('ar-EG')}
-                        ج.م
-                    </span>
+                    <p class="text-gray-400 text-xs mb-1">
+                        حالة الطلب
+                    </p>
+
+                    <p class="text-white font-bold text-base">
+                        ${statusLabel}
+                    </p>
+
+                </div>
+
+
+                <!-- التفاصيل -->
+                <div
+                    class="grid grid-cols-2 gap-3"
+                >
+
+                    <div
+                        class="bg-neutral-900 rounded-xl p-3"
+                    >
+                        <p class="text-gray-500 text-[10px] mb-1">
+                            إجمالي الطلب
+                        </p>
+
+                        <p class="text-brand-amber font-bold text-sm">
+                            ${total.toLocaleString('ar-EG')}
+                            ج.م
+                        </p>
+                    </div>
+
+
+                    <div
+                        class="bg-neutral-900 rounded-xl p-3"
+                    >
+                        <p class="text-gray-500 text-[10px] mb-1">
+                            تاريخ الطلب
+                        </p>
+
+                        <p class="text-white font-bold text-xs">
+                            ${createdAt}
+                        </p>
+                    </div>
 
                 </div>
 
             </div>
-
         `;
 
     } catch (error) {
 
         console.error(
-            '❌ TRACK ORDER ERROR:',
+            'TRACK ORDER ERROR:',
             error
         );
 
         container.innerHTML = `
-            <p class="text-red-400 text-center text-xs font-bold">
-                حدث خطأ أثناء البحث عن الطلب. حاول مرة أخرى.
-            </p>
+            <div
+                class="bg-black p-4 rounded-2xl border border-red-900/50"
+                dir="rtl"
+            >
+                <p class="text-red-400 text-center text-xs font-bold">
+                    حدث خطأ أثناء البحث عن الطلب. حاول مرة أخرى.
+                </p>
+            </div>
         `;
     }
 }
