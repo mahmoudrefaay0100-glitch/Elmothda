@@ -1948,148 +1948,7 @@ categories: [
     renderOfferPopup();
 }
 
-        function startOfferCountdown(endDate, countdownId, dateId) {
-
-    const countdownEl =
-        document.getElementById(countdownId);
-
-    const dateEl =
-        document.getElementById(dateId);
-
-    if (!countdownEl || !dateEl || !endDate) {
-        return;
-    }
-
-    const endTime =
-        new Date(endDate).getTime();
-
-    if (isNaN(endTime)) {
-        countdownEl.textContent =
-            '⏳ تاريخ انتهاء العرض غير صحيح';
-
-        dateEl.textContent =
-            '📅 تاريخ الانتهاء غير محدد';
-
-        return;
-    }
-
-    const formattedDate =
-        new Intl.DateTimeFormat('ar-EG', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-        }).format(new Date(endTime));
-
-    dateEl.textContent =
-        `📅 ينتهي العرض: ${formattedDate}`;
-
-    function updateCountdown() {
-
-        const remaining =
-            endTime - Date.now();
-
-        if (remaining <= 0) {
-
-            countdownEl.textContent =
-                '⏳ انتهى العرض';
-
-            dateEl.textContent =
-                `📅 انتهى العرض في: ${formattedDate}`;
-
-            clearInterval(timer);
-
-            return;
-        }
-
-        const totalSeconds =
-            Math.floor(remaining / 1000);
-
-        const days =
-            Math.floor(
-                totalSeconds / 86400
-            );
-
-        const hours =
-            Math.floor(
-                (totalSeconds % 86400) / 3600
-            );
-
-        const minutes =
-            Math.floor(
-                (totalSeconds % 3600) / 60
-            );
-
-        const seconds =
-            totalSeconds % 60;
-
-        countdownEl.textContent =
-            `⏳ متبقي على انتهاء العرض: ` +
-            `${days} يوم ` +
-            `${String(hours).padStart(2, '0')} ساعة ` +
-            `${String(minutes).padStart(2, '0')} دقيقة ` +
-            `${String(seconds).padStart(2, '0')} ثانية`;
-    }
-
-    updateCountdown();
-
-    const timer =
-        setInterval(
-            updateCountdown,
-            1000
-        );
-}
-        
-        // =====================================================
-// عروض الموقع - PUBLIC OFFERS
-// =====================================================
-
-function getActivePublicOffers() {
-
-    const offers =
-        Array.isArray(appState.offers)
-            ? appState.offers
-            : [];
-
-    const now =
-        new Date();
-
-    return offers
-        .filter(offer => {
-
-            /*
-             * العرض المتوقف يدويًا لا يظهر
-             */
-            if (
-                offer.is_active === false
-            ) {
-                return false;
-            }
-
-            /*
-             * تاريخ البداية
-             */
-            const starts =
-                !offer.start_date ||
-                new Date(
-                    offer.start_date
-                ) <= now;
-
-            /*
-             * لا نحذف العرض بعد انتهاء المدة.
-             * سيظل ظاهرًا في قسم العروض
-             * وسيتم التعامل معه كـ "منتهي".
-             */
-
-            return starts;
-        })
-        .sort(
-            (a, b) =>
-                (Number(a.sort_order) || 0) -
-                (Number(b.sort_order) || 0)
-        );
-}
-        
-function renderHomepageOffers() {
+       function renderHomepageOffers() {
 
     const container =
         document.getElementById(
@@ -2100,35 +1959,86 @@ function renderHomepageOffers() {
         return;
     }
 
-    /*
-     * نجيب كل العروض التي يسمح لها بالظهور
-     * في الرئيسية، حتى لو انتهت.
-     */
-    const offers =
+
+    // =====================================================
+    // جلب العروض الموجودة حاليًا في appState
+    // =====================================================
+
+    const allOffers =
         Array.isArray(appState.offers)
             ? appState.offers
-                .filter(
-                    offer =>
-                        offer.is_active !== false &&
-                        offer.show_homepage !== false &&
-                        (
-                            !offer.start_date ||
-                            new Date(
-                                offer.start_date
-                            ) <= new Date()
-                        )
-                )
-                .sort(
-                    (a, b) =>
-                        (Number(a.sort_order) || 0) -
-                        (Number(b.sort_order) || 0)
-                )
             : [];
 
 
-    /*
-     * لو مفيش عروض
-     */
+    // =====================================================
+    // العروض التي تظهر في الرئيسية
+    // =====================================================
+
+    const offers =
+        allOffers
+            .filter(offer => {
+
+                // العرض متوقف يدويًا
+                if (
+                    offer.is_active === false
+                ) {
+                    return false;
+                }
+
+
+                // العرض غير مسموح له بالظهور في الرئيسية
+                if (
+                    offer.show_homepage === false
+                ) {
+                    return false;
+                }
+
+
+                // تاريخ البداية
+                if (offer.start_date) {
+
+                    const startDate =
+                        new Date(
+                            offer.start_date
+                        );
+
+                    if (
+                        !Number.isNaN(
+                            startDate.getTime()
+                        ) &&
+                        startDate > new Date()
+                    ) {
+                        return false;
+                    }
+                }
+
+
+                // =================================================
+                // مهم:
+                // لا نستبعد العرض بسبب end_date
+                // حتى يظل العرض المنتهي ظاهرًا.
+                // =================================================
+
+                return true;
+
+            })
+            .sort(
+                (a, b) =>
+                    (Number(a.sort_order) || 0) -
+                    (Number(b.sort_order) || 0)
+            );
+
+
+    console.log(
+        '🔥🔥🔥 HOMEPAGE OFFERS:',
+        offers
+    );
+
+
+    // =====================================================
+    // لا توجد عروض
+    // =====================================================
+
     if (offers.length === 0) {
 
         container.innerHTML = '';
@@ -2146,9 +2056,10 @@ function renderHomepageOffers() {
     }
 
 
-    /*
-     * إظهار قسم العروض
-     */
+    // =====================================================
+    // إظهار قسم العروض
+    // =====================================================
+
     const section =
         document.getElementById(
             'homepage-offers-section'
@@ -2161,9 +2072,10 @@ function renderHomepageOffers() {
     container.classList.remove('hidden');
 
 
-    /*
-     * إيقاف أي عدادات قديمة
-     */
+    // =====================================================
+    // إيقاف العدادات القديمة
+    // =====================================================
+
     if (
         Array.isArray(
             window.homepageOfferTimers
@@ -2171,20 +2083,21 @@ function renderHomepageOffers() {
     ) {
 
         window.homepageOfferTimers.forEach(
-            timer =>
-                clearInterval(timer)
+            timer => {
+                clearInterval(timer);
+            }
         );
+
     }
 
     window.homepageOfferTimers = [];
 
 
-    /*
-     * بناء كروت العروض
-     */
-    container.innerHTML = `
+    // =====================================================
+    // بناء كروت العروض
+    // =====================================================
 
-        <!-- عنوان قسم العروض -->
+    container.innerHTML = `
 
         <div
             class="col-span-full text-center mb-8"
@@ -2207,236 +2120,337 @@ function renderHomepageOffers() {
 
 
         ${
-            offers.map(
-                (offer, index) => {
+            offers
+                .map(
+                    (offer, index) => {
 
-                    const oldPrice =
-                        Number(
-                            offer.old_price
-                        ) || 0;
+                        // =============================================
+                        // الأسعار
+                        // =============================================
 
-                    const offerPrice =
-                        Number(
-                            offer.offer_price
-                        ) || 0;
+                        const oldPrice =
+                            Number(
+                                offer.old_price
+                            ) || 0;
 
-
-                    const countdownId =
-                        `offer-countdown-${offer.id || index}`;
-
-                    const endDateId =
-                        `offer-end-date-${offer.id || index}`;
-
-                    const statusId =
-                        `offer-status-${offer.id || index}`;
-
-                    const buttonId =
-                        `offer-button-${offer.id || index}`;
+                        const offerPrice =
+                            Number(
+                                offer.offer_price
+                            ) || 0;
 
 
-                    /*
-                     * تحديد هل العرض منتهي الآن
-                     */
-                    const isExpired =
-                        offer.end_date &&
-                        !isNaN(
-                            new Date(
-                                offer.end_date
-                            ).getTime()
-                        ) &&
-                        new Date(
-                            offer.end_date
-                        ).getTime() <=
-                        Date.now();
+                        // =============================================
+                        // IDs
+                        // =============================================
+
+                        const offerKey =
+                            offer.id ||
+                            index;
 
 
-                    return `
+                        const countdownId =
+                            `offer-countdown-${offerKey}`;
 
-                        <div
-                            class="bg-neutral-950 border ${
-                                isExpired
-                                    ? 'border-red-500/30'
-                                    : 'border-brand-amber/30'
-                            } rounded-3xl overflow-hidden shadow-xl"
-                            dir="rtl"
-                        >
+                        const endDateId =
+                            `offer-end-date-${offerKey}`;
 
-                            ${
-                                offer.image_url
-                                    ? `
-                                        <img
-                                            src="${offer.image_url}"
-                                            alt="${offer.title || 'عرض خاص'}"
-                                            class="w-full h-64 object-cover"
-                                        >
-                                    `
-                                    : ''
-                            }
+                        const statusId =
+                            `offer-status-${offerKey}`;
+
+                        const buttonId =
+                            `offer-button-${offerKey}`;
 
 
-                            <div class="p-6 text-center">
+                        // =============================================
+                        // تاريخ النهاية
+                        // =============================================
+
+                        let endTime = null;
+
+                        let formattedDate = '';
 
 
-                                <!-- حالة العرض -->
+                        if (offer.end_date) {
 
-                                <div
-                                    id="${statusId}"
-                                    class="inline-flex items-center gap-2 ${
-                                        isExpired
-                                            ? 'bg-red-500/10 text-red-400'
-                                            : 'bg-brand-amber/10 text-brand-amber'
-                                    } px-4 py-2 rounded-full text-xs font-bold mb-4"
-                                >
-
-                                    ${
-                                        isExpired
-                                            ? '🔴 منتهي'
-                                            : '🔥 عرض خاص'
-                                    }
-
-                                </div>
-
-
-                                <!-- اسم العرض -->
-
-                                <h3
-                                    class="text-2xl font-black text-white"
-                                >
-                                    ${offer.title || ''}
-                                </h3>
-
-
-                                <!-- الوصف -->
-
-                                ${
-                                    offer.description
-                                        ? `
-                                            <p
-                                                class="text-gray-400 text-sm mt-3 leading-7"
-                                            >
-                                                ${offer.description}
-                                            </p>
-                                        `
-                                        : ''
-                                }
-
-
-                                <!-- الأسعار -->
-
-                                <div
-                                    class="flex items-center justify-center gap-4 mt-5"
-                                >
-
-                                    ${
-                                        oldPrice > 0
-                                            ? `
-                                                <span
-                                                    class="text-gray-500 line-through text-sm"
-                                                >
-                                                    ${oldPrice.toLocaleString('ar-EG')}
-                                                    ج.م
-                                                </span>
-                                            `
-                                            : ''
-                                    }
-
-
-                                    ${
-                                        offerPrice > 0
-                                            ? `
-                                                <span
-                                                    class="text-brand-amber font-black text-2xl"
-                                                >
-                                                    ${offerPrice.toLocaleString('ar-EG')}
-                                                    ج.م
-                                                </span>
-                                            `
-                                            : ''
-                                    }
-
-                                </div>
-
-
-                                <!-- العداد -->
-
-                                ${
+                            const parsedEndDate =
+                                new Date(
                                     offer.end_date
-                                        ? `
-                                            <div
-                                                class="mt-6 ${
-                                                    isExpired
-                                                        ? 'bg-red-950/20 border-red-500/20'
-                                                        : 'bg-black/60 border-brand-amber/20'
-                                                } border rounded-2xl px-4 py-4"
-                                            >
+                                );
 
-                                                <div
-                                                    id="${countdownId}"
-                                                    class="${
-                                                        isExpired
-                                                            ? 'text-red-400'
-                                                            : 'text-white'
-                                                    } font-black text-sm md:text-base"
-                                                >
+                            if (
+                                !Number.isNaN(
+                                    parsedEndDate.getTime()
+                                )
+                            ) {
 
-                                                    ${
-                                                        isExpired
-                                                            ? '⏳ منتهي — 00 يوم 00 ساعة 00 دقيقة 00 ثانية'
-                                                            : '⏳ جاري حساب الوقت...'
-                                                    }
+                                endTime =
+                                    parsedEndDate.getTime();
 
-                                                </div>
-
-
-                                                <div
-                                                    id="${endDateId}"
-                                                    class="text-gray-400 text-xs mt-2"
-                                                >
-
-                                                    ${
-                                                        isExpired
-                                                            ? '📅 انتهى العرض'
-                                                            : '📅 جاري تحميل تاريخ الانتهاء...'
-                                                    }
-
-                                                </div>
-
-                                            </div>
-                                        `
-                                        : ''
-                                }
+                                formattedDate =
+                                    new Intl.DateTimeFormat(
+                                        'ar-EG',
+                                        {
+                                            day: 'numeric',
+                                            month: 'long',
+                                            year: 'numeric'
+                                        }
+                                    ).format(
+                                        parsedEndDate
+                                    );
+                            }
+                        }
 
 
-                                <!-- زر الطلب -->
+                        // =============================================
+                        // هل العرض منتهي؟
+                        // =============================================
+
+                        const isExpired =
+                            endTime !== null &&
+                            endTime <= Date.now();
+
+
+                        // =============================================
+                        // طباعة بيانات العرض في Console
+                        // =============================================
+
+                        console.log(
+                            '🔥 HOMEPAGE OFFER DATA:',
+                            {
+                                id:
+                                    offer.id,
+
+                                title:
+                                    offer.title,
+
+                                start_date:
+                                    offer.start_date,
+
+                                end_date:
+                                    offer.end_date,
+
+                                formattedDate:
+                                    formattedDate,
+
+                                isExpired:
+                                    isExpired
+                            }
+                        );
+
+
+                        return `
+
+                            <div
+                                class="bg-neutral-950 border ${
+                                    isExpired
+                                        ? 'border-red-500/30'
+                                        : 'border-brand-amber/30'
+                                } rounded-3xl overflow-hidden shadow-xl"
+                                dir="rtl"
+                            >
 
                                 ${
-                                    offer.button_link &&
-                                    !isExpired
+                                    offer.image_url
                                         ? `
-                                            <a
-                                                id="${buttonId}"
-                                                href="${offer.button_link}"
-                                                class="inline-flex items-center justify-center mt-6 px-7 py-3 rounded-xl amber-gradient text-black font-extrabold"
+
+                                            <img
+                                                src="${offer.image_url}"
+                                                alt="${offer.title || 'عرض خاص'}"
+                                                class="w-full h-64 object-cover"
                                             >
 
-                                                ${offer.button_text || 'اطلب العرض'}
-
-                                                <i
-                                                    class="fas fa-arrow-left mr-2"
-                                                ></i>
-
-                                            </a>
                                         `
                                         : ''
                                 }
+
+
+                                <div class="p-6 text-center">
+
+
+                                    <!-- =========================
+                                         حالة العرض
+                                    ========================== -->
+
+                                    <div
+                                        id="${statusId}"
+                                        class="inline-flex items-center gap-2 ${
+                                            isExpired
+                                                ? 'bg-red-500/10 text-red-400'
+                                                : 'bg-brand-amber/10 text-brand-amber'
+                                        } px-4 py-2 rounded-full text-xs font-bold mb-4"
+                                    >
+
+                                        ${
+                                            isExpired
+                                                ? '🔴 منتهي'
+                                                : '🔥 عرض خاص'
+                                        }
+
+                                    </div>
+
+
+                                    <!-- =========================
+                                         اسم العرض
+                                    ========================== -->
+
+                                    <h3
+                                        class="text-2xl font-black text-white"
+                                    >
+                                        ${offer.title || ''}
+                                    </h3>
+
+
+                                    <!-- =========================
+                                         الوصف
+                                    ========================== -->
+
+                                    ${
+                                        offer.description
+                                            ? `
+
+                                                <p
+                                                    class="text-gray-400 text-sm mt-3 leading-7"
+                                                >
+                                                    ${offer.description}
+                                                </p>
+
+                                            `
+                                            : ''
+                                    }
+
+
+                                    <!-- =========================
+                                         الأسعار
+                                    ========================== -->
+
+                                    <div
+                                        class="flex items-center justify-center gap-4 mt-5"
+                                    >
+
+                                        ${
+                                            oldPrice > 0
+                                                ? `
+
+                                                    <span
+                                                        class="text-gray-500 line-through text-sm"
+                                                    >
+                                                        ${oldPrice.toLocaleString('ar-EG')}
+                                                        ج.م
+                                                    </span>
+
+                                                `
+                                                : ''
+                                        }
+
+
+                                        ${
+                                            offerPrice > 0
+                                                ? `
+
+                                                    <span
+                                                        class="text-brand-amber font-black text-2xl"
+                                                    >
+                                                        ${offerPrice.toLocaleString('ar-EG')}
+                                                        ج.م
+                                                    </span>
+
+                                                `
+                                                : ''
+                                        }
+
+                                    </div>
+
+
+                                    <!-- =========================
+                                         العداد
+                                    ========================== -->
+
+                                    ${
+                                        offer.end_date
+                                            ? `
+
+                                                <div
+                                                    class="mt-6 ${
+                                                        isExpired
+                                                            ? 'bg-red-950/20 border-red-500/20'
+                                                            : 'bg-black/60 border-brand-amber/20'
+                                                    } border rounded-2xl px-4 py-4"
+                                                >
+
+                                                    <div
+                                                        id="${countdownId}"
+                                                        class="${
+                                                            isExpired
+                                                                ? 'text-red-400'
+                                                                : 'text-white'
+                                                        } font-black text-sm md:text-base"
+                                                    >
+
+                                                        ${
+                                                            isExpired
+                                                                ? '⏳ منتهي — 00 يوم 00 ساعة 00 دقيقة 00 ثانية'
+                                                                : '⏳ جاري حساب الوقت...'
+                                                        }
+
+                                                    </div>
+
+
+                                                    <div
+                                                        id="${endDateId}"
+                                                        class="text-gray-400 text-xs mt-2"
+                                                    >
+
+                                                        ${
+                                                            isExpired
+                                                                ? `📅 انتهى العرض في: ${formattedDate}`
+                                                                : `📅 ينتهي العرض: ${formattedDate}`
+                                                        }
+
+                                                    </div>
+
+                                                </div>
+
+                                            `
+                                            : ''
+                                    }
+
+
+                                    <!-- =========================
+                                         زر الطلب
+                                    ========================== -->
+
+                                    ${
+                                        offer.button_link &&
+                                        !isExpired
+                                            ? `
+
+                                                <a
+                                                    id="${buttonId}"
+                                                    href="${offer.button_link}"
+                                                    class="inline-flex items-center justify-center mt-6 px-7 py-3 rounded-xl amber-gradient text-black font-extrabold"
+                                                >
+
+                                                    ${offer.button_text || 'اطلب العرض'}
+
+                                                    <i
+                                                        class="fas fa-arrow-left mr-2"
+                                                    ></i>
+
+                                                </a>
+
+                                            `
+                                            : ''
+                                    }
+
+                                </div>
 
                             </div>
 
-                        </div>
+                        `;
 
-                    `;
-                }
-            ).join('')
+                    }
+                )
+                .join('')
         }
 
     `;
@@ -2454,17 +2468,19 @@ function renderHomepageOffers() {
             }
 
 
+            const offerKey =
+                offer.id ||
+                index;
+
+
             const countdownId =
-                `offer-countdown-${offer.id || index}`;
+                `offer-countdown-${offerKey}`;
 
             const endDateId =
-                `offer-end-date-${offer.id || index}`;
+                `offer-end-date-${offerKey}`;
 
             const statusId =
-                `offer-status-${offer.id || index}`;
-
-            const buttonId =
-                `offer-button-${offer.id || index}`;
+                `offer-status-${offerKey}`;
 
 
             const countdown =
@@ -2491,13 +2507,21 @@ function renderHomepageOffers() {
             }
 
 
+            // =================================================
+            // تحويل تاريخ النهاية
+            // =================================================
+
             const endTime =
                 new Date(
                     offer.end_date
                 ).getTime();
 
 
-            if (isNaN(endTime)) {
+            if (
+                Number.isNaN(
+                    endTime
+                )
+            ) {
 
                 countdown.textContent =
                     '⏳ تاريخ انتهاء العرض غير صحيح';
@@ -2509,9 +2533,9 @@ function renderHomepageOffers() {
             }
 
 
-            /*
-             * تنسيق تاريخ النهاية
-             */
+            // =================================================
+            // تنسيق التاريخ
+            // =================================================
 
             const formattedDate =
                 new Intl.DateTimeFormat(
@@ -2525,6 +2549,187 @@ function renderHomepageOffers() {
                     new Date(endTime)
                 );
 
+
+            // =================================================
+            // تحديث التاريخ فورًا
+            // =================================================
+
+            const currentlyExpired =
+                endTime <= Date.now();
+
+
+            if (currentlyExpired) {
+
+                countdown.textContent =
+                    '⏳ منتهي — 00 يوم 00 ساعة 00 دقيقة 00 ثانية';
+
+                countdown.classList.remove(
+                    'text-white'
+                );
+
+                countdown.classList.add(
+                    'text-red-400'
+                );
+
+
+                endDate.textContent =
+                    `📅 انتهى العرض في: ${formattedDate}`;
+
+
+                if (status) {
+
+                    status.textContent =
+                        '🔴 منتهي';
+
+                    status.classList.remove(
+                        'bg-brand-amber/10',
+                        'text-brand-amber'
+                    );
+
+                    status.classList.add(
+                        'bg-red-500/10',
+                        'text-red-400'
+                    );
+
+                }
+
+            } else {
+
+                endDate.textContent =
+                    `📅 ينتهي العرض: ${formattedDate}`;
+
+            }
+
+
+            // =================================================
+            // تشغيل العد التنازلي
+            // =================================================
+
+            const updateCountdown =
+                () => {
+
+                    const remaining =
+                        endTime -
+                        Date.now();
+
+
+                    // =============================================
+                    // انتهى العرض
+                    // =============================================
+
+                    if (
+                        remaining <= 0
+                    ) {
+
+                        countdown.textContent =
+                            '⏳ منتهي — 00 يوم 00 ساعة 00 دقيقة 00 ثانية';
+
+                        countdown.classList.remove(
+                            'text-white'
+                        );
+
+                        countdown.classList.add(
+                            'text-red-400'
+                        );
+
+
+                        endDate.textContent =
+                            `📅 انتهى العرض في: ${formattedDate}`;
+
+
+                        if (status) {
+
+                            status.textContent =
+                                '🔴 منتهي';
+
+                            status.classList.remove(
+                                'bg-brand-amber/10',
+                                'text-brand-amber'
+                            );
+
+                            status.classList.add(
+                                'bg-red-500/10',
+                                'text-red-400'
+                            );
+
+                        }
+
+
+                        return;
+
+                    }
+
+
+                    // =============================================
+                    // حساب الوقت المتبقي
+                    // =============================================
+
+                    const totalSeconds =
+                        Math.floor(
+                            remaining / 1000
+                        );
+
+
+                    const days =
+                        Math.floor(
+                            totalSeconds / 86400
+                        );
+
+
+                    const hours =
+                        Math.floor(
+                            (
+                                totalSeconds %
+                                86400
+                            ) / 3600
+                        );
+
+
+                    const minutes =
+                        Math.floor(
+                            (
+                                totalSeconds %
+                                3600
+                            ) / 60
+                        );
+
+
+                    const seconds =
+                        totalSeconds %
+                        60;
+
+
+                    countdown.textContent =
+                        `⏳ متبقي على انتهاء العرض: ` +
+                        `${days} يوم ` +
+                        `${String(hours).padStart(2, '0')} ساعة ` +
+                        `${String(minutes).padStart(2, '0')} دقيقة ` +
+                        `${String(seconds).padStart(2, '0')} ثانية`;
+
+                };
+
+
+            // تشغيل أول مرة
+            updateCountdown();
+
+
+            // تشغيل كل ثانية
+            const timer =
+                setInterval(
+                    updateCountdown,
+                    1000
+                );
+
+
+            // حفظ العداد لإيقافه عند إعادة الرسم
+            window.homepageOfferTimers.push(
+                timer
+            );
+
+        }
+    );
+
+}
 
             /*
              * تحديث العداد
@@ -9308,7 +9513,21 @@ if (
     // إعادة تحميل العروض من قاعدة البيانات
     // ==========================================
 
-    await loadStoreDataFromDatabase();
+   await loadStoreDataFromDatabase();
+
+setTimeout(() => {
+    renderAllViews();
+
+    if (typeof renderAdminDashboard === 'function') {
+        renderAdminDashboard();
+    }
+
+    console.log(
+        '🔥 العرض بعد الحفظ:',
+        appState.offers
+    );
+
+}, 100);
 
 
     // ==========================================
@@ -9573,11 +9792,21 @@ if (
             // Read AI response aloud
             speakText(aiReply);
         }
+
 async function loadStoreDataFromDatabase() {
     try {
+
+        // =====================================================
+        // تحميل بيانات المتجر الأساسية
+        // =====================================================
+
         const response = await fetch('/api/store', {
             method: 'GET',
-            cache: 'no-store'
+            cache: 'no-store',
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
         });
 
         const data = await response.json();
@@ -9588,9 +9817,10 @@ async function loadStoreDataFromDatabase() {
             );
         }
 
-        // =========================
+
+        // =====================================================
         // المنتجات
-        // =========================
+        // =====================================================
 
         appState.products = (data.products || []).map(p => ({
             id: p.id,
@@ -9608,146 +9838,379 @@ async function loadStoreDataFromDatabase() {
             visible: p.visible !== false,
             featured: p.featured === true
         }));
-// =========================
-// العروض
-// =========================
 
-if (Array.isArray(data.offers)) {
-    appState.offers = data.offers.map(offer => ({
-        id: offer.id,
-        title: offer.title || '',
-        description: offer.description || '',
-        image_url: offer.image_url || '',
-        old_price: Number(offer.old_price) || 0,
-        offer_price: Number(offer.offer_price) || 0,
-        button_text: offer.button_text || 'اطلب العرض',
-        button_link: offer.button_link || '',
-        start_date: offer.start_date || null,
-        end_date: offer.end_date || null,
-        is_active: offer.is_active !== false,
-        show_popup: offer.show_popup !== false,
-        show_homepage: offer.show_homepage !== false,
-        sort_order: Number(offer.sort_order) || 0
-    }));
-}
-      console.log('OFFERS FROM DATABASE:', appState.offers);
-console.log('ACTIVE PUBLIC OFFERS:', getActivePublicOffers());
-        
-        // =========================
-        // الأقسام
-        // =========================
 
-        if (Array.isArray(data.categories)) {
-            appState.categories = data.categories.map(cat => ({
-                ...cat,
-                name: cat.name || ''
-            }));
+        // =====================================================
+        // 🔥 العروض
+        // يتم تحميلها مباشرة من /api/offers
+        // وليس من /api/store
+        // =====================================================
+
+        try {
+
+            const offersResponse = await fetch(
+                '/api/offers?_=' + Date.now(),
+                {
+                    method: 'GET',
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    }
+                }
+            );
+
+            const offersText = await offersResponse.text();
+
+            let offersData = {};
+
+            try {
+                offersData = offersText
+                    ? JSON.parse(offersText)
+                    : {};
+            } catch (parseError) {
+
+                console.error(
+                    '❌ فشل قراءة بيانات العروض:',
+                    offersText
+                );
+
+                offersData = {};
+            }
+
+
+            if (
+                offersResponse.ok &&
+                offersData.success &&
+                Array.isArray(offersData.offers)
+            ) {
+
+                appState.offers = offersData.offers
+                    .map(offer => ({
+
+                        id: offer.id,
+
+                        title:
+                            offer.title ||
+                            '',
+
+                        description:
+                            offer.description ||
+                            '',
+
+                        image_url:
+                            offer.image_url ||
+                            '',
+
+                        old_price:
+                            Number(offer.old_price) ||
+                            0,
+
+                        offer_price:
+                            Number(offer.offer_price) ||
+                            0,
+
+                        button_text:
+                            offer.button_text ||
+                            'اطلب العرض',
+
+                        button_link:
+                            offer.button_link ||
+                            '',
+
+                        start_date:
+                            offer.start_date ||
+                            null,
+
+                        end_date:
+                            offer.end_date ||
+                            null,
+
+                        is_active:
+                            offer.is_active !== false,
+
+                        show_popup:
+                            offer.show_popup !== false,
+
+                        show_homepage:
+                            offer.show_homepage !== false,
+
+                        sort_order:
+                            Number(offer.sort_order) ||
+                            0
+
+                    }))
+                    .sort(
+                        (a, b) =>
+                            Number(a.sort_order || 0) -
+                            Number(b.sort_order || 0)
+                    );
+
+
+                console.log(
+                    '🔥🔥🔥 OFFERS DIRECT FROM DATABASE:',
+                    appState.offers
+                );
+
+
+                console.log(
+                    '🔥 ACTIVE PUBLIC OFFERS:',
+                    typeof getActivePublicOffers === 'function'
+                        ? getActivePublicOffers()
+                        : 'getActivePublicOffers غير موجودة'
+                );
+
+            } else {
+
+                console.error(
+                    '❌ فشل تحميل العروض:',
+                    offersData?.error ||
+                    offersData?.message ||
+                    'استجابة غير صحيحة من /api/offers'
+                );
+
+            }
+
+        } catch (offersError) {
+
+            console.error(
+                '❌ OFFERS FETCH ERROR:',
+                offersError
+            );
+
         }
 
-        // =========================
+
+        // =====================================================
+        // الأقسام
+        // =====================================================
+
+        if (Array.isArray(data.categories)) {
+
+            appState.categories =
+                data.categories.map(cat => ({
+                    ...cat,
+                    name: cat.name || ''
+                }));
+
+        }
+
+
+        // =====================================================
         // إعدادات الموقع
-        // =========================
+        // =====================================================
 
         if (
             data.siteSettings &&
             typeof data.siteSettings === 'object'
         ) {
+
             appState.siteSettings = {
                 ...appState.siteSettings,
                 ...data.siteSettings
             };
-        }
-// =========================
-// نسبة الديبوزت
-// =========================
 
-if (
-    data.depositPercent !== undefined &&
-    data.depositPercent !== null
-) {
-    appState.depositPercent =
-        Number(data.depositPercent) || 30;
-}
-        
-        // =========================
+        }
+
+
+        // =====================================================
+        // نسبة الديبوزت
+        // =====================================================
+
+        if (
+            data.depositPercent !== undefined &&
+            data.depositPercent !== null
+        ) {
+
+            appState.depositPercent =
+                Number(data.depositPercent) || 30;
+
+        }
+
+
+        // =====================================================
         // خيارات الشحن
-        // =========================
+        // =====================================================
 
         if (Array.isArray(data.shippingOptions)) {
-    appState.shippingOptions = data.shippingOptions.map(option => ({
-        ...option,
-        timeframe:
-            option.timeframe &&
-            option.timeframe !== 'undefined'
-                ? option.timeframe
-                : ''
-    }));
-}
-        // =========================
+
+            appState.shippingOptions =
+                data.shippingOptions.map(option => ({
+
+                    ...option,
+
+                    timeframe:
+                        option.timeframe &&
+                        option.timeframe !== 'undefined'
+                            ? option.timeframe
+                            : ''
+
+                }));
+
+        }
+
+
+        // =====================================================
         // أنواع التنجيد
-        // =========================
+        // =====================================================
 
-      if (Array.isArray(data.upholsteryTypes)) {
-    appState.upholsteryTypes = data.upholsteryTypes.map(uph => ({
-        id: uph.id,
-        name: uph.name || '',
-        price: Number(uph.price) || 0,
-        extraFeePerUnit: Number(uph.price) || 0,
-        enabled: uph.enabled !== false
-    }));
-}
+        if (Array.isArray(data.upholsteryTypes)) {
 
-        // =========================
+            appState.upholsteryTypes =
+                data.upholsteryTypes.map(uph => ({
+
+                    id:
+                        uph.id,
+
+                    name:
+                        uph.name || '',
+
+                    price:
+                        Number(uph.price) || 0,
+
+                    extraFeePerUnit:
+                        Number(uph.price) || 0,
+
+                    enabled:
+                        uph.enabled !== false
+
+                }));
+
+        }
+
+
+        // =====================================================
         // ألوان التنجيد
-        // =========================
+        // =====================================================
 
         if (Array.isArray(data.cushionColors)) {
-            appState.cushionColors = data.cushionColors;
+
+            appState.cushionColors =
+                data.cushionColors;
+
         }
 
-        // =========================
+
+        // =====================================================
         // ألوان الوتَر
-        // =========================
+        // =====================================================
 
         if (Array.isArray(data.wickerColors)) {
-            appState.wickerColors = data.wickerColors;
+
+            appState.wickerColors =
+                data.wickerColors;
+
         }
 
-        // =========================
+
+        // =====================================================
         // ألوان الخشب
-        // =========================
+        // =====================================================
 
         if (Array.isArray(data.woodColors)) {
-            appState.woodColors = data.woodColors;
+
+            appState.woodColors =
+                data.woodColors;
+
         }
 
-        // =========================
-        // إعادة رسم الموقع
-        // =========================
 
-             renderAllViews();
+        // =====================================================
+        // إعادة رسم الموقع بالكامل
+        // =====================================================
 
-if (typeof renderAdminDashboard === 'function') {
-    renderAdminDashboard();
+        renderAllViews();
+
+
+        // =====================================================
+        // إعادة رسم لوحة التحكم
+        // =====================================================
+
+        if (
+            typeof renderAdminDashboard ===
+            'function'
+        ) {
+
+            renderAdminDashboard();
+
+        }
+
+
+        // =====================================================
+        // إعادة رسم العروض لو الدالة موجودة
+        // =====================================================
+
+        if (
+            typeof renderAdminOffers ===
+            'function'
+        ) {
+
+            renderAdminOffers();
+
+        }
+
+
+        // =====================================================
+        // إعادة رسم عروض الرئيسية لو الدالة موجودة
+        // =====================================================
+
+        if (
+            typeof renderHomeOffers ===
+            'function'
+        ) {
+
+            renderHomeOffers();
+
+        }
+
+
+        // =====================================================
+        // تسجيل النتيجة
+        // =====================================================
+
+        console.log(
+            '======================================'
+        );
+
+        console.log(
+            '✅ تم تحميل بيانات المتجر من Supabase'
+        );
+
+        console.log(
+            '🔥 عدد العروض:',
+            Array.isArray(appState.offers)
+                ? appState.offers.length
+                : 0
+        );
+
+        console.log(
+            '🔥 العروض الحالية:',
+            appState.offers
+        );
+
+        console.log(
+            '======================================'
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            'LOAD STORE DATA ERROR:',
+            error
+        );
+
+
+        showToast(
+            error?.message ||
+            'فشل تحديث بيانات الموقع',
+            'error'
+        );
+
+    }
 }
-
-console.log('تم تحميل بيانات المتجر من Supabase بنجاح');
-
-   } catch (error) {
-
-    console.error(
-        'LOAD STORE DATA ERROR:',
-        error
-    );
-
-       showToast(
-        error?.message || 'فشل تحديث بيانات الموقع',
-        'error'
-    );
-}
-
-}
-
+        
 function showToast(message, type = 'success') {
     const oldToast = document.getElementById('admin-toast');
 
