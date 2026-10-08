@@ -7829,6 +7829,8 @@ async function saveOfferFromEditor(e) {
 
     e.preventDefault();
 
+    console.log('🚨🚨 NEW saveOfferFromEditor RUNNING 🚨🚨');
+
     try {
 
         const token =
@@ -7847,23 +7849,16 @@ async function saveOfferFromEditor(e) {
             return;
         }
 
-
         const saveButton =
             e.submitter ||
             document.getElementById(
                 'offer-save-button'
             );
 
-
         if (saveButton) {
-
-            saveButton.disabled =
-                true;
-
-            saveButton.innerHTML =
-                'جاري حفظ العرض...';
+            saveButton.disabled = true;
+            saveButton.innerHTML = 'جاري حفظ العرض...';
         }
-
 
         // =========================
         // رفع الصورة
@@ -7872,11 +7867,9 @@ async function saveOfferFromEditor(e) {
         const imageFile =
             document.getElementById(
                 'offer-editor-image'
-            ).files?.[0];
-
+            )?.files?.[0];
 
         let uploadedImage = '';
-
 
         if (imageFile) {
 
@@ -7887,33 +7880,21 @@ async function saveOfferFromEditor(e) {
                         const reader =
                             new FileReader();
 
-                        reader.onload =
-                            function () {
+                        reader.onload = function () {
+                            resolve(reader.result);
+                        };
 
-                                resolve(
-                                    reader.result
-                                );
+                        reader.onerror = function () {
+                            reject(
+                                new Error(
+                                    'فشل قراءة صورة العرض'
+                                )
+                            );
+                        };
 
-                            };
-
-                        reader.onerror =
-                            function () {
-
-                                reject(
-                                    new Error(
-                                        'فشل قراءة صورة العرض'
-                                    )
-                                );
-
-                            };
-
-                        reader.readAsDataURL(
-                            imageFile
-                        );
-
+                        reader.readAsDataURL(imageFile);
                     }
                 );
-
 
             const uploadResponse =
                 await fetch(
@@ -7922,19 +7903,15 @@ async function saveOfferFromEditor(e) {
                         method: 'POST',
 
                         headers: {
-
                             'Content-Type':
                                 'application/json',
 
                             'Authorization':
-                                'Bearer ' +
-                                token
-
+                                'Bearer ' + token
                         },
 
                         body:
                             JSON.stringify({
-
                                 fileName:
                                     imageFile.name,
 
@@ -7943,73 +7920,51 @@ async function saveOfferFromEditor(e) {
 
                                 fileData:
                                     fileData
-
                             })
-
                     }
                 );
-
 
             const uploadText =
                 await uploadResponse.text();
 
-
             let uploadData = {};
 
-
             try {
-
                 uploadData =
                     uploadText
-                        ? JSON.parse(
-                            uploadText
-                        )
+                        ? JSON.parse(uploadText)
                         : {};
-
             } catch {
-
                 uploadData = {
-                    error:
-                        uploadText
+                    error: uploadText
                 };
-
             }
-
 
             if (
                 !uploadResponse.ok ||
                 !uploadData.success
             ) {
-
                 throw new Error(
                     uploadData?.error ||
                     'فشل رفع صورة العرض'
                 );
-
             }
-
 
             uploadedImage =
                 uploadData.image_url;
 
-
             if (!uploadedImage) {
-
                 throw new Error(
                     'تم رفع الصورة ولكن لم يتم الحصول على رابطها'
                 );
-
             }
-
         }
-
 
         // =========================
         // العرض القديم
         // =========================
 
         let oldOffer = null;
-
 
         if (editingOfferId) {
 
@@ -8019,48 +7974,96 @@ async function saveOfferFromEditor(e) {
                         String(offer.id) ===
                         String(editingOfferId)
                 );
-
         }
 
+// =========================
+// قراءة التواريخ مباشرة من الحقول
+// =========================
 
-        // =========================
-        // قراءة التواريخ
-        // =========================
+const startDateElement =
+    document.getElementById(
+        'offer-editor-start-date'
+    );
 
-        const startDateInput =
-            document
-                .getElementById(
-                    'offer-editor-start-date'
-                )
-                .value;
+const endDateElement =
+    document.getElementById(
+        'offer-editor-end-date'
+    );
 
-        const endDateInput =
-            document
-                .getElementById(
-                    'offer-editor-end-date'
-                )
-                .value;
+const startDateInput =
+    startDateElement
+        ? startDateElement.value.trim()
+        : '';
 
+const endDateInput =
+    endDateElement
+        ? endDateElement.value.trim()
+        : '';
 
-        // =========================
-        // تحويل التاريخ إلى ISO
-        // =========================
+console.log(
+    '🔥🔥 START DATE INPUT:',
+    startDateInput
+);
 
-        const startDate =
-            startDateInput
-                ? new Date(
-                    startDateInput
-                ).toISOString()
-                : null;
+console.log(
+    '🔥🔥 END DATE INPUT:',
+    endDateInput
+);
 
+// =========================
+// تحويل إلى ISO
+// =========================
 
-        const endDate =
-            endDateInput
-                ? new Date(
-                    endDateInput
-                ).toISOString()
-                : null;
+let startDate = null;
+let endDate = null;
 
+if (startDateInput) {
+
+    const parsedStart =
+        new Date(startDateInput);
+
+    if (
+        Number.isNaN(
+            parsedStart.getTime()
+        )
+    ) {
+        throw new Error(
+            'تاريخ بداية العرض غير صحيح'
+        );
+    }
+
+    startDate =
+        parsedStart.toISOString();
+}
+
+if (endDateInput) {
+
+    const parsedEnd =
+        new Date(endDateInput);
+
+    if (
+        Number.isNaN(
+            parsedEnd.getTime()
+        )
+    ) {
+        throw new Error(
+            'تاريخ انتهاء العرض غير صحيح'
+        );
+    }
+
+    endDate =
+        parsedEnd.toISOString();
+}
+
+console.log(
+    '🔥🔥 START DATE ISO:',
+    startDate
+);
+
+console.log(
+    '🔥🔥 END DATE ISO:',
+    endDate
+);
 
         // =========================
         // بيانات العرض
@@ -8076,7 +8079,6 @@ async function saveOfferFromEditor(e) {
                     .value
                     .trim(),
 
-
             description:
                 document
                     .getElementById(
@@ -8084,7 +8086,6 @@ async function saveOfferFromEditor(e) {
                     )
                     .value
                     .trim(),
-
 
             old_price:
                 document
@@ -8101,7 +8102,6 @@ async function saveOfferFromEditor(e) {
                                 .value
                         ),
 
-
             offer_price:
                 document
                     .getElementById(
@@ -8117,7 +8117,6 @@ async function saveOfferFromEditor(e) {
                                 .value
                         ),
 
-
             button_text:
                 document
                     .getElementById(
@@ -8127,7 +8126,6 @@ async function saveOfferFromEditor(e) {
                     .trim() ||
                 'اطلب العرض',
 
-
             button_link:
                 document
                     .getElementById(
@@ -8136,17 +8134,11 @@ async function saveOfferFromEditor(e) {
                     .value
                     .trim(),
 
-
-            // =========================
-            // التواريخ المصححة
-            // =========================
-
             start_date:
                 startDate,
 
             end_date:
                 endDate,
-
 
             is_active:
                 document
@@ -8155,14 +8147,12 @@ async function saveOfferFromEditor(e) {
                     )
                     .checked,
 
-
             show_popup:
                 document
                     .getElementById(
                         'offer-editor-show-popup'
                     )
                     .checked,
-
 
             show_homepage:
                 document
@@ -8171,7 +8161,6 @@ async function saveOfferFromEditor(e) {
                     )
                     .checked,
 
-
             sort_order:
                 Number(
                     document
@@ -8179,125 +8168,133 @@ async function saveOfferFromEditor(e) {
                             'offer-editor-sort-order'
                         )
                         .value
-                ) || 0
+                ) || 0,
 
+            image_url:
+                uploadedImage ||
+                oldOffer?.image_url ||
+                ''
         };
 
+        // =========================
+        // تحقق نهائي قبل الإرسال
+        // =========================
+
+        console.log(
+            '🔥🔥🔥 FINAL OFFER DATA:',
+            JSON.stringify(
+                offerData,
+                null,
+                2
+            )
+        );
+
+        console.log(
+            '🔥🔥🔥 FINAL END DATE:',
+            offerData.end_date
+        );
 
         // =========================
-        // الصورة
-        // =========================
-
-        offerData.image_url =
-            uploadedImage ||
-            oldOffer?.image_url ||
-            '';
-
-
-        // =========================
-        // إضافة أو تعديل
+        // تعديل
         // =========================
 
         let response;
 
+        if (editingOfferId) {
 
-       if (editingOfferId) {
+            offerData.id =
+                editingOfferId;
 
-    offerData.id =
-        editingOfferId;
-
-    console.log('🔥🔥 OFFER DATA BEFORE PUT:', offerData);
-    console.log('🔥🔥 END DATE BEFORE PUT:', offerData.end_date);
-
-                    response =
-                    await fetch(
-                    '/api/offers',
-                    {
-
-                        method:
-                            'PUT',
-
-                        headers: {
-
-                            'Content-Type':
-                                'application/json',
-
-                            'Authorization':
-                                'Bearer ' +
-                                token
-
-                        },
-
-                        body:
-                            JSON.stringify(
-                                offerData
-                            )
-
-                    }
+            const requestBody =
+                JSON.stringify(
+                    offerData
                 );
 
-        } else {
+            console.log(
+                '🔥🔥🔥 PUT REQUEST BODY:',
+                requestBody
+            );
 
             response =
                 await fetch(
                     '/api/offers',
                     {
-
-                        method:
-                            'POST',
+                        method: 'PUT',
 
                         headers: {
-
                             'Content-Type':
                                 'application/json',
 
                             'Authorization':
-                                'Bearer ' +
-                                token
-
+                                'Bearer ' + token
                         },
 
                         body:
-                            JSON.stringify(
-                                offerData
-                            )
-
+                            requestBody
                     }
                 );
 
+        } else {
+
+            const requestBody =
+                JSON.stringify(
+                    offerData
+                );
+
+            console.log(
+                '🔥🔥🔥 POST REQUEST BODY:',
+                requestBody
+            );
+
+            response =
+                await fetch(
+                    '/api/offers',
+                    {
+                        method: 'POST',
+
+                        headers: {
+                            'Content-Type':
+                                'application/json',
+
+                            'Authorization':
+                                'Bearer ' + token
+                        },
+
+                        body:
+                            requestBody
+                    }
+                );
         }
 
-
         // =========================
-        // قراءة نتيجة الحفظ
+        // نتيجة الحفظ
         // =========================
 
         const responseText =
             await response.text();
 
-        console.log('🔥🔥 PUT RESPONSE:', responseText);
+        console.log(
+            '🔥🔥🔥 RESPONSE STATUS:',
+            response.status
+        );
+
+        console.log(
+            '🔥🔥🔥 RESPONSE:',
+            responseText
+        );
 
         let data = {};
 
-
         try {
-
             data =
                 responseText
-                    ? JSON.parse(
-                        responseText
-                    )
+                    ? JSON.parse(responseText)
                     : {};
-
         } catch {
-
             data = {
-                error:
-                    responseText
+                error: responseText
             };
-
         }
-
 
         if (
             !response.ok ||
@@ -8308,13 +8305,17 @@ async function saveOfferFromEditor(e) {
                 data?.error ||
                 'فشل حفظ العرض'
             );
-
         }
 
+        console.log(
+            '🔥🔥🔥 SAVED OFFER FROM API:',
+            data.offer
+        );
 
-        // =========================
-        // نجاح الحفظ
-        // =========================
+        console.log(
+            '🔥🔥🔥 SAVED END DATE:',
+            data.offer?.end_date
+        );
 
         alert(
             editingOfferId
@@ -8322,63 +8323,38 @@ async function saveOfferFromEditor(e) {
                 : 'تمت إضافة العرض بنجاح ✅'
         );
 
-
-        editingOfferId =
-            null;
-
-
-        // =========================
-        // إعادة تحميل العروض
-        // =========================
+        editingOfferId = null;
 
         await loadOffers();
-
-
-        // =========================
-        // تحديث عروض الرئيسية
-        // =========================
 
         if (
             typeof renderHomepageOffers ===
             'function'
         ) {
-
             renderHomepageOffers();
-
         }
-
-
-        // =========================
-        // تحديث Popup
-        // =========================
 
         if (
             typeof renderOfferPopup ===
             'function'
         ) {
-
             renderOfferPopup();
-
         }
 
-
         closeOfferEditor();
-
 
     } catch (error) {
 
         console.error(
-            'SAVE OFFER ERROR:',
+            '❌ SAVE OFFER ERROR:',
             error
         );
-
 
         showToast(
             error?.message ||
             'حدث خطأ أثناء حفظ العرض.',
             'error'
         );
-
 
     } finally {
 
@@ -8387,7 +8363,6 @@ async function saveOfferFromEditor(e) {
                 'offer-save-button'
             );
 
-
         if (saveButton) {
 
             saveButton.disabled =
@@ -8395,12 +8370,11 @@ async function saveOfferFromEditor(e) {
 
             saveButton.innerHTML =
                 'حفظ العرض';
-
         }
-
     }
-
 }
+
+
         
 async function deleteOfferFromDatabase(
     offerId
