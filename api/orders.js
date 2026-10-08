@@ -43,173 +43,187 @@ export default async function handler(req, res) {
         // حتى يستطيع العميل تتبع طلبه بدون تسجيل دخول.
         // =====================================================
 
+      // =====================================================
+// PUBLIC ORDER TRACKING - FULL DETAILS
+// =====================================================
+if (
+    req.method === 'GET' &&
+    req.query &&
+    req.query.track
+) {
+    const trackId = String(req.query.track).trim();
+
+    if (!trackId) {
+        return res.status(400).json({
+            success: false,
+            error: 'رقم الطلب مطلوب.'
+        });
+    }
+
+    try {
+        const supabaseUrl =
+            `${SUPABASE_URL}/rest/v1/orders` +
+            `?id=eq.${encodeURIComponent(trackId)}` +
+            `&select=*`;
+
+        const orderResponse = await fetch(
+            supabaseUrl,
+            {
+                method: 'GET',
+                headers: {
+                    'apikey': SUPABASE_SERVICE_ROLE_KEY,
+                    'Authorization':
+                        `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                    'Content-Type':
+                        'application/json'
+                },
+                cache: 'no-store'
+            }
+        );
+
+        const orders = await orderResponse.json();
+
         if (
-            req.method === 'GET' &&
-            req.query &&
-            req.query.track
+            !orderResponse.ok ||
+            !Array.isArray(orders) ||
+            orders.length === 0
         ) {
-
-            const trackId =
-                String(
-                    req.query.track
-                ).trim();
-
-            console.log(
-                'PUBLIC TRACKING REQUEST:',
-                trackId
-            );
-
-
-            if (!trackId) {
-
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        'رقم الطلب غير موجود'
-                });
-            }
-
-
-            try {
-
-                const supabaseUrl =
-                    `${SUPABASE_URL}/rest/v1/orders` +
-                    `?id=eq.${encodeURIComponent(trackId)}` +
-                    `&select=id,order_number,status,total,created_at`;
-
-
-                console.log(
-                    'TRACK SUPABASE REQUEST:',
-                    supabaseUrl
-                );
-
-
-                const response =
-                    await fetch(
-                        supabaseUrl,
-                        {
-                            method: 'GET',
-
-                            headers: {
-                                apikey:
-                                    SUPABASE_SERVICE_ROLE_KEY,
-
-                                Authorization:
-                                    `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-
-                                'Content-Type':
-                                    'application/json'
-                            }
-                        }
-                    );
-
-
-                const text =
-                    await response.text();
-
-
-                let data = [];
-
-
-                try {
-
-                    data =
-                        text
-                            ? JSON.parse(text)
-                            : [];
-
-                } catch {
-
-                    data = [];
-
-                }
-
-
-                console.log(
-                    'TRACK SUPABASE RESPONSE:',
-                    data
-                );
-
-
-                if (!response.ok) {
-
-                    console.error(
-                        'SUPABASE TRACK ORDER ERROR:',
-                        data
-                    );
-
-
-                    return res.status(500).json({
-                        success: false,
-                        error:
-                            data?.message ||
-                            data?.error ||
-                            'فشل البحث عن الطلب'
-                    });
-                }
-
-
-                if (
-                    !Array.isArray(data) ||
-                    data.length === 0
-                ) {
-
-                    return res.status(404).json({
-                        success: false,
-                        error:
-                            'لم يتم العثور على طلب بهذا الرقم.'
-                    });
-                }
-
-
-                const foundOrder =
-                    data[0];
-
-
-                return res.status(200).json({
-                    success: true,
-
-                    order: {
-
-                        id:
-                            foundOrder.id,
-
-                        order_number:
-                            foundOrder.order_number,
-
-                        status:
-                            foundOrder.status ||
-                            'New',
-
-                        total:
-                            Number(
-                                foundOrder.total ||
-                                0
-                            ),
-
-                        created_at:
-                            foundOrder.created_at ||
-                            null
-                    }
-                });
-
-
-            } catch (error) {
-
-                console.error(
-                    'PUBLIC TRACKING ERROR:',
-                    error
-                );
-
-
-                return res.status(500).json({
-                    success: false,
-                    error:
-                        'حدث خطأ أثناء البحث عن الطلب'
-                });
-            }
+            return res.status(404).json({
+                success: false,
+                error: 'لم يتم العثور على طلب بهذا الرقم.'
+            });
         }
 
+        const order = orders[0];
+
+        // لا نرسل أي بيانات إدارية أو حساسة غير لازمة
+        const publicOrder = {
+            id: order.id,
+            order_number:
+                order.order_number || order.id,
+
+            status:
+                order.status || 'New',
+
+            created_at:
+                order.created_at || null,
+
+            updated_at:
+                order.updated_at || null,
+
+            // بيانات العميل
+            customer_name:
+                order.customer_name ||
+                order.name ||
+                '',
+
+            phone:
+                order.phone ||
+                order.customer_phone ||
+                '',
+
+            whatsapp:
+                order.whatsapp ||
+                order.whatsapp_number ||
+                '',
+
+            // العنوان
+            governorate:
+                order.governorate ||
+                '',
+
+            city:
+                order.city ||
+                '',
+
+            address:
+                order.address ||
+                '',
+
+            // الشحن
+            shipping_method:
+                order.shipping_method ||
+                order.delivery_method ||
+                '',
+
+            shipping_cost:
+                Number(
+                    order.shipping_cost || 0
+                ),
+
+            // الدفع
+            payment_method:
+                order.payment_method ||
+                '',
+
+            payment_status:
+                order.payment_status ||
+                'Pending',
+
+            deposit_percent:
+                Number(
+                    order.deposit_percent || 0
+                ),
+
+            deposit_amount:
+                Number(
+                    order.deposit_amount ||
+                    order.deposit ||
+                    0
+                ),
+
+            remaining_amount:
+                Number(
+                    order.remaining_amount ||
+                    0
+                ),
+
+            // المبالغ
+            subtotal:
+                Number(
+                    order.subtotal || 0
+                ),
+
+            total:
+                Number(
+                    order.total || 0
+                ),
+
+            // المنتجات
+            items:
+                Array.isArray(order.items)
+                    ? order.items
+                    : (
+                        Array.isArray(order.products)
+                            ? order.products
+                            : []
+                    ),
+
+            // ملاحظات
+            notes:
+                order.notes ||
+                order.customer_notes ||
+                ''
+        };
+
+        return res.status(200).json({
+            success: true,
+            order: publicOrder
+        });
+
+    } catch (error) {
+
+        console.error(
+            'PUBLIC TRACK ORDER ERROR:',
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            error: 'حدث خطأ أثناء البحث عن الطلب.'
+        });
+    }
+}
 
         // =====================================================
         // إنشاء طلب جديد
