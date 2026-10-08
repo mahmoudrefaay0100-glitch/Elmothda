@@ -1548,7 +1548,12 @@
             <div>
                 <h4 class="text-white font-bold mb-3">روابط سريعة</h4>
                 <ul class="space-y-2">
-                    <li><a href="#" onclick="switchView('orders-track')" class="hover:text-brand-amber">تتبع حالة الطلب</a></li>
+                    <li>
+    <a href="#" onclick="switchView('orders-track'); return false;" class="hover:text-brand-amber">
+        <i class="fas fa-search-location ml-1"></i>
+        تتبع طلبك
+    </a>
+</li>
                     <li><a href="#" onclick="switchView('admin-login')" class="hover:text-brand-amber">لوحة تحكّم الإدارة</a></li>
                     <li><a href="#" onclick="scrollToSection('contact-section')" class="hover:text-brand-amber">موقع المصنع بأشمون</a></li>
                 </ul>
