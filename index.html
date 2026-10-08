@@ -9383,15 +9383,20 @@ if (imageFile) {
         };
     }
 
-    if (
-        !uploadResponse.ok ||
-        !uploadData.success
-    ) {
-        throw new Error(
-            uploadData?.error ||
-            'فشل رفع صورة المنتج'
-        );
-    }
+  
+if (!uploadResponse.ok || !uploadData.success) {
+    console.error("IMAGE UPLOAD DEBUG:", {
+        status: uploadResponse.status,
+        response: uploadData
+    });
+
+    throw new Error(
+        `فشل رفع الصورة (${uploadResponse.status}): ` +
+        (typeof uploadData?.error === "string"
+            ? uploadData.error
+            : JSON.stringify(uploadData?.error || uploadData))
+    );
+}
 
     uploadedImage =
         uploadData.image_url;
