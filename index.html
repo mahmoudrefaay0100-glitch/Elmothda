@@ -128,10 +128,32 @@
                     <i class="fas fa-search absolute right-3 top-2.5 text-gray-400 text-xs"></i>
                 </div>
 
-                <button onclick="toggleCartDrawer(true)" class="relative p-2.5 bg-neutral-900 border border-neutral-700 hover:border-brand-amber rounded-full text-gray-200 hover:text-brand-amber transition">
-                    <i class="fas fa-shopping-bag text-lg"></i>
-                    <span id="cart-badge-count" class="absolute -top-1 -right-1 wine-gradient text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border border-black">0</span>
-                </button>
+               <div class="flex items-center gap-2">
+
+    <!-- تتبع الطلب -->
+    <button
+        onclick="switchView('orders-track')"
+        class="relative p-2.5 bg-neutral-900 border border-neutral-700 hover:border-brand-amber rounded-full text-gray-200 hover:text-brand-amber transition"
+        title="تتبع طلبك"
+    >
+        <i class="fas fa-search-location text-lg"></i>
+    </button>
+
+    <!-- السلة -->
+    <button
+        onclick="toggleCartDrawer(true)"
+        class="relative p-2.5 bg-neutral-900 border border-neutral-700 hover:border-brand-amber rounded-full text-gray-200 hover:text-brand-amber transition"
+        title="سلة المشتريات"
+    >
+        <i class="fas fa-shopping-bag text-lg"></i>
+
+        <span
+            id="cart-badge-count"
+            class="absolute -top-1 -right-1 wine-gradient text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border border-black"
+        >0</span>
+    </button>
+
+</div>
 
                 <button onclick="switchView('admin-login')" class="lg:hidden p-2.5 bg-neutral-900 border border-neutral-700 rounded-full text-brand-amber">
                     <i class="fas fa-user-shield"></i>
