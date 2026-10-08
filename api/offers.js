@@ -121,9 +121,7 @@ module.exports = async function handler(req, res) {
                             Authorization:
                                 'Bearer ' +
                                 SUPABASE_SERVICE_ROLE_KEY
-                        },
-
-                        cache: 'no-store'
+                        }
                     }
                 );
 
@@ -144,11 +142,6 @@ module.exports = async function handler(req, res) {
 
             } catch (error) {
 
-                console.error(
-                    'OFFERS JSON PARSE ERROR:',
-                    responseText
-                );
-
                 return res.status(500).json({
                     success: false,
                     error:
@@ -160,28 +153,25 @@ module.exports = async function handler(req, res) {
 
             if (!response.ok) {
 
-                console.error(
-                    'SUPABASE OFFERS ERROR:',
-                    response.status,
-                    offers
-                );
-
                 return res.status(
                     response.status
                 ).json({
+
                     success: false,
+
                     error:
                         offers &&
                         offers.message
                             ? offers.message
                             : 'فشل تحميل العروض'
+
                 });
 
             }
 
 
             // =================================================
-            // لا نحذف العروض المنتهية
+            // الاحتفاظ بالعروض المنتهية
             // =================================================
 
             const now =
@@ -253,6 +243,7 @@ module.exports = async function handler(req, res) {
 
             });
 
+
         } catch (error) {
 
             console.error(
@@ -265,10 +256,8 @@ module.exports = async function handler(req, res) {
                 success: false,
 
                 error:
-                    error &&
-                    error.message
-                        ? error.message
-                        : 'حدث خطأ أثناء تحميل العروض'
+                    error?.message ||
+                    'حدث خطأ أثناء تحميل العروض'
 
             });
 
@@ -302,10 +291,6 @@ module.exports = async function handler(req, res) {
             const body =
                 req.body || {};
 
-
-            // ---------------------------------------------
-            // تجهيز بيانات العرض الجديد
-            // ---------------------------------------------
 
             const insertData = {
 
@@ -360,12 +345,6 @@ module.exports = async function handler(req, res) {
             };
 
 
-            console.log(
-                '🔥 CREATE OFFER DATA:',
-                insertData
-            );
-
-
             const response =
                 await fetch(
                     SUPABASE_URL +
@@ -416,7 +395,7 @@ module.exports = async function handler(req, res) {
                         )
                         : {};
 
-            } catch (error) {
+            } catch {
 
                 data = {
                     error:
@@ -428,11 +407,6 @@ module.exports = async function handler(req, res) {
 
             if (!response.ok) {
 
-                console.error(
-                    'CREATE OFFER SUPABASE ERROR:',
-                    data
-                );
-
                 return res.status(
                     response.status
                 ).json({
@@ -440,23 +414,13 @@ module.exports = async function handler(req, res) {
                     success: false,
 
                     error:
-                        data &&
-                        data.message
-                            ? data.message
-                            : data &&
-                              data.error
-                                ? data.error
-                                : 'فشل إنشاء العرض'
+                        data?.message ||
+                        data?.error ||
+                        'فشل إنشاء العرض'
 
                 });
 
             }
-
-
-            const createdOffer =
-                Array.isArray(data)
-                    ? data[0]
-                    : data;
 
 
             return res.status(200).json({
@@ -464,9 +428,12 @@ module.exports = async function handler(req, res) {
                 success: true,
 
                 offer:
-                    createdOffer
+                    Array.isArray(data)
+                        ? data[0]
+                        : data
 
             });
+
 
         } catch (error) {
 
@@ -480,10 +447,8 @@ module.exports = async function handler(req, res) {
                 success: false,
 
                 error:
-                    error &&
-                    error.message
-                        ? error.message
-                        : 'حدث خطأ أثناء إنشاء العرض'
+                    error?.message ||
+                    'حدث خطأ أثناء إنشاء العرض'
 
             });
 
@@ -544,29 +509,10 @@ module.exports = async function handler(req, res) {
             }
 
 
-            const realId =
-                Number(id);
-
-
-            if (
-                !Number.isFinite(realId) ||
-                realId <= 0
-            ) {
-
-                return res.status(400).json({
-
-                    success: false,
-
-                    error:
-                        'رقم العرض غير صحيح'
-
-                });
-
-            }
-
-
             // =================================================
-            // تجهيز بيانات التعديل
+            // مهم:
+            // لا نحول الـ ID إلى رقم هنا.
+            // نخليه كما وصل من الواجهة.
             // =================================================
 
             const updateData = {
@@ -622,36 +568,27 @@ module.exports = async function handler(req, res) {
             };
 
 
-            // =================================================
-            // تسجيل البيانات قبل الإرسال
-            // =================================================
-
             console.log(
-                '🔥🔥 UPDATE OFFER ID:',
-                realId
+                '🔥 PUT OFFER ID:',
+                id
             );
 
             console.log(
-                '🔥🔥 UPDATE OFFER DATA:',
+                '🔥 PUT OFFER DATA:',
                 updateData
             );
 
-            console.log(
-                '🔥🔥 UPDATE END DATE:',
-                updateData.end_date
-            );
-
 
             // =================================================
-            // تنفيذ PATCH في Supabase
+            // PATCH
             // =================================================
 
-            const updateResponse =
+            const response =
                 await fetch(
                     SUPABASE_URL +
                     '/rest/v1/offers?id=eq.' +
                     encodeURIComponent(
-                        String(realId)
+                        String(id)
                     ),
                     {
 
@@ -683,87 +620,89 @@ module.exports = async function handler(req, res) {
                 );
 
 
-            const updateText =
-                await updateResponse.text();
+            const responseText =
+                await response.text();
 
 
-            let updateResult = [];
+            let data = [];
 
 
             try {
 
-                updateResult =
-                    updateText
+                data =
+                    responseText
                         ? JSON.parse(
-                            updateText
+                            responseText
                         )
                         : [];
 
-            } catch (error) {
+            } catch {
 
-                updateResult = {
-
+                data = {
                     error:
-                        updateText
-
+                        responseText
                 };
 
             }
 
 
-            // =================================================
-            // فشل PATCH
-            // =================================================
+            console.log(
+                '🔥 PUT SUPABASE RESPONSE:',
+                data
+            );
 
-            if (!updateResponse.ok) {
 
-                console.error(
-                    '🔥 PATCH OFFER ERROR:',
-                    updateResponse.status,
-                    updateResult
-                );
+            if (!response.ok) {
 
                 return res.status(
-                    updateResponse.status
+                    response.status
                 ).json({
 
                     success: false,
 
                     error:
-                        updateResult &&
-                        updateResult.message
-                            ? updateResult.message
-                            : updateResult &&
-                              updateResult.error
-                                ? updateResult.error
-                                : 'فشل تعديل العرض'
+                        data?.message ||
+                        data?.error ||
+                        'فشل تعديل العرض'
 
                 });
 
             }
 
 
-            console.log(
-                '🔥 PATCH RESULT:',
-                updateResult
-            );
-
-
             // =================================================
-            // التأكد أن Supabase رجع صفًا
+            // لو Supabase رجع صف
             // =================================================
 
             if (
-                !Array.isArray(updateResult) ||
-                updateResult.length === 0
+                Array.isArray(data) &&
+                data.length > 0
             ) {
 
-                return res.status(404).json({
+                const savedOffer =
+                    data[0];
 
-                    success: false,
 
-                    error:
-                        'لم يتم العثور على العرض داخل قاعدة البيانات'
+                console.log(
+                    '🔥🔥 OFFER UPDATED:',
+                    savedOffer
+                );
+
+                console.log(
+                    '🔥🔥 SAVED END DATE:',
+                    savedOffer.end_date
+                );
+
+
+                return res.status(200).json({
+
+                    success: true,
+
+                    message:
+                        'تم تعديل العرض بنجاح',
+
+                    offer:
+                        savedOffer
 
                 });
 
@@ -771,7 +710,8 @@ module.exports = async function handler(req, res) {
 
 
             // =================================================
-            // قراءة العرض مرة أخرى من Supabase
+            // لو PATCH نجح لكن لم يرجع representation
+            // نقرأ العرض مباشرة
             // =================================================
 
             const verifyResponse =
@@ -779,7 +719,7 @@ module.exports = async function handler(req, res) {
                     SUPABASE_URL +
                     '/rest/v1/offers?id=eq.' +
                     encodeURIComponent(
-                        String(realId)
+                        String(id)
                     ) +
                     '&select=*',
                     {
@@ -795,10 +735,7 @@ module.exports = async function handler(req, res) {
                                 'Bearer ' +
                                 SUPABASE_SERVICE_ROLE_KEY
 
-                        },
-
-                        cache:
-                            'no-store'
+                        }
 
                     }
                 );
@@ -820,55 +757,25 @@ module.exports = async function handler(req, res) {
                         )
                         : [];
 
-            } catch (error) {
+            } catch {
 
-                console.error(
-                    'VERIFY OFFER JSON ERROR:',
-                    verifyText
-                );
-
-                return res.status(500).json({
-
-                    success: false,
-
-                    error:
-                        'تم تعديل العرض ولكن تعذر التحقق من البيانات المحفوظة'
-
-                });
-
-            }
-
-
-            if (!verifyResponse.ok) {
-
-                console.error(
-                    'VERIFY OFFER ERROR:',
-                    verifyData
-                );
-
-                return res.status(500).json({
-
-                    success: false,
-
-                    error:
-                        'تم تعديل العرض ولكن تعذر قراءة البيانات بعد الحفظ'
-
-                });
+                verifyData = [];
 
             }
 
 
             if (
+                !verifyResponse.ok ||
                 !Array.isArray(verifyData) ||
                 verifyData.length === 0
             ) {
 
-                return res.status(404).json({
+                return res.status(500).json({
 
                     success: false,
 
                     error:
-                        'لم يتم العثور على العرض بعد الحفظ'
+                        'تم إرسال التعديل ولكن تعذر قراءة العرض بعد الحفظ'
 
                 });
 
@@ -879,62 +786,9 @@ module.exports = async function handler(req, res) {
                 verifyData[0];
 
 
-            // =================================================
-            // التأكد من end_date تحديدًا
-            // =================================================
-
-            if (
-                updateData.end_date !== null &&
-                String(
-                    savedOffer.end_date || ''
-                ) !==
-                String(
-                    updateData.end_date
-                )
-            ) {
-
-                console.error(
-                    '🔥🔥 END DATE WAS NOT SAVED',
-                    {
-                        sent:
-                            updateData.end_date,
-
-                        saved:
-                            savedOffer.end_date
-                    }
-                );
-
-                return res.status(500).json({
-
-                    success: false,
-
-                    error:
-                        'تم إرسال تاريخ الانتهاء ولكن قاعدة البيانات لم تحفظ التاريخ الجديد',
-
-                    sent_end_date:
-                        updateData.end_date,
-
-                    saved_end_date:
-                        savedOffer.end_date
-
-                });
-
-            }
-
-
-            // =================================================
-            // نجاح التعديل الحقيقي
-            // =================================================
-
             console.log(
-                '🔥🔥 OFFER SAVED SUCCESSFULLY:',
+                '🔥🔥 VERIFIED OFFER:',
                 savedOffer
-            );
-
-
-            console.log(
-                '🔥🔥 SAVED END DATE:',
-                savedOffer.end_date
             );
 
 
@@ -943,7 +797,7 @@ module.exports = async function handler(req, res) {
                 success: true,
 
                 message:
-                    'تم تعديل العرض وحفظه في قاعدة البيانات بنجاح',
+                    'تم تعديل العرض بنجاح',
 
                 offer:
                     savedOffer
@@ -963,10 +817,8 @@ module.exports = async function handler(req, res) {
                 success: false,
 
                 error:
-                    error &&
-                    error.message
-                        ? error.message
-                        : 'حدث خطأ أثناء تعديل العرض'
+                    error?.message ||
+                    'حدث خطأ أثناء تعديل العرض'
 
             });
 
@@ -1069,7 +921,7 @@ module.exports = async function handler(req, res) {
                         )
                         : {};
 
-            } catch (error) {
+            } catch {
 
                 data = {
                     raw:
@@ -1088,13 +940,9 @@ module.exports = async function handler(req, res) {
                     success: false,
 
                     error:
-                        data &&
-                        data.message
-                            ? data.message
-                            : data &&
-                              data.error
-                                ? data.error
-                                : 'فشل حذف العرض'
+                        data?.message ||
+                        data?.error ||
+                        'فشل حذف العرض'
 
                 });
 
@@ -1125,10 +973,8 @@ module.exports = async function handler(req, res) {
                 success: false,
 
                 error:
-                    error &&
-                    error.message
-                        ? error.message
-                        : 'حدث خطأ أثناء حذف العرض'
+                    error?.message ||
+                    'حدث خطأ أثناء حذف العرض'
 
             });
 
