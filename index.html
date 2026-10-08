@@ -3572,6 +3572,36 @@ toggleCartDrawer(true);
 
 window.confirmAddToCart = confirmAddToCart;
 
+        
+function toggleCartDrawer(forceOpen) {
+const drawer = document.getElementById('cart-drawer');
+const overlay = document.getElementById('cart-drawer-overlay');
+
+
+if (!drawer) {
+    console.error('Cart drawer element #cart-drawer not found');
+    return;
+}
+
+const isOpen = !drawer.classList.contains('-translate-x-full');
+const shouldOpen =
+    typeof forceOpen === 'boolean' ? forceOpen : !isOpen;
+
+// فتح وإغلاق السلة
+drawer.classList.toggle('-translate-x-full', !shouldOpen);
+
+// إظهار وإخفاء الخلفية
+if (overlay) {
+    overlay.classList.toggle('hidden', !shouldOpen);
+}
+
+// منع تمرير الصفحة عند فتح السلة
+document.body.classList.toggle('overflow-hidden', shouldOpen);
+
+}
+
+window.toggleCartDrawer = toggleCartDrawer;
+
 
        function renderCartDrawer() {
 const container = document.getElementById('cart-drawer-items');
@@ -3716,9 +3746,10 @@ window.currentCartTotal = total;
             document.getElementById('cart-badge-count').innerText = currentCart.reduce((sum, i) => sum + i.qty, 0);
         }
 
-     function openCheckoutModal() {
-    if (currentCart.length === 0) {
-        alert("سلة الشراء فارغة.");
+
+function openCheckoutModal() {
+    if (!Array.isArray(currentCart) || currentCart.length === 0) {
+        alert('سلة الشراء فارغة.');
         return;
     }
 
@@ -3726,86 +3757,93 @@ window.currentCartTotal = total;
         document.getElementById('checkout-shipping-options');
 
     if (!shippingContainer) {
+        console.error('عنصر checkout-shipping-options غير موجود');
         return;
     }
 
     // عرض طرق الشحن
-    shippingContainer.innerHTML =
-        (appState.shippingOptions || []).map((opt, idx) => `
+    const shippingOptions =
+        Array.isArray(appState.shippingOptions)
+            ? appState.shippingOptions
+            : [];
 
-            <label
-                class="flex items-center justify-between p-3 rounded-xl border border-neutral-700 bg-black cursor-pointer hover:border-brand-amber"
-            >
+    shippingContainer.innerHTML = shippingOptions.map((opt, idx) => `
+        <label
+            class="flex items-center justify-between p-3 rounded-xl border border-neutral-700 bg-black cursor-pointer hover:border-brand-amber"
+        >
+            <div class="flex items-center space-x-2 space-x-reverse">
+                <input
+                    type="radio"
+                    name="ship_option"
+                    value="${opt.id}"
+                    ${idx === 0 ? 'checked' : ''}
+                    onchange="updateTransferAmount(); updateDepositAmount();"
+                >
 
-                <div class="flex items-center space-x-2 space-x-reverse">
+                <div>
+                    <span class="text-xs font-bold text-white">
+                        ${opt.name || 'طريقة الشحن'}
+                    </span>
 
-                    <input
-                        type="radio"
-                        name="ship_option"
-                        value="${opt.id}"
-                        ${idx === 0 ? 'checked' : ''}
-                        onchange="updateTransferAmount(); updateDepositAmount();"
-                    >
-
-                    <div>
-
-                        <span class="text-xs font-bold text-white">
-                            ${opt.name || 'طريقة الشحن'}
-                        </span>
-
-                        <p class="text-[10px] text-gray-400">
-                            ${
-                                opt.timeframe &&
-                                opt.timeframe !== 'undefined'
-                                    ? opt.timeframe
-                                    : (
-                                        opt.duration &&
-                                        opt.duration !== 'undefined'
-                                            ? opt.duration
-                                            : (
-                                                opt.delivery_time &&
-                                                opt.delivery_time !== 'undefined'
-                                                    ? opt.delivery_time
-                                                    : ''
-                                            )
-                                    )
-                            }
-                        </p>
-
-                    </div>
-
+                    <p class="text-[10px] text-gray-400">
+                        ${
+                            opt.timeframe && opt.timeframe !== 'undefined'
+                                ? opt.timeframe
+                                : (
+                                    opt.duration && opt.duration !== 'undefined'
+                                        ? opt.duration
+                                        : (
+                                            opt.delivery_time &&
+                                            opt.delivery_time !== 'undefined'
+                                                ? opt.delivery_time
+                                                : ''
+                                        )
+                                )
+                        }
+                    </p>
                 </div>
+            </div>
 
-                <span class="text-xs font-bold text-brand-amber">
-                    ${Number(opt.price || 0).toLocaleString('ar-EG')} ج.م
-                </span>
+            <span class="text-xs font-bold text-brand-amber">
+                ${Number(opt.price || 0).toLocaleString('ar-EG')} ج.م
+            </span>
+        </label>
+    `).join('');
 
-            </label>
+    console.log('SHIPPING OPTIONS:', shippingOptions);
 
-        `).join('');
-         console.log('SHIPPING OPTIONS:', appState.shippingOptions);
+    // إغلاق السلة إن كانت دالة الإغلاق متاحة
+    if (typeof window.toggleCartDrawer === 'function') {
+        window.toggleCartDrawer(false);
+    } else {
+        const drawer = document.getElementById('cart-drawer');
 
-    // إغلاق السلة
-    toggleCartDrawer(false);
+        if (drawer) {
+            drawer.classList.add('hidden');
+        }
+    }
 
-    // فتح صفحة إتمام الطلب
+    // فتح نافذة إتمام الطلب
     const checkoutModal =
         document.getElementById('checkout-modal');
 
     if (checkoutModal) {
         checkoutModal.classList.remove('hidden');
+    } else {
+        console.error('عنصر checkout-modal غير موجود');
+        return;
     }
 
-    // ==========================================
-    // تحديث الإجمالي حسب طريقة الشحن المختارة
-    // ==========================================
+    // تحديث الإجمالي والعربون
+    if (typeof window.updateTransferAmount === 'function') {
+        window.updateTransferAmount();
+    }
 
-    updateTransferAmount();
+    if (typeof window.updateDepositAmount === 'function') {
+        window.updateDepositAmount();
+    }
 
-    // ==========================================
-    // كل مرة نفتح الطلب نرجع لخطوة بيانات التحويل
-    // ==========================================
-
+    // إظهار خطوة التحويل وإخفاء خطوة الإيصال
     const transferStep =
         document.getElementById('payment-step-transfer');
 
@@ -3820,10 +3858,7 @@ window.currentCartTotal = total;
         proofStep.classList.add('hidden');
     }
 
-    // ==========================================
-    // مسح إيصال التحويل القديم
-    // ==========================================
-
+    // مسح الإيصال القديم
     const paymentProofInput =
         document.getElementById('payment-proof');
 
@@ -3842,15 +3877,11 @@ window.currentCartTotal = total;
             'text-xs text-gray-500 mt-2';
     }
 
-    // ==========================================
-    // تعطيل زر تأكيد الطلب لحد رفع الإيصال
-    // ==========================================
-
+    // تعطيل زر التأكيد حتى رفع الإيصال
     const confirmButton =
         document.getElementById('confirm-order-btn');
 
     if (confirmButton) {
-
         confirmButton.disabled = true;
 
         confirmButton.classList.add(
@@ -3860,6 +3891,8 @@ window.currentCartTotal = total;
     }
 }
 
+window.openCheckoutModal = openCheckoutModal;
+        
  function updateTransferAmount() {
 const amountElement = document.getElementById('transfer-amount');
 if (!amountElement) return;
