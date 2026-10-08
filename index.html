@@ -5791,8 +5791,7 @@ function renderAdminProducts() {
     `).join('');
 }
 
-      function renderAdminOffers() {
-
+     function renderAdminOffers() {
     const container =
         document.getElementById(
             'admin-offers-list-grid'
@@ -5806,15 +5805,10 @@ function renderAdminProducts() {
             : [];
 
     if (offers.length === 0) {
-
         container.innerHTML = `
-            <div
-                class="col-span-full bg-neutral-900 border border-neutral-800 rounded-2xl p-8 text-center"
-            >
+            <div class="col-span-full bg-neutral-900 border border-neutral-800 rounded-2xl p-8 text-center">
 
-                <i
-                    class="fas fa-fire text-brand-amber text-3xl mb-3"
-                ></i>
+                <i class="fas fa-fire text-brand-amber text-3xl mb-3"></i>
 
                 <h4 class="text-white font-bold text-lg">
                     لا توجد عروض حاليًا
@@ -5831,295 +5825,263 @@ function renderAdminProducts() {
     }
 
     container.innerHTML =
-        offers.map(offer => {
+        offers
+            .map(offer => {
 
-            const oldPrice =
-                Number(
-                    offer.old_price
-                ) || 0;
+                const oldPrice =
+                    Number(
+                        offer.old_price
+                    ) || 0;
 
-            const offerPrice =
-                Number(
-                    offer.offer_price
-                ) || 0;
+                const offerPrice =
+                    Number(
+                        offer.offer_price
+                    ) || 0;
 
-            const image =
-                offer.image_url || '';
+                const image =
+                    offer.image_url || '';
 
-            /*
-             * ============================
-             * حالة العرض
-             * ============================
-             */
+                const offerId =
+                    String(
+                        offer.id
+                    );
 
-            const now =
-                new Date();
+                const isActive =
+                    offer.is_active !== false;
 
-            const startDate =
-                offer.start_date
-                    ? new Date(
+                const popup =
+                    offer.show_popup !== false;
+
+                const homepage =
+                    offer.show_homepage !== false;
+
+                /*
+                 * تحديد حالة العرض حسب التاريخ
+                 */
+                const now =
+                    new Date();
+
+                let statusText =
+                    'فعال';
+
+                let statusClass =
+                    'bg-green-500/10 text-green-400';
+
+                if (!isActive) {
+
+                    statusText =
+                        'متوقف';
+
+                    statusClass =
+                        'bg-red-500/10 text-red-400';
+
+                } else {
+
+                    const startDate =
                         offer.start_date
-                    )
-                    : null;
+                            ? new Date(
+                                offer.start_date
+                            )
+                            : null;
 
-            const endDate =
-                offer.end_date
-                    ? new Date(
+                    const endDate =
                         offer.end_date
-                    )
-                    : null;
+                            ? new Date(
+                                offer.end_date
+                            )
+                            : null;
 
-            let statusText =
-                'فعال';
+                    if (
+                        endDate &&
+                        endDate < now
+                    ) {
 
-            let statusClass =
-                'bg-green-500/10 text-green-400 border-green-500/20';
+                        statusText =
+                            'منتهي';
 
-            if (
-                offer.is_active === false
-            ) {
+                        statusClass =
+                            'bg-red-500/10 text-red-400';
 
-                statusText =
-                    'متوقف';
+                    } else if (
+                        startDate &&
+                        startDate > now
+                    ) {
 
-                statusClass =
-                    'bg-red-500/10 text-red-400 border-red-500/20';
+                        statusText =
+                            'لم يبدأ';
 
-            } else if (
-                endDate &&
-                endDate < now
-            ) {
-
-                statusText =
-                    'منتهي';
-
-                statusClass =
-                    'bg-red-500/10 text-red-400 border-red-500/20';
-
-            } else if (
-                startDate &&
-                startDate > now
-            ) {
-
-                statusText =
-                    'لم يبدأ';
-
-                statusClass =
-                    'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
-            }
-
-            /*
-             * ============================
-             * Popup / Homepage
-             * ============================
-             */
-
-            const popup =
-                offer.show_popup !== false;
-
-            const homepage =
-                offer.show_homepage !== false;
-
-            /*
-             * ============================
-             * ID آمن للزر
-             * ============================
-             */
-
-            const offerId =
-                String(
-                    offer.id
-                );
-
-            return `
-
-                <div
-                    class="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden"
-                >
-
-                    ${
-                        image
-                            ? `
-                                <img
-                                    src="${image}"
-                                    alt="${offer.title || 'العرض'}"
-                                    class="w-full h-48 object-cover"
-                                >
-                            `
-                            : `
-                                <div
-                                    class="w-full h-48 bg-neutral-800 flex items-center justify-center"
-                                >
-                                    <i
-                                        class="fas fa-fire text-brand-amber text-4xl"
-                                    ></i>
-                                </div>
-                            `
+                        statusClass =
+                            'bg-yellow-500/10 text-yellow-400';
                     }
+                }
 
-                    <div class="p-4">
+                return `
 
-                        <div
-                            class="flex items-start justify-between gap-3"
-                        >
+                    <div
+                        class="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden"
+                    >
 
-                            <div>
+                        ${
+                            image
+                                ? `
+                                    <div class="w-full h-48 bg-neutral-950 overflow-hidden">
 
-                                <h4
-                                    class="font-bold text-white text-base"
-                                >
+                                        <img
+                                            src="${image}"
+                                            alt="${offer.title || 'عرض'}"
+                                            class="w-full h-full object-cover"
+                                        >
+
+                                    </div>
+                                `
+                                : `
+                                    <div class="w-full h-48 bg-neutral-950 flex items-center justify-center">
+
+                                        <i class="fas fa-fire text-brand-amber text-4xl"></i>
+
+                                    </div>
+                                `
+                        }
+
+                        <div class="p-4">
+
+                            <div class="flex items-start justify-between gap-3">
+
+                                <div class="flex-1">
+
+                                    <h4
+                                        class="text-white font-bold text-lg"
+                                    >
+                                        ${offer.title || ''}
+                                    </h4>
+
                                     ${
-                                        offer.title ||
-                                        'عرض بدون عنوان'
+                                        offer.description
+                                            ? `
+                                                <p
+                                                    class="text-gray-400 text-sm mt-2"
+                                                >
+                                                    ${offer.description}
+                                                </p>
+                                            `
+                                            : ''
                                     }
-                                </h4>
+
+                                </div>
+
+                                <span
+                                    class="px-2.5 py-1 rounded-full text-xs font-bold ${statusClass}"
+                                >
+                                    ${statusText}
+                                </span>
+
+                            </div>
+
+                            <div
+                                class="flex items-center gap-3 mt-4"
+                            >
 
                                 ${
-                                    offer.description
+                                    oldPrice > 0
                                         ? `
-                                            <p
-                                                class="text-gray-400 text-xs mt-2 line-clamp-2"
+                                            <span
+                                                class="text-gray-500 line-through text-sm"
                                             >
-                                                ${offer.description}
-                                            </p>
+                                                ${oldPrice.toLocaleString('ar-EG')}
+                                                ج.م
+                                            </span>
+                                        `
+                                        : ''
+                                }
+
+                                ${
+                                    offerPrice > 0
+                                        ? `
+                                            <span
+                                                class="text-brand-amber font-black text-lg"
+                                            >
+                                                ${offerPrice.toLocaleString('ar-EG')}
+                                                ج.م
+                                            </span>
                                         `
                                         : ''
                                 }
 
                             </div>
 
-                            <span
-                                class="${statusClass} border px-2 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap"
-                            >
-                                ${statusText}
-                            </span>
-
-                        </div>
-
-
-                        <!-- الأسعار -->
-
-                        <div
-                            class="mt-4 flex items-center gap-3"
-                        >
-
-                            ${
-                                oldPrice > 0
-                                    ? `
-                                        <span
-                                            class="text-gray-500 line-through text-xs"
-                                        >
-                                            ${oldPrice.toLocaleString()}
-                                            ج.م
-                                        </span>
-                                    `
-                                    : ''
-                            }
-
-                            ${
-                                offerPrice > 0
-                                    ? `
-                                        <span
-                                            class="text-brand-amber font-extrabold text-lg"
-                                        >
-                                            ${offerPrice.toLocaleString()}
-                                            ج.م
-                                        </span>
-                                    `
-                                    : ''
-                            }
-
-                        </div>
-
-
-                        <!-- إعدادات الظهور -->
-
-                        <div
-                            class="grid grid-cols-2 gap-2 mt-4"
-                        >
-
                             <div
-                                class="${
-                                    popup
-                                        ? 'bg-brand-amber/10 text-brand-amber'
-                                        : 'bg-neutral-800 text-gray-500'
-                                } rounded-lg px-2 py-2 text-center text-[10px] font-bold"
+                                class="flex items-center gap-4 mt-4 text-xs"
                             >
 
-                                <i
-                                    class="fas fa-window-maximize ml-1"
-                                ></i>
+                                <span
+                                    class="text-gray-300"
+                                >
+                                    🔔 Popup:
+                                    <strong class="text-white">
+                                        ${popup ? 'نعم' : 'لا'}
+                                    </strong>
+                                </span>
 
-                                Popup:
-                                ${popup ? 'نعم' : 'لا'}
+                                <span
+                                    class="text-gray-300"
+                                >
+                                    🏠 الرئيسية:
+                                    <strong class="text-white">
+                                        ${homepage ? 'نعم' : 'لا'}
+                                    </strong>
+                                </span>
 
                             </div>
 
+                            <!-- أزرار التحكم -->
 
                             <div
-                                class="${
-                                    homepage
-                                        ? 'bg-green-500/10 text-green-400'
-                                        : 'bg-neutral-800 text-gray-500'
-                                } rounded-lg px-2 py-2 text-center text-[10px] font-bold"
+                                class="flex gap-2 mt-5"
                             >
 
-                                <i
-                                    class="fas fa-home ml-1"
-                                ></i>
+                                <!-- تعديل -->
 
-                                الرئيسية:
-                                ${homepage ? 'نعم' : 'لا'}
+                                <button
+                                    type="button"
+                                    onclick="console.log('REAL BUTTON CLICK:', ${Number(offer.id)}); editOffer(${Number(offer.id)})"
+                                    class="flex-1 bg-brand-amber/10 text-brand-amber hover:bg-brand-amber/20 rounded-xl py-2.5 font-bold text-xs transition"
+                                >
+
+                                    <i
+                                        class="fas fa-edit ml-1"
+                                    ></i>
+
+                                    تعديل
+
+                                </button>
+
+
+                                <!-- حذف -->
+
+                                <button
+                                    type="button"
+                                    onclick="console.log('DELETE OFFER ID:', '${offerId}'); deleteOffer('${offerId}')"
+                                    class="flex-1 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl py-2.5 font-bold text-xs transition"
+                                >
+
+                                    <i
+                                        class="fas fa-trash ml-1"
+                                    ></i>
+
+                                    حذف
+
+                                </button>
 
                             </div>
-
-                        </div>
-
-
-                        <!-- أزرار التحكم -->
-
-                        <div
-                            class="flex items-center justify-between gap-2 mt-4 pt-4 border-t border-neutral-800"
-                        >
-
-                            <button
-                                type="button"
-                                onclick="console.log('BUTTON OFFER ID:', '${offerId}'); editOffer('${offerId}')"
-                                class="flex-1 bg-brand-amber/10 text-brand-amber hover:bg-brand-amber/20 rounded-xl py-2.5 font-bold text-xs"
-                            >
-
-                                <i
-                                    class="fas fa-edit ml-1"
-                                ></i>
-
-                                تعديل
-
-                            </button>
-
-
-                            <button
-                                type="button"
-                                onclick="console.log('DELETE OFFER ID:', '${offerId}'); deleteOffer('${offerId}')"
-                                class="flex-1 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl py-2.5 font-bold text-xs"
-                            >
-
-                                <i
-                                    class="fas fa-trash ml-1"
-                                ></i>
-
-                                حذف
-
-                            </button>
 
                         </div>
 
                     </div>
 
-                </div>
+                `;
 
-            `;
-
-        }).join('');
+            })
+            .join('');
 }
 
 
