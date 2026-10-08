@@ -2674,11 +2674,34 @@ function renderHomepageOffers() {
 
 function renderOfferPopup() {
 
+    const now = Date.now();
+
     const offers =
         getActivePublicOffers()
             .filter(
-                offer =>
-                    offer.show_popup !== false
+                offer => {
+
+                    // لازم يكون مسموح له يظهر Popup
+                    if (offer.show_popup === false) {
+                        return false;
+                    }
+
+                    // لو مفيش تاريخ انتهاء، نعتبره صالح
+                    if (!offer.end_date) {
+                        return true;
+                    }
+
+                    const endTime =
+                        new Date(
+                            offer.end_date
+                        ).getTime();
+
+                    // استبعاد العرض المنتهي من الـ Popup فقط
+                    return (
+                        !isNaN(endTime) &&
+                        endTime > now
+                    );
+                }
             );
 
     if (offers.length === 0) {
