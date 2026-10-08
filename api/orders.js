@@ -14,8 +14,9 @@ export default async function handler(req, res) {
             });
         }
 
+
         // =====================================================
-        // قراءة بيانات المصادقة
+        // قراءة بيانات المصادقة الخاصة بالأدمن
         // =====================================================
 
         const authHeader =
@@ -34,7 +35,185 @@ export default async function handler(req, res) {
 
 
         // =====================================================
+        // ⭐ تتبع الطلب للعميل
+        //
+        // GET /api/orders?track=ORDER_ID
+        //
+        // هذا الجزء موجود قبل فحص Admin Token
+        // حتى يستطيع العميل تتبع طلبه بدون تسجيل دخول.
+        // =====================================================
+
+        if (
+            req.method === 'GET' &&
+            req.query &&
+            req.query.track
+        ) {
+
+            const trackId =
+                String(
+                    req.query.track
+                ).trim();
+
+            console.log(
+                'PUBLIC TRACKING REQUEST:',
+                trackId
+            );
+
+
+            if (!trackId) {
+
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        'رقم الطلب غير موجود'
+                });
+            }
+
+
+            try {
+
+                const supabaseUrl =
+                    `${SUPABASE_URL}/rest/v1/orders` +
+                    `?id=eq.${encodeURIComponent(trackId)}` +
+                    `&select=id,order_number,status,total,created_at`;
+
+
+                console.log(
+                    'TRACK SUPABASE REQUEST:',
+                    supabaseUrl
+                );
+
+
+                const response =
+                    await fetch(
+                        supabaseUrl,
+                        {
+                            method: 'GET',
+
+                            headers: {
+                                apikey:
+                                    SUPABASE_SERVICE_ROLE_KEY,
+
+                                Authorization:
+                                    `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+
+                                'Content-Type':
+                                    'application/json'
+                            }
+                        }
+                    );
+
+
+                const text =
+                    await response.text();
+
+
+                let data = [];
+
+
+                try {
+
+                    data =
+                        text
+                            ? JSON.parse(text)
+                            : [];
+
+                } catch {
+
+                    data = [];
+
+                }
+
+
+                console.log(
+                    'TRACK SUPABASE RESPONSE:',
+                    data
+                );
+
+
+                if (!response.ok) {
+
+                    console.error(
+                        'SUPABASE TRACK ORDER ERROR:',
+                        data
+                    );
+
+
+                    return res.status(500).json({
+                        success: false,
+                        error:
+                            data?.message ||
+                            data?.error ||
+                            'فشل البحث عن الطلب'
+                    });
+                }
+
+
+                if (
+                    !Array.isArray(data) ||
+                    data.length === 0
+                ) {
+
+                    return res.status(404).json({
+                        success: false,
+                        error:
+                            'لم يتم العثور على طلب بهذا الرقم.'
+                    });
+                }
+
+
+                const foundOrder =
+                    data[0];
+
+
+                return res.status(200).json({
+                    success: true,
+
+                    order: {
+
+                        id:
+                            foundOrder.id,
+
+                        order_number:
+                            foundOrder.order_number,
+
+                        status:
+                            foundOrder.status ||
+                            'New',
+
+                        total:
+                            Number(
+                                foundOrder.total ||
+                                0
+                            ),
+
+                        created_at:
+                            foundOrder.created_at ||
+                            null
+                    }
+                });
+
+
+            } catch (error) {
+
+                console.error(
+                    'PUBLIC TRACKING ERROR:',
+                    error
+                );
+
+
+                return res.status(500).json({
+                    success: false,
+                    error:
+                        'حدث خطأ أثناء البحث عن الطلب'
+                });
+            }
+        }
+
+
+        // =====================================================
         // إنشاء طلب جديد
+        //
         // POST /api/orders
         // =====================================================
 
@@ -43,143 +222,165 @@ export default async function handler(req, res) {
             const order =
                 req.body || {};
 
+
             if (!order.id) {
+
                 return res.status(400).json({
                     success: false,
-                    error: 'رقم الطلب غير موجود'
+                    error:
+                        'رقم الطلب غير موجود'
                 });
             }
 
-            const response = await fetch(
-                `${SUPABASE_URL}/rest/v1/orders`,
-                {
-                    method: 'POST',
 
-                    headers: {
-                        apikey:
-                            SUPABASE_SERVICE_ROLE_KEY,
+            const response =
+                await fetch(
+                    `${SUPABASE_URL}/rest/v1/orders`,
+                    {
+                        method: 'POST',
 
-                        Authorization:
-                            `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                        headers: {
 
-                        'Content-Type':
-                            'application/json',
+                            apikey:
+                                SUPABASE_SERVICE_ROLE_KEY,
 
-                        Prefer:
-                            'return=representation'
-                    },
+                            Authorization:
+                                `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
 
-                    body: JSON.stringify({
+                            'Content-Type':
+                                'application/json',
 
-                        id:
-                            order.id,
+                            Prefer:
+                                'return=representation'
+                        },
 
-                        order_number:
-                            order.id,
+                        body:
+                            JSON.stringify({
 
-                        customer_name:
-                            order.customer?.name || '',
+                                id:
+                                    order.id,
 
-                        phone:
-                            order.customer?.phone || '',
+                                order_number:
+                                    order.id,
 
-                        whatsapp:
-                            order.customer?.phone || '',
+                                customer_name:
+                                    order.customer?.name ||
+                                    '',
 
-                        governorate:
-                            order.customer?.gov || '',
+                                phone:
+                                    order.customer?.phone ||
+                                    '',
 
-                        city:
-                            order.customer?.city || '',
+                                whatsapp:
+                                    order.customer?.phone ||
+                                    '',
 
-                        address:
-                            order.customer?.address || '',
+                                governorate:
+                                    order.customer?.gov ||
+                                    '',
 
-                        location:
-                            '',
+                                city:
+                                    order.customer?.city ||
+                                    '',
 
-                        items:
-                            order.items || [],
+                                address:
+                                    order.customer?.address ||
+                                    '',
 
-                        subtotal:
-                            Number(
-                                order.subtotal ??
-                                order.total ??
-                                0
-                            ),
+                                location:
+                                    '',
 
-                        shipping_cost:
-                            Number(
-                                order.shippingCost ??
-                                0
-                            ),
+                                items:
+                                    order.items ||
+                                    [],
 
-                        discount:
-                            Number(
-                                order.discount ??
-                                0
-                            ),
+                                subtotal:
+                                    Number(
+                                        order.subtotal ??
+                                        order.total ??
+                                        0
+                                    ),
 
-                        total:
-                            Number(
-                                order.total ??
-                                0
-                            ),
+                                shipping_cost:
+                                    Number(
+                                        order.shippingCost ??
+                                        0
+                                    ),
 
-                        shipping_method:
-                            order.shippingMethod ||
-                            '',
+                                discount:
+                                    Number(
+                                        order.discount ??
+                                        0
+                                    ),
 
-                        payment_method:
-                            order.paymentMethod ||
-                            'Visa / Mastercard',
+                                total:
+                                    Number(
+                                        order.total ??
+                                        0
+                                    ),
 
-                        deposit_percent:
-                            Number(
-                                order.depositPercent ??
-                                30
-                            ),
+                                shipping_method:
+                                    order.shippingMethod ||
+                                    '',
 
-                        deposit_amount:
-                            Number(
-                                order.depositAmount ??
-                                0
-                            ),
+                                payment_method:
+                                    order.paymentMethod ||
+                                    'Visa / Mastercard',
 
-                        remaining_amount:
-                            Number(
-                                order.remainingAmount ??
-                                0
-                            ),
+                                deposit_percent:
+                                    Number(
+                                        order.depositPercent ??
+                                        30
+                                    ),
 
-                        payment_status:
-                            order.paymentStatus ||
-                            'Pending',
+                                deposit_amount:
+                                    Number(
+                                        order.depositAmount ??
+                                        0
+                                    ),
 
-                        payment_proof_url:
-                            order.paymentProofUrl ||
-                            '',
+                                remaining_amount:
+                                    Number(
+                                        order.remainingAmount ??
+                                        0
+                                    ),
 
-                        status:
-                            order.status ||
-                            'New'
-                    })
-                }
-            );
+                                payment_status:
+                                    order.paymentStatus ||
+                                    'Pending',
+
+                                payment_proof_url:
+                                    order.paymentProofUrl ||
+                                    '',
+
+                                status:
+                                    order.status ||
+                                    'New'
+                            })
+                    }
+                );
+
 
             const text =
                 await response.text();
 
+
             let data = [];
 
+
             try {
+
                 data =
                     text
                         ? JSON.parse(text)
                         : [];
+
             } catch {
+
                 data = [];
+
             }
+
 
             if (!response.ok) {
 
@@ -188,10 +389,13 @@ export default async function handler(req, res) {
                     data
                 );
 
+
                 return res.status(
                     response.status
                 ).json({
+
                     success: false,
+
                     error:
                         data?.message ||
                         data?.error ||
@@ -199,7 +403,9 @@ export default async function handler(req, res) {
                 });
             }
 
+
             return res.status(201).json({
+
                 success: true,
 
                 order:
@@ -211,142 +417,7 @@ export default async function handler(req, res) {
 
 
         // =====================================================
-        // تتبع طلب للعميل
-        //
-        // GET /api/orders?track=ORDER_ID
-        //
-        // هذا المسار لا يحتاج تسجيل دخول الأدمن.
-        // ويتم تنفيذ البحث عن طلب واحد فقط.
-        // =====================================================
-
-        if (
-            req.method === 'GET' &&
-            req.query?.track
-        ) {
-
-            const trackId =
-                String(
-                    req.query.track
-                ).trim();
-
-            if (!trackId) {
-
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        'رقم الطلب غير موجود'
-                });
-            }
-
-            console.log(
-                'TRACK ORDER REQUEST:',
-                trackId
-            );
-
-            const encodedId =
-                encodeURIComponent(
-                    trackId
-                );
-
-            const response =
-                await fetch(
-                    `${SUPABASE_URL}/rest/v1/orders?or=(id.eq.${encodedId},order_number.eq.${encodedId})&select=id,order_number,status,total,created_at`,
-                    {
-                        method: 'GET',
-
-                        headers: {
-                            apikey:
-                                SUPABASE_SERVICE_ROLE_KEY,
-
-                            Authorization:
-                                `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-
-                            'Content-Type':
-                                'application/json'
-                        }
-                    }
-                );
-
-            const text =
-                await response.text();
-
-            let data = [];
-
-            try {
-                data =
-                    text
-                        ? JSON.parse(text)
-                        : [];
-            } catch {
-                data = [];
-            }
-
-            console.log(
-                'TRACK ORDER RESPONSE:',
-                data
-            );
-
-            if (!response.ok) {
-
-                console.error(
-                    'SUPABASE TRACK ORDER ERROR:',
-                    data
-                );
-
-                return res.status(500).json({
-                    success: false,
-                    error:
-                        data?.message ||
-                        data?.error ||
-                        'فشل البحث عن الطلب'
-                });
-            }
-
-            if (
-                !Array.isArray(data) ||
-                data.length === 0
-            ) {
-
-                return res.status(404).json({
-                    success: false,
-                    error:
-                        'لم يتم العثور على طلب بهذا الرقم.'
-                });
-            }
-
-            const foundOrder =
-                data[0];
-
-            return res.status(200).json({
-                success: true,
-
-                order: {
-                    id:
-                        foundOrder.id,
-
-                    order_number:
-                        foundOrder.order_number,
-
-                    status:
-                        foundOrder.status ||
-                        'New',
-
-                    total:
-                        Number(
-                            foundOrder.total ||
-                            0
-                        ),
-
-                    created_at:
-                        foundOrder.created_at ||
-                        null
-                }
-            });
-        }
-
-
-        // =====================================================
-        // من هنا جميع العمليات التالية للأدمن فقط
+        // 🔐 من هنا العمليات التالية للأدمن فقط
         // =====================================================
 
         if (!token) {
@@ -355,15 +426,18 @@ export default async function handler(req, res) {
                 'ADMIN AUTH ERROR: No admin token received'
             );
 
+
             return res.status(401).json({
                 success: false,
-                error: 'غير مصرح'
+                error:
+                    'غير مصرح'
             });
         }
 
 
         // =====================================================
-        // جلب جميع الطلبات
+        // جلب جميع الطلبات للأدمن
+        //
         // GET /api/orders
         // =====================================================
 
@@ -376,6 +450,7 @@ export default async function handler(req, res) {
                         method: 'GET',
 
                         headers: {
+
                             apikey:
                                 SUPABASE_SERVICE_ROLE_KEY,
 
@@ -388,19 +463,27 @@ export default async function handler(req, res) {
                     }
                 );
 
+
             const text =
                 await response.text();
 
+
             let data = [];
 
+
             try {
+
                 data =
                     text
                         ? JSON.parse(text)
                         : [];
+
             } catch {
+
                 data = [];
+
             }
+
 
             if (!response.ok) {
 
@@ -409,10 +492,13 @@ export default async function handler(req, res) {
                     data
                 );
 
+
                 return res.status(
                     response.status
                 ).json({
+
                     success: false,
+
                     error:
                         data?.message ||
                         data?.error ||
@@ -420,7 +506,9 @@ export default async function handler(req, res) {
                 });
             }
 
+
             return res.status(200).json({
+
                 success: true,
 
                 orders:
@@ -433,6 +521,7 @@ export default async function handler(req, res) {
 
         // =====================================================
         // تحديث حالة الطلب
+        //
         // PUT /api/orders?id=ORDER_ID
         // =====================================================
 
@@ -440,6 +529,7 @@ export default async function handler(req, res) {
 
             const orderId =
                 req.query?.id;
+
 
             if (!orderId) {
 
@@ -450,10 +540,12 @@ export default async function handler(req, res) {
                 });
             }
 
+
             const {
                 status
             } =
                 req.body || {};
+
 
             const allowedStatuses = [
                 'New',
@@ -462,6 +554,7 @@ export default async function handler(req, res) {
                 'Delivered',
                 'Cancelled'
             ];
+
 
             if (
                 !allowedStatuses.includes(
@@ -476,6 +569,7 @@ export default async function handler(req, res) {
                 });
             }
 
+
             const response =
                 await fetch(
                     `${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`,
@@ -483,6 +577,7 @@ export default async function handler(req, res) {
                         method: 'PATCH',
 
                         headers: {
+
                             apikey:
                                 SUPABASE_SERVICE_ROLE_KEY,
 
@@ -496,26 +591,35 @@ export default async function handler(req, res) {
                                 'return=representation'
                         },
 
-                        body: JSON.stringify({
-                            status:
-                                status
-                        })
+                        body:
+                            JSON.stringify({
+                                status:
+                                    status
+                            })
                     }
                 );
+
 
             const text =
                 await response.text();
 
+
             let data = [];
 
+
             try {
+
                 data =
                     text
                         ? JSON.parse(text)
                         : [];
+
             } catch {
+
                 data = [];
+
             }
+
 
             if (!response.ok) {
 
@@ -524,16 +628,20 @@ export default async function handler(req, res) {
                     data
                 );
 
+
                 return res.status(
                     response.status
                 ).json({
+
                     success: false,
+
                     error:
                         data?.message ||
                         data?.error ||
                         'فشل تحديث حالة الطلب'
                 });
             }
+
 
             if (
                 !Array.isArray(data) ||
@@ -547,7 +655,9 @@ export default async function handler(req, res) {
                 });
             }
 
+
             return res.status(200).json({
+
                 success: true,
 
                 order:
@@ -557,7 +667,8 @@ export default async function handler(req, res) {
 
 
         // =====================================================
-        // حذف الطلب نهائياً من قاعدة البيانات
+        // حذف الطلب
+        //
         // DELETE /api/orders?id=ORDER_ID
         // =====================================================
 
@@ -565,6 +676,7 @@ export default async function handler(req, res) {
 
             const orderId =
                 req.query?.id;
+
 
             if (!orderId) {
 
@@ -575,6 +687,7 @@ export default async function handler(req, res) {
                 });
             }
 
+
             const response =
                 await fetch(
                     `${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`,
@@ -582,6 +695,7 @@ export default async function handler(req, res) {
                         method: 'DELETE',
 
                         headers: {
+
                             apikey:
                                 SUPABASE_SERVICE_ROLE_KEY,
 
@@ -597,19 +711,27 @@ export default async function handler(req, res) {
                     }
                 );
 
+
             const text =
                 await response.text();
 
+
             let data = [];
 
+
             try {
+
                 data =
                     text
                         ? JSON.parse(text)
                         : [];
+
             } catch {
+
                 data = [];
+
             }
+
 
             if (!response.ok) {
 
@@ -618,16 +740,20 @@ export default async function handler(req, res) {
                     data
                 );
 
+
                 return res.status(
                     response.status
                 ).json({
+
                     success: false,
+
                     error:
                         data?.message ||
                         data?.error ||
                         'فشل حذف الطلب من قاعدة البيانات'
                 });
             }
+
 
             if (
                 !Array.isArray(data) ||
@@ -641,7 +767,9 @@ export default async function handler(req, res) {
                 });
             }
 
+
             return res.status(200).json({
+
                 success: true,
 
                 message:
@@ -654,7 +782,7 @@ export default async function handler(req, res) {
 
 
         // =====================================================
-        // أي Method آخر
+        // Method غير مسموح
         // =====================================================
 
         return res.status(405).json({
@@ -663,6 +791,7 @@ export default async function handler(req, res) {
                 'Method not allowed'
         });
 
+
     } catch (error) {
 
         console.error(
@@ -670,7 +799,9 @@ export default async function handler(req, res) {
             error
         );
 
+
         return res.status(500).json({
+
             success: false,
 
             error:
@@ -679,4 +810,3 @@ export default async function handler(req, res) {
         });
     }
 }
-
