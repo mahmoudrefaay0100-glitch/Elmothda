@@ -7734,23 +7734,28 @@ async function saveOfferFromEditor(e) {
 
                         reader.onload =
                             function () {
+
                                 resolve(
                                     reader.result
                                 );
+
                             };
 
                         reader.onerror =
                             function () {
+
                                 reject(
                                     new Error(
                                         'فشل قراءة صورة العرض'
                                     )
                                 );
+
                             };
 
                         reader.readAsDataURL(
                             imageFile
                         );
+
                     }
                 );
 
@@ -7762,16 +7767,19 @@ async function saveOfferFromEditor(e) {
                         method: 'POST',
 
                         headers: {
+
                             'Content-Type':
                                 'application/json',
 
                             'Authorization':
                                 'Bearer ' +
                                 token
+
                         },
 
                         body:
                             JSON.stringify({
+
                                 fileName:
                                     imageFile.name,
 
@@ -7780,7 +7788,9 @@ async function saveOfferFromEditor(e) {
 
                                 fileData:
                                     fileData
+
                             })
+
                     }
                 );
 
@@ -7807,6 +7817,7 @@ async function saveOfferFromEditor(e) {
                     error:
                         uploadText
                 };
+
             }
 
 
@@ -7819,6 +7830,7 @@ async function saveOfferFromEditor(e) {
                     uploadData?.error ||
                     'فشل رفع صورة العرض'
                 );
+
             }
 
 
@@ -7831,7 +7843,9 @@ async function saveOfferFromEditor(e) {
                 throw new Error(
                     'تم رفع الصورة ولكن لم يتم الحصول على رابطها'
                 );
+
             }
+
         }
 
 
@@ -7850,7 +7864,47 @@ async function saveOfferFromEditor(e) {
                         String(offer.id) ===
                         String(editingOfferId)
                 );
+
         }
+
+
+        // =========================
+        // قراءة التواريخ
+        // =========================
+
+        const startDateInput =
+            document
+                .getElementById(
+                    'offer-editor-start-date'
+                )
+                .value;
+
+        const endDateInput =
+            document
+                .getElementById(
+                    'offer-editor-end-date'
+                )
+                .value;
+
+
+        // =========================
+        // تحويل التاريخ إلى ISO
+        // =========================
+
+        const startDate =
+            startDateInput
+                ? new Date(
+                    startDateInput
+                ).toISOString()
+                : null;
+
+
+        const endDate =
+            endDateInput
+                ? new Date(
+                    endDateInput
+                ).toISOString()
+                : null;
 
 
         // =========================
@@ -7867,6 +7921,7 @@ async function saveOfferFromEditor(e) {
                     .value
                     .trim(),
 
+
             description:
                 document
                     .getElementById(
@@ -7874,6 +7929,7 @@ async function saveOfferFromEditor(e) {
                     )
                     .value
                     .trim(),
+
 
             old_price:
                 document
@@ -7890,6 +7946,7 @@ async function saveOfferFromEditor(e) {
                                 .value
                         ),
 
+
             offer_price:
                 document
                     .getElementById(
@@ -7905,6 +7962,7 @@ async function saveOfferFromEditor(e) {
                                 .value
                         ),
 
+
             button_text:
                 document
                     .getElementById(
@@ -7914,6 +7972,7 @@ async function saveOfferFromEditor(e) {
                     .trim() ||
                 'اطلب العرض',
 
+
             button_link:
                 document
                     .getElementById(
@@ -7922,19 +7981,17 @@ async function saveOfferFromEditor(e) {
                     .value
                     .trim(),
 
+
+            // =========================
+            // التواريخ المصححة
+            // =========================
+
             start_date:
-                document
-                    .getElementById(
-                        'offer-editor-start-date'
-                    )
-                    .value || null,
+                startDate,
 
             end_date:
-                document
-                    .getElementById(
-                        'offer-editor-end-date'
-                    )
-                    .value || null,
+                endDate,
+
 
             is_active:
                 document
@@ -7943,6 +8000,7 @@ async function saveOfferFromEditor(e) {
                     )
                     .checked,
 
+
             show_popup:
                 document
                     .getElementById(
@@ -7950,12 +8008,14 @@ async function saveOfferFromEditor(e) {
                     )
                     .checked,
 
+
             show_homepage:
                 document
                     .getElementById(
                         'offer-editor-show-homepage'
                     )
                     .checked,
+
 
             sort_order:
                 Number(
@@ -7965,11 +8025,13 @@ async function saveOfferFromEditor(e) {
                         )
                         .value
                 ) || 0
+
         };
 
 
-        // لو بنعدل ومفيش صورة جديدة
-        // نحتفظ بالصورة القديمة
+        // =========================
+        // الصورة
+        // =========================
 
         offerData.image_url =
             uploadedImage ||
@@ -7994,21 +8056,26 @@ async function saveOfferFromEditor(e) {
                 await fetch(
                     '/api/offers',
                     {
-                        method: 'PUT',
+
+                        method:
+                            'PUT',
 
                         headers: {
+
                             'Content-Type':
                                 'application/json',
 
                             'Authorization':
                                 'Bearer ' +
                                 token
+
                         },
 
                         body:
                             JSON.stringify(
                                 offerData
                             )
+
                     }
                 );
 
@@ -8018,28 +8085,60 @@ async function saveOfferFromEditor(e) {
                 await fetch(
                     '/api/offers',
                     {
-                        method: 'POST',
+
+                        method:
+                            'POST',
 
                         headers: {
+
                             'Content-Type':
                                 'application/json',
 
                             'Authorization':
                                 'Bearer ' +
                                 token
+
                         },
 
                         body:
                             JSON.stringify(
                                 offerData
                             )
+
                     }
                 );
+
         }
 
 
-        const data =
-            await response.json();
+        // =========================
+        // قراءة نتيجة الحفظ
+        // =========================
+
+        const responseText =
+            await response.text();
+
+
+        let data = {};
+
+
+        try {
+
+            data =
+                responseText
+                    ? JSON.parse(
+                        responseText
+                    )
+                    : {};
+
+        } catch {
+
+            data = {
+                error:
+                    responseText
+            };
+
+        }
 
 
         if (
@@ -8051,8 +8150,13 @@ async function saveOfferFromEditor(e) {
                 data?.error ||
                 'فشل حفظ العرض'
             );
+
         }
 
+
+        // =========================
+        // نجاح الحفظ
+        // =========================
 
         alert(
             editingOfferId
@@ -8061,10 +8165,43 @@ async function saveOfferFromEditor(e) {
         );
 
 
-        editingOfferId = null;
+        editingOfferId =
+            null;
 
+
+        // =========================
+        // إعادة تحميل العروض
+        // =========================
 
         await loadOffers();
+
+
+        // =========================
+        // تحديث عروض الرئيسية
+        // =========================
+
+        if (
+            typeof renderHomepageOffers ===
+            'function'
+        ) {
+
+            renderHomepageOffers();
+
+        }
+
+
+        // =========================
+        // تحديث Popup
+        // =========================
+
+        if (
+            typeof renderOfferPopup ===
+            'function'
+        ) {
+
+            renderOfferPopup();
+
+        }
 
 
         closeOfferEditor();
@@ -8077,11 +8214,13 @@ async function saveOfferFromEditor(e) {
             error
         );
 
+
         showToast(
             error?.message ||
             'حدث خطأ أثناء حفظ العرض.',
             'error'
         );
+
 
     } finally {
 
@@ -8090,6 +8229,7 @@ async function saveOfferFromEditor(e) {
                 'offer-save-button'
             );
 
+
         if (saveButton) {
 
             saveButton.disabled =
@@ -8097,15 +8237,13 @@ async function saveOfferFromEditor(e) {
 
             saveButton.innerHTML =
                 'حفظ العرض';
+
         }
+
     }
+
 }
-
-
-// =====================================================
-// حذف عرض
-// =====================================================
-
+        
 async function deleteOfferFromDatabase(
     offerId
 ) {
