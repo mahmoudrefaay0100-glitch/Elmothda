@@ -1,3 +1,4 @@
+```js
 export default async function handler(req, res) {
 
     // =====================================================
@@ -194,6 +195,17 @@ export default async function handler(req, res) {
             // =================================================
             // الزائر
             // =================================================
+            //
+            // مهم:
+            // لا نحذف العروض المنتهية من هنا.
+            //
+            // العرض المنتهي يظل موجودًا للصفحة الرئيسية
+            // حتى تعرض عليه:
+            //
+            // 🔴 منتهي
+            //
+            // أما العرض الذي لم يبدأ بعد فقط هو الذي لا يظهر.
+            // =================================================
 
             const now =
                 new Date();
@@ -248,52 +260,51 @@ export default async function handler(req, res) {
             }
 
 
-            const activeOffers =
+            // =================================================
+            // فلترة تاريخ البداية فقط
+            //
+            // لا يوجد فلتر end_date هنا.
+            // =================================================
+
+            const publicOffers =
                 Array.isArray(data)
                     ? data.filter(offer => {
 
-                        let starts = true;
-                        let ends = true;
-
-
-                        // بداية العرض
-
-                        if (offer.start_date) {
-
-                            const start =
-                                new Date(
-                                    offer.start_date
-                                );
-
-                            starts =
-                                !Number.isNaN(
-                                    start.getTime()
-                                ) &&
-                                start <= now;
+                        // لا يوجد تاريخ بداية
+                        // إذن العرض مسموح يظهر
+                        if (!offer.start_date) {
+                            return true;
                         }
 
 
-                        // نهاية العرض
+                        const start =
+                            new Date(
+                                offer.start_date
+                            );
 
-                        if (offer.end_date) {
 
-                            const end =
-                                new Date(
-                                    offer.end_date
-                                );
-
-                            ends =
-                                !Number.isNaN(
-                                    end.getTime()
-                                ) &&
-                                end >= now;
+                        // تاريخ غير صالح
+                        // لا نخفي العرض بسببه
+                        if (
+                            Number.isNaN(
+                                start.getTime()
+                            )
+                        ) {
+                            return true;
                         }
 
 
-                        return starts && ends;
+                        // العرض بدأ بالفعل
+                        return start <= now;
 
                     })
                     : [];
+
+
+            console.log(
+                '🔥 PUBLIC OFFERS FROM DATABASE:',
+                publicOffers
+            );
 
 
             return res.status(200).json({
@@ -301,7 +312,7 @@ export default async function handler(req, res) {
                 success: true,
 
                 offers:
-                    activeOffers
+                    publicOffers
             });
         }
 
@@ -1112,7 +1123,6 @@ export default async function handler(req, res) {
                     `${SUPABASE_URL}/rest/v1/offers?select=*&id=eq.${numericId}&limit=1`,
                     {
                         method: 'GET',
-
                         headers: dbHeaders
                     }
                 );
@@ -1195,12 +1205,6 @@ export default async function handler(req, res) {
             // =================================================
             // تنفيذ PATCH
             // =================================================
-            //
-            // مهم:
-            // لا نطلب return=representation هنا.
-            // بعض إعدادات PostgREST قد تنفذ التعديل
-            // لكن لا ترجع الصف المعدل.
-            // =================================================
 
             const updateResponse =
                 await fetch(
@@ -1245,10 +1249,6 @@ export default async function handler(req, res) {
             }
 
 
-            // =================================================
-            // خطأ Supabase الحقيقي
-            // =================================================
-
             if (!updateResponse.ok) {
 
                 console.error(
@@ -1283,7 +1283,6 @@ export default async function handler(req, res) {
                     `${SUPABASE_URL}/rest/v1/offers?select=*&id=eq.${numericId}&limit=1`,
                     {
                         method: 'GET',
-
                         headers: dbHeaders
                     }
                 );
@@ -1600,3 +1599,4 @@ export default async function handler(req, res) {
         });
     }
 }
+```
