@@ -1948,7 +1948,7 @@ categories: [
     renderOfferPopup();
 }
 
-       function renderHomepageOffers() {
+      function renderHomepageOffers() {
 
     const container =
         document.getElementById(
@@ -2013,12 +2013,9 @@ categories: [
                 }
 
 
-                // =================================================
                 // مهم:
                 // لا نستبعد العرض بسبب end_date
                 // حتى يظل العرض المنتهي ظاهرًا.
-                // =================================================
-
                 return true;
 
             })
@@ -2034,7 +2031,14 @@ categories: [
         offers
     );
 
-
+console.log(
+    '🔥 END DATE CHECK:',
+    offers.map(offer => ({
+        id: offer.id,
+        title: offer.title,
+        end_date: offer.end_date
+    }))
+);
     // =====================================================
     // لا توجد عروض
     // =====================================================
@@ -2140,7 +2144,7 @@ categories: [
 
 
                         // =============================================
-                        // IDs
+                        // ID العرض
                         // =============================================
 
                         const offerKey =
@@ -2197,7 +2201,9 @@ categories: [
                                     ).format(
                                         parsedEndDate
                                     );
+
                             }
+
                         }
 
 
@@ -2237,6 +2243,10 @@ categories: [
                             }
                         );
 
+
+                        // =============================================
+                        // HTML الكارت
+                        // =============================================
 
                         return `
 
@@ -2463,10 +2473,15 @@ categories: [
     offers.forEach(
         (offer, index) => {
 
+            // لا يوجد تاريخ انتهاء
             if (!offer.end_date) {
                 return;
             }
 
+
+            // =============================================
+            // IDs
+            // =============================================
 
             const offerKey =
                 offer.id ||
@@ -2482,6 +2497,10 @@ categories: [
             const statusId =
                 `offer-status-${offerKey}`;
 
+
+            // =============================================
+            // عناصر الصفحة
+            // =============================================
 
             const countdown =
                 document.getElementById(
@@ -2507,9 +2526,9 @@ categories: [
             }
 
 
-            // =================================================
+            // =============================================
             // تحويل تاريخ النهاية
-            // =================================================
+            // =============================================
 
             const endTime =
                 new Date(
@@ -2533,9 +2552,9 @@ categories: [
             }
 
 
-            // =================================================
-            // تنسيق التاريخ
-            // =================================================
+            // =============================================
+            // تنسيق تاريخ النهاية
+            // =============================================
 
             const formattedDate =
                 new Intl.DateTimeFormat(
@@ -2550,22 +2569,28 @@ categories: [
                 );
 
 
-            // =================================================
-            // تحديث التاريخ فورًا
-            // =================================================
+            // =============================================
+            // هل انتهى العرض حاليًا؟
+            // =============================================
 
             const currentlyExpired =
                 endTime <= Date.now();
 
+
+            // =============================================
+            // تحديث حالة العرض المنتهي
+            // =============================================
 
             if (currentlyExpired) {
 
                 countdown.textContent =
                     '⏳ منتهي — 00 يوم 00 ساعة 00 دقيقة 00 ثانية';
 
+
                 countdown.classList.remove(
                     'text-white'
                 );
+
 
                 countdown.classList.add(
                     'text-red-400'
@@ -2581,10 +2606,12 @@ categories: [
                     status.textContent =
                         '🔴 منتهي';
 
+
                     status.classList.remove(
                         'bg-brand-amber/10',
                         'text-brand-amber'
                     );
+
 
                     status.classList.add(
                         'bg-red-500/10',
@@ -2593,167 +2620,43 @@ categories: [
 
                 }
 
-            } else {
 
-                endDate.textContent =
-                    `📅 ينتهي العرض: ${formattedDate}`;
-
+                return;
             }
 
 
-            // =================================================
-            // تشغيل العد التنازلي
-            // =================================================
+            // =============================================
+            // العرض ما زال ساريًا
+            // =============================================
 
-            const updateCountdown =
-                () => {
-
-                    const remaining =
-                        endTime -
-                        Date.now();
+            endDate.textContent =
+                `📅 ينتهي العرض: ${formattedDate}`;
 
 
-                    // =============================================
-                    // انتهى العرض
-                    // =============================================
+            // =============================================
+            // تحديث العداد
+            // =============================================
 
-                    if (
-                        remaining <= 0
-                    ) {
-
-                        countdown.textContent =
-                            '⏳ منتهي — 00 يوم 00 ساعة 00 دقيقة 00 ثانية';
-
-                        countdown.classList.remove(
-                            'text-white'
-                        );
-
-                        countdown.classList.add(
-                            'text-red-400'
-                        );
-
-
-                        endDate.textContent =
-                            `📅 انتهى العرض في: ${formattedDate}`;
-
-
-                        if (status) {
-
-                            status.textContent =
-                                '🔴 منتهي';
-
-                            status.classList.remove(
-                                'bg-brand-amber/10',
-                                'text-brand-amber'
-                            );
-
-                            status.classList.add(
-                                'bg-red-500/10',
-                                'text-red-400'
-                            );
-
-                        }
-
-
-                        return;
-
-                    }
-
-
-                    // =============================================
-                    // حساب الوقت المتبقي
-                    // =============================================
-
-                    const totalSeconds =
-                        Math.floor(
-                            remaining / 1000
-                        );
-
-
-                    const days =
-                        Math.floor(
-                            totalSeconds / 86400
-                        );
-
-
-                    const hours =
-                        Math.floor(
-                            (
-                                totalSeconds %
-                                86400
-                            ) / 3600
-                        );
-
-
-                    const minutes =
-                        Math.floor(
-                            (
-                                totalSeconds %
-                                3600
-                            ) / 60
-                        );
-
-
-                    const seconds =
-                        totalSeconds %
-                        60;
-
-
-                    countdown.textContent =
-                        `⏳ متبقي على انتهاء العرض: ` +
-                        `${days} يوم ` +
-                        `${String(hours).padStart(2, '0')} ساعة ` +
-                        `${String(minutes).padStart(2, '0')} دقيقة ` +
-                        `${String(seconds).padStart(2, '0')} ثانية`;
-
-                };
-
-
-            // تشغيل أول مرة
-            updateCountdown();
-
-
-            // تشغيل كل ثانية
-            const timer =
-                setInterval(
-                    updateCountdown,
-                    1000
-                );
-
-
-            // حفظ العداد لإيقافه عند إعادة الرسم
-            window.homepageOfferTimers.push(
-                timer
-            );
-
-        }
-    );
-
-}
-
-            /*
-             * تحديث العداد
-             */
-
-            function updateCountdown() {
+            function updateHomepageOfferCountdown() {
 
                 const remaining =
-                    endTime -
-                    Date.now();
+                    endTime - Date.now();
 
 
-                /*
-                 * العرض انتهى
-                 */
+                // =============================================
+                // انتهى العرض أثناء العد
+                // =============================================
 
                 if (remaining <= 0) {
 
                     countdown.textContent =
                         '⏳ منتهي — 00 يوم 00 ساعة 00 دقيقة 00 ثانية';
 
+
                     countdown.classList.remove(
                         'text-white'
                     );
+
 
                     countdown.classList.add(
                         'text-red-400'
@@ -2769,40 +2672,30 @@ categories: [
                         status.textContent =
                             '🔴 منتهي';
 
+
                         status.classList.remove(
                             'bg-brand-amber/10',
                             'text-brand-amber'
                         );
 
+
                         status.classList.add(
                             'bg-red-500/10',
                             'text-red-400'
                         );
+
                     }
 
 
-                    /*
-                     * إخفاء زر الطلب بعد انتهاء العرض
-                     */
-
-                    const button =
-                        document.getElementById(
-                            buttonId
-                        );
-
-                    if (button) {
-
-                        button.remove();
-                    }
-
+                    clearInterval(timer);
 
                     return;
                 }
 
 
-                /*
-                 * حساب الوقت المتبقي
-                 */
+                // =============================================
+                // حساب الوقت المتبقي
+                // =============================================
 
                 const totalSeconds =
                     Math.floor(
@@ -2818,21 +2711,23 @@ categories: [
 
                 const hours =
                     Math.floor(
-                        (totalSeconds % 86400) /
-                        3600
+                        (totalSeconds % 86400) / 3600
                     );
 
 
                 const minutes =
                     Math.floor(
-                        (totalSeconds % 3600) /
-                        60
+                        (totalSeconds % 3600) / 60
                     );
 
 
                 const seconds =
                     totalSeconds % 60;
 
+
+                // =============================================
+                // عرض العداد
+                // =============================================
 
                 countdown.textContent =
                     `⏳ متبقي على انتهاء العرض: ` +
@@ -2847,23 +2742,27 @@ categories: [
             }
 
 
-            /*
-             * تشغيل العداد فورًا
-             */
+            // =============================================
+            // تشغيل العداد فورًا
+            // =============================================
 
-            updateCountdown();
+            updateHomepageOfferCountdown();
 
 
-            /*
-             * تشغيل كل ثانية
-             */
+            // =============================================
+            // تشغيل العداد كل ثانية
+            // =============================================
 
             const timer =
                 setInterval(
-                    updateCountdown,
+                    updateHomepageOfferCountdown,
                     1000
                 );
 
+
+            // =============================================
+            // حفظ التايمر لإيقافه لاحقًا
+            // =============================================
 
             window.homepageOfferTimers.push(
                 timer
@@ -2871,7 +2770,10 @@ categories: [
 
         }
     );
+
 }
+
+           
 
 // =====================================================
 // Popup العرض
