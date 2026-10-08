@@ -8060,24 +8060,52 @@ function closeOfferEditor() {
 
 function editOffer(id) {
 
-    console.log('EDIT OFFER CLICKED:', id);
-    console.log('CURRENT OFFERS:', appState.offers);
+    console.log('================ EDIT OFFER ================');
+    console.log('ID RECEIVED:', id);
+    console.log('ID TYPE:', typeof id);
+
+    console.log(
+        'ALL OFFERS:',
+        appState.offers
+    );
+
+    console.log(
+        'ALL OFFER IDS:',
+        (appState.offers || []).map(offer => ({
+            id: offer.id,
+            type: typeof offer.id,
+            title: offer.title
+        }))
+    );
 
     const offers =
         Array.isArray(appState.offers)
             ? appState.offers
             : [];
 
-    const offer =
-        offers.find(
-            item =>
-                String(item.id).trim() ===
-                String(id).trim()
-        );
+    const offer = offers.find(
+        item =>
+            String(item.id).trim() ===
+            String(id).trim()
+    );
 
-    console.log('FOUND OFFER:', offer);
+    console.log(
+        'FOUND OFFER:',
+        offer
+    );
 
     if (!offer) {
+
+        console.error(
+            '❌ OFFER NOT FOUND',
+            {
+                requestedId: id,
+                requestedIdType: typeof id,
+                availableIds: offers.map(
+                    item => item.id
+                )
+            }
+        );
 
         showToast(
             'لم يتم العثور على العرض',
@@ -8087,8 +8115,12 @@ function editOffer(id) {
         return;
     }
 
-    editingOfferId =
-        offer.id;
+    console.log(
+        '✅ OFFER FOUND SUCCESSFULLY:',
+        offer
+    );
+
+    editingOfferId = offer.id;
 
     switchView(
         'admin-offer-editor'
@@ -8096,8 +8128,7 @@ function editOffer(id) {
 
     document.getElementById(
         'offer-editor-heading'
-    ).textContent =
-        'تعديل العرض';
+    ).textContent = 'تعديل العرض';
 
     document.getElementById(
         'offer-editor-title'
@@ -8133,9 +8164,7 @@ function editOffer(id) {
     document.getElementById(
         'offer-editor-sort-order'
     ).value =
-        Number(
-            offer.sort_order
-        ) || 0;
+        Number(offer.sort_order) || 0;
 
     document.getElementById(
         'offer-editor-active'
@@ -8198,6 +8227,10 @@ function editOffer(id) {
         'offer-save-button'
     ).innerHTML =
         'حفظ التعديلات';
+
+    console.log(
+        '✅ EDITOR OPENED SUCCESSFULLY'
+    );
 }
         
 function toDateTimeLocal(value) {
