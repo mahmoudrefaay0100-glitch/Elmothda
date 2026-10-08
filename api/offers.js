@@ -110,10 +110,7 @@ export default async function handler(req, res) {
                 `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
 
             'Content-Type':
-                'application/json',
-
-            Prefer:
-                'return=representation'
+                'application/json'
         };
 
 
@@ -143,8 +140,24 @@ export default async function handler(req, res) {
                     );
 
 
-                const data =
-                    await response.json();
+                const text =
+                    await response.text();
+
+
+                let data = [];
+
+
+                try {
+
+                    data =
+                        text
+                            ? JSON.parse(text)
+                            : [];
+
+                } catch {
+
+                    data = [];
+                }
 
 
                 if (!response.ok) {
@@ -152,12 +165,15 @@ export default async function handler(req, res) {
                     return res.status(
                         response.status
                     ).json({
+
                         success: false,
+
                         error:
                             data?.message ||
                             data?.details ||
                             data?.hint ||
                             data?.error ||
+                            text ||
                             'فشل تحميل العروض'
                     });
                 }
@@ -193,8 +209,24 @@ export default async function handler(req, res) {
                 );
 
 
-            const data =
-                await response.json();
+            const text =
+                await response.text();
+
+
+            let data = [];
+
+
+            try {
+
+                data =
+                    text
+                        ? JSON.parse(text)
+                        : [];
+
+            } catch {
+
+                data = [];
+            }
 
 
             if (!response.ok) {
@@ -202,12 +234,15 @@ export default async function handler(req, res) {
                 return res.status(
                     response.status
                 ).json({
+
                     success: false,
+
                     error:
                         data?.message ||
                         data?.details ||
                         data?.hint ||
                         data?.error ||
+                        text ||
                         'فشل تحميل العروض'
                 });
             }
@@ -221,13 +256,9 @@ export default async function handler(req, res) {
                         let ends = true;
 
 
-                        // -----------------------------
                         // بداية العرض
-                        // -----------------------------
 
-                        if (
-                            offer.start_date
-                        ) {
+                        if (offer.start_date) {
 
                             const start =
                                 new Date(
@@ -242,13 +273,9 @@ export default async function handler(req, res) {
                         }
 
 
-                        // -----------------------------
                         // نهاية العرض
-                        // -----------------------------
 
-                        if (
-                            offer.end_date
-                        ) {
+                        if (offer.end_date) {
 
                             const end =
                                 new Date(
@@ -264,6 +291,7 @@ export default async function handler(req, res) {
 
 
                         return starts && ends;
+
                     })
                     : [];
 
@@ -292,7 +320,9 @@ export default async function handler(req, res) {
             if (!isAdmin) {
 
                 return res.status(401).json({
+
                     success: false,
+
                     error:
                         'غير مسموح. يجب تسجيل الدخول كمدير.'
                 });
@@ -316,7 +346,9 @@ export default async function handler(req, res) {
             if (!title) {
 
                 return res.status(400).json({
+
                     success: false,
+
                     error:
                         'عنوان العرض مطلوب'
                 });
@@ -349,7 +381,9 @@ export default async function handler(req, res) {
                 ) {
 
                     return res.status(400).json({
+
                         success: false,
+
                         error:
                             'تاريخ بداية العرض غير صحيح'
                     });
@@ -387,7 +421,9 @@ export default async function handler(req, res) {
                 ) {
 
                     return res.status(400).json({
+
                         success: false,
+
                         error:
                             'تاريخ نهاية العرض غير صحيح'
                     });
@@ -411,7 +447,9 @@ export default async function handler(req, res) {
             ) {
 
                 return res.status(400).json({
+
                     success: false,
+
                     error:
                         'تاريخ نهاية العرض يجب أن يكون بعد تاريخ البداية'
                 });
@@ -443,7 +481,9 @@ export default async function handler(req, res) {
                 ) {
 
                     return res.status(400).json({
+
                         success: false,
+
                         error:
                             'السعر القديم غير صحيح'
                     });
@@ -476,7 +516,9 @@ export default async function handler(req, res) {
                 ) {
 
                     return res.status(400).json({
+
                         success: false,
+
                         error:
                             'سعر العرض غير صحيح'
                     });
@@ -508,7 +550,9 @@ export default async function handler(req, res) {
                 ) {
 
                     return res.status(400).json({
+
                         success: false,
+
                         error:
                             'ترتيب العرض غير صحيح'
                     });
@@ -574,7 +618,12 @@ export default async function handler(req, res) {
                     {
                         method: 'POST',
 
-                        headers: dbHeaders,
+                        headers: {
+                            ...dbHeaders,
+
+                            Prefer:
+                                'return=representation'
+                        },
 
                         body:
                             JSON.stringify(
@@ -584,8 +633,24 @@ export default async function handler(req, res) {
                 );
 
 
-            const data =
-                await response.json();
+            const text =
+                await response.text();
+
+
+            let data = [];
+
+
+            try {
+
+                data =
+                    text
+                        ? JSON.parse(text)
+                        : [];
+
+            } catch {
+
+                data = [];
+            }
 
 
             if (!response.ok) {
@@ -607,6 +672,7 @@ export default async function handler(req, res) {
                         data?.details ||
                         data?.hint ||
                         data?.error ||
+                        text ||
                         'فشل إضافة العرض'
                 });
             }
@@ -641,7 +707,9 @@ export default async function handler(req, res) {
             if (!isAdmin) {
 
                 return res.status(401).json({
+
                     success: false,
+
                     error:
                         'غير مسموح. يجب تسجيل الدخول كمدير.'
                 });
@@ -653,13 +721,7 @@ export default async function handler(req, res) {
 
 
             // =================================================
-            // الحصول على ID
-            //
-            // ندعم:
-            // id
-            // offer_id
-            // idx
-            // query id
+            // الحصول على ID الحقيقي
             // =================================================
 
             let id = null;
@@ -688,17 +750,6 @@ export default async function handler(req, res) {
                     ).trim();
 
             } else if (
-                body.idx !== undefined &&
-                body.idx !== null &&
-                String(body.idx).trim() !== ''
-            ) {
-
-                id =
-                    String(
-                        body.idx
-                    ).trim();
-
-            } else if (
                 req.query?.id !== undefined &&
                 req.query?.id !== null &&
                 String(req.query.id).trim() !== ''
@@ -719,6 +770,29 @@ export default async function handler(req, res) {
 
                     error:
                         'رقم العرض مطلوب'
+                });
+            }
+
+
+            // =================================================
+            // التحقق من أن ID رقم صحيح
+            // =================================================
+
+            const numericId =
+                Number(id);
+
+
+            if (
+                !Number.isInteger(numericId) ||
+                numericId <= 0
+            ) {
+
+                return res.status(400).json({
+
+                    success: false,
+
+                    error:
+                        'رقم العرض غير صحيح'
                 });
             }
 
@@ -1020,143 +1094,79 @@ export default async function handler(req, res) {
             };
 
 
-            // =================================================
-            // البحث عن العرض أولًا
-            // =================================================
+            console.log(
+                'UPDATE OFFER:',
+                {
+                    id: numericId,
+                    data: offerData
+                }
+            );
 
-            let existingOffer = null;
-            let actualId = id;
 
+            // =================================================
+            // التأكد أن العرض موجود
+            // =================================================
 
             const findResponse =
                 await fetch(
-                    `${SUPABASE_URL}/rest/v1/offers?select=*&id=eq.${encodeURIComponent(id)}&limit=1`,
+                    `${SUPABASE_URL}/rest/v1/offers?select=*&id=eq.${numericId}&limit=1`,
                     {
                         method: 'GET',
+
                         headers: dbHeaders
                     }
                 );
 
 
-            const findData =
-                await findResponse.json();
+            const findText =
+                await findResponse.text();
 
 
-            // =================================================
-            // لو وجدنا العرض بالـ ID
-            // =================================================
+            let findData = [];
 
-            if (
-                findResponse.ok &&
-                Array.isArray(findData) &&
-                findData.length > 0
-            ) {
 
-                existingOffer =
-                    findData[0];
+            try {
 
-                actualId =
-                    existingOffer.id;
+                findData =
+                    findText
+                        ? JSON.parse(findText)
+                        : [];
+
+            } catch {
+
+                findData = [];
             }
 
 
-            // =================================================
-            // لو لم نجده
-            // نجرب offer_id
-            // =================================================
-
-            if (!existingOffer) {
-
-                const alternativeIds = [];
-
-
-                if (
-                    body.offer_id !== undefined &&
-                    body.offer_id !== null
-                ) {
-
-                    alternativeIds.push(
-                        String(
-                            body.offer_id
-                        ).trim()
-                    );
-                }
-
-
-                if (
-                    body.idx !== undefined &&
-                    body.idx !== null
-                ) {
-
-                    alternativeIds.push(
-                        String(
-                            body.idx
-                        ).trim()
-                    );
-                }
-
-
-                for (
-                    const alternativeId
-                    of alternativeIds
-                ) {
-
-                    if (
-                        !alternativeId ||
-                        alternativeId === id
-                    ) {
-                        continue;
-                    }
-
-
-                    const alternativeResponse =
-                        await fetch(
-                            `${SUPABASE_URL}/rest/v1/offers?select=*&id=eq.${encodeURIComponent(alternativeId)}&limit=1`,
-                            {
-                                method: 'GET',
-                                headers: dbHeaders
-                            }
-                        );
-
-
-                    const alternativeData =
-                        await alternativeResponse.json();
-
-
-                    if (
-                        alternativeResponse.ok &&
-                        Array.isArray(alternativeData) &&
-                        alternativeData.length > 0
-                    ) {
-
-                        existingOffer =
-                            alternativeData[0];
-
-                        actualId =
-                            existingOffer.id;
-
-                        break;
-                    }
-                }
-            }
-
-
-            // =================================================
-            // لو ما زال غير موجود
-            // =================================================
-
-            if (!existingOffer) {
+            if (!findResponse.ok) {
 
                 console.error(
-                    'OFFER NOT FOUND FOR UPDATE:',
-                    {
-                        received_id: id,
-                        body_id: body.id,
-                        body_offer_id: body.offer_id,
-                        body_idx: body.idx
-                    }
+                    'FIND OFFER ERROR:',
+                    findData
                 );
 
+
+                return res.status(
+                    findResponse.status
+                ).json({
+
+                    success: false,
+
+                    error:
+                        findData?.message ||
+                        findData?.details ||
+                        findData?.hint ||
+                        findData?.error ||
+                        findText ||
+                        'تعذر البحث عن العرض'
+                });
+            }
+
+
+            if (
+                !Array.isArray(findData) ||
+                findData.length === 0
+            ) {
 
                 return res.status(404).json({
 
@@ -1166,19 +1176,35 @@ export default async function handler(req, res) {
                         'لم يتم العثور على العرض المطلوب تعديله',
 
                     debug: {
-                        received_id: id
+                        id: numericId
                     }
                 });
             }
 
 
+            const existingOffer =
+                findData[0];
+
+
+            console.log(
+                'EXISTING OFFER:',
+                existingOffer
+            );
+
+
             // =================================================
-            // تنفيذ PATCH على الـID الحقيقي
+            // تنفيذ PATCH
+            // =================================================
+            //
+            // مهم:
+            // لا نطلب return=representation هنا.
+            // بعض إعدادات PostgREST قد تنفذ التعديل
+            // لكن لا ترجع الصف المعدل.
             // =================================================
 
             const updateResponse =
                 await fetch(
-                    `${SUPABASE_URL}/rest/v1/offers?id=eq.${encodeURIComponent(actualId)}`,
+                    `${SUPABASE_URL}/rest/v1/offers?id=eq.${numericId}`,
                     {
                         method: 'PATCH',
 
@@ -1186,7 +1212,7 @@ export default async function handler(req, res) {
                             ...dbHeaders,
 
                             Prefer:
-                                'return=representation'
+                                'return=minimal'
                         },
 
                         body:
@@ -1197,12 +1223,30 @@ export default async function handler(req, res) {
                 );
 
 
-            const updateData =
-                await updateResponse.json();
+            const updateText =
+                await updateResponse.text();
+
+
+            let updateData = {};
+
+
+            try {
+
+                updateData =
+                    updateText
+                        ? JSON.parse(updateText)
+                        : {};
+
+            } catch {
+
+                updateData = {
+                    raw: updateText
+                };
+            }
 
 
             // =================================================
-            // خطأ Supabase
+            // خطأ Supabase الحقيقي
             // =================================================
 
             if (!updateResponse.ok) {
@@ -1224,36 +1268,142 @@ export default async function handler(req, res) {
                         updateData?.details ||
                         updateData?.hint ||
                         updateData?.error ||
+                        updateText ||
                         'فشل تعديل العرض'
                 });
             }
 
 
             // =================================================
-            // PATCH نجح ولكن لم يرجع صف
+            // قراءة العرض بعد التعديل
             // =================================================
 
-            if (
-                !Array.isArray(updateData) ||
-                updateData.length === 0
-            ) {
+            const verifyResponse =
+                await fetch(
+                    `${SUPABASE_URL}/rest/v1/offers?select=*&id=eq.${numericId}&limit=1`,
+                    {
+                        method: 'GET',
 
-                return res.status(404).json({
+                        headers: dbHeaders
+                    }
+                );
+
+
+            const verifyText =
+                await verifyResponse.text();
+
+
+            let verifyData = [];
+
+
+            try {
+
+                verifyData =
+                    verifyText
+                        ? JSON.parse(verifyText)
+                        : [];
+
+            } catch {
+
+                verifyData = [];
+            }
+
+
+            if (!verifyResponse.ok) {
+
+                console.error(
+                    'VERIFY UPDATED OFFER ERROR:',
+                    verifyData
+                );
+
+
+                return res.status(500).json({
 
                     success: false,
 
                     error:
-                        'تعذر تأكيد تعديل العرض في قاعدة البيانات'
+                        verifyData?.message ||
+                        verifyData?.details ||
+                        verifyData?.hint ||
+                        verifyData?.error ||
+                        verifyText ||
+                        'تم تنفيذ التعديل ولكن تعذر التحقق منه'
+                });
+            }
+
+
+            if (
+                !Array.isArray(verifyData) ||
+                verifyData.length === 0
+            ) {
+
+                return res.status(500).json({
+
+                    success: false,
+
+                    error:
+                        'تم تنفيذ التعديل ولكن لم يتم العثور على العرض عند التحقق'
+                });
+            }
+
+
+            const updatedOffer =
+                verifyData[0];
+
+
+            // =================================================
+            // التأكد من أهم البيانات
+            // =================================================
+
+            const savedCorrectly =
+                String(updatedOffer.title || '') ===
+                    String(offerData.title || '') &&
+
+                Number(updatedOffer.old_price || 0) ===
+                    Number(offerData.old_price || 0) &&
+
+                Number(updatedOffer.offer_price || 0) ===
+                    Number(offerData.offer_price || 0) &&
+
+                Boolean(updatedOffer.is_active) ===
+                    Boolean(offerData.is_active) &&
+
+                Boolean(updatedOffer.show_popup) ===
+                    Boolean(offerData.show_popup) &&
+
+                Boolean(updatedOffer.show_homepage) ===
+                    Boolean(offerData.show_homepage);
+
+
+            if (!savedCorrectly) {
+
+                console.error(
+                    'OFFER UPDATE VERIFICATION FAILED:',
+                    {
+                        sent: offerData,
+                        saved: updatedOffer
+                    }
+                );
+
+
+                return res.status(500).json({
+
+                    success: false,
+
+                    error:
+                        'تم تعديل العرض ولكن البيانات المحفوظة لا تطابق البيانات المرسلة'
                 });
             }
 
 
             // =================================================
-            // العرض المعدل فعلًا
+            // نجاح نهائي
             // =================================================
 
-            const updatedOffer =
-                updateData[0];
+            console.log(
+                '✅ OFFER UPDATED AND VERIFIED:',
+                updatedOffer
+            );
 
 
             return res.status(200).json({
@@ -1282,7 +1432,9 @@ export default async function handler(req, res) {
             if (!isAdmin) {
 
                 return res.status(401).json({
+
                     success: false,
+
                     error:
                         'غير مسموح. يجب تسجيل الدخول كمدير.'
                 });
@@ -1301,16 +1453,37 @@ export default async function handler(req, res) {
             if (!id) {
 
                 return res.status(400).json({
+
                     success: false,
+
                     error:
                         'رقم العرض مطلوب'
                 });
             }
 
 
+            const numericId =
+                Number(id);
+
+
+            if (
+                !Number.isInteger(numericId) ||
+                numericId <= 0
+            ) {
+
+                return res.status(400).json({
+
+                    success: false,
+
+                    error:
+                        'رقم العرض غير صحيح'
+                });
+            }
+
+
             const response =
                 await fetch(
-                    `${SUPABASE_URL}/rest/v1/offers?id=eq.${encodeURIComponent(id)}`,
+                    `${SUPABASE_URL}/rest/v1/offers?id=eq.${numericId}`,
                     {
                         method: 'DELETE',
 
@@ -1324,8 +1497,24 @@ export default async function handler(req, res) {
                 );
 
 
-            const data =
-                await response.json();
+            const text =
+                await response.text();
+
+
+            let data = [];
+
+
+            try {
+
+                data =
+                    text
+                        ? JSON.parse(text)
+                        : [];
+
+            } catch {
+
+                data = [];
+            }
 
 
             if (!response.ok) {
@@ -1347,14 +1536,11 @@ export default async function handler(req, res) {
                         data?.details ||
                         data?.hint ||
                         data?.error ||
+                        text ||
                         'فشل حذف العرض'
                 });
             }
 
-
-            // =================================================
-            // التأكد أن الحذف تم فعلًا
-            // =================================================
 
             if (
                 !Array.isArray(data) ||
