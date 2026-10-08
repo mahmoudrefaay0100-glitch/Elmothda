@@ -1935,6 +1935,54 @@ categories: [
             setTimeout(() => { const el = document.getElementById(sectionId); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 100);
         }
 
+function getActivePublicOffers() {
+
+    const offers =
+        Array.isArray(appState.offers)
+            ? appState.offers
+            : [];
+
+    const now = new Date();
+
+    return offers
+        .filter(offer => {
+
+            // العرض غير مفعل
+            if (offer.is_active === false) {
+                return false;
+            }
+
+            // العرض لم يبدأ بعد
+            if (offer.start_date) {
+
+                const startDate =
+                    new Date(offer.start_date);
+
+                if (
+                    !Number.isNaN(startDate.getTime()) &&
+                    startDate > now
+                ) {
+                    return false;
+                }
+            }
+
+            /*
+             * مهم:
+             * لا نحذف العرض بسبب end_date هنا.
+             * العرض المنتهي يفضل ظاهر في الصفحة
+             * لكن renderHomepageOffers يعرض له "منتهي".
+             */
+
+            return true;
+        })
+        .sort(
+            (a, b) =>
+                (Number(a.sort_order) || 0) -
+                (Number(b.sort_order) || 0)
+        );
+}
+
+        
       function renderAllViews() {
     renderSiteSettings();
     renderCategoriesGrid();
