@@ -533,266 +533,304 @@ if (
         }
 
 
-        // =====================================================
-        // تحديث حالة الطلب
-        //
-        // PUT /api/orders?id=ORDER_ID
-        // =====================================================
+// =====================================================
+// تحديث حالة الطلب أو حالة الدفع
+//
+// PUT /api/orders?id=ORDER_ID
+// =====================================================
 
-        if (req.method === 'PUT') {
+if (req.method === 'PUT') {
 
-            const orderId =
-                req.query?.id;
-
-
-            if (!orderId) {
-
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        'رقم الطلب غير موجود'
-                });
-            }
+    const orderId =
+        req.query?.id;
 
 
-            const {
+    if (!orderId) {
+
+        return res.status(400).json({
+            success: false,
+            error:
+                'رقم الطلب غير موجود'
+        });
+    }
+
+
+    const body =
+        req.body || {};
+
+
+    // =====================================================
+    // تحديث حالة الطلب
+    // =====================================================
+
+    if (body.status !== undefined) {
+
+        const status =
+            body.status;
+
+
+        const allowedStatuses = [
+            'New',
+            'Confirmed',
+            'Shipped',
+            'Delivered',
+            'Cancelled'
+        ];
+
+
+        if (
+            !allowedStatuses.includes(
                 status
-            } =
-                req.body || {};
+            )
+        ) {
 
-
-            const allowedStatuses = [
-                'New',
-                'Confirmed',
-                'Shipped',
-                'Delivered',
-                'Cancelled'
-            ];
-
-
-            if (
-                !allowedStatuses.includes(
-                    status
-                )
-            ) {
-
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        'حالة الطلب غير صحيحة'
-                });
-            }
-
-
-            const response =
-                await fetch(
-                    `${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`,
-                    {
-                        method: 'PATCH',
-
-                        headers: {
-
-                            apikey:
-                                SUPABASE_SERVICE_ROLE_KEY,
-
-                            Authorization:
-                                `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-
-                            'Content-Type':
-                                'application/json',
-
-                            Prefer:
-                                'return=representation'
-                        },
-
-                        body:
-                            JSON.stringify({
-                                status:
-                                    status
-                            })
-                    }
-                );
-
-
-            const text =
-                await response.text();
-
-
-            let data = [];
-
-
-            try {
-
-                data =
-                    text
-                        ? JSON.parse(text)
-                        : [];
-
-            } catch {
-
-                data = [];
-
-            }
-
-
-            if (!response.ok) {
-
-                console.error(
-                    'SUPABASE UPDATE ORDER ERROR:',
-                    data
-                );
-
-
-                return res.status(
-                    response.status
-                ).json({
-
-                    success: false,
-
-                    error:
-                        data?.message ||
-                        data?.error ||
-                        'فشل تحديث حالة الطلب'
-                });
-            }
-
-
-            if (
-                !Array.isArray(data) ||
-                data.length === 0
-            ) {
-
-                return res.status(404).json({
-                    success: false,
-                    error:
-                        'الطلب غير موجود في قاعدة البيانات'
-                });
-            }
-
-
-            return res.status(200).json({
-
-                success: true,
-
-                order:
-                    data[0]
+            return res.status(400).json({
+                success: false,
+                error:
+                    'حالة الطلب غير صحيحة'
             });
         }
 
 
-        // =====================================================
-        // حذف الطلب
-        //
-        // DELETE /api/orders?id=ORDER_ID
-        // =====================================================
+        const response =
+            await fetch(
+                `${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`,
+                {
+                    method: 'PATCH',
 
-        if (req.method === 'DELETE') {
+                    headers: {
 
-            const orderId =
-                req.query?.id;
+                        apikey:
+                            SUPABASE_SERVICE_ROLE_KEY,
 
+                        Authorization:
+                            `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
 
-            if (!orderId) {
+                        'Content-Type':
+                            'application/json',
 
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        'رقم الطلب غير موجود'
-                });
-            }
+                        Prefer:
+                            'return=representation'
+                    },
 
-
-            const response =
-                await fetch(
-                    `${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`,
-                    {
-                        method: 'DELETE',
-
-                        headers: {
-
-                            apikey:
-                                SUPABASE_SERVICE_ROLE_KEY,
-
-                            Authorization:
-                                `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-
-                            'Content-Type':
-                                'application/json',
-
-                            Prefer:
-                                'return=representation'
-                        }
-                    }
-                );
+                    body:
+                        JSON.stringify({
+                            status:
+                                status
+                        })
+                }
+            );
 
 
-            const text =
-                await response.text();
+        const text =
+            await response.text();
 
 
-            let data = [];
+        let data = [];
 
 
-            try {
+        try {
 
-                data =
-                    text
-                        ? JSON.parse(text)
-                        : [];
+            data =
+                text
+                    ? JSON.parse(text)
+                    : [];
 
-            } catch {
+        } catch {
 
-                data = [];
+            data = [];
 
-            }
-
-
-            if (!response.ok) {
-
-                console.error(
-                    'SUPABASE DELETE ORDER ERROR:',
-                    data
-                );
+        }
 
 
-                return res.status(
-                    response.status
-                ).json({
+        if (!response.ok) {
 
-                    success: false,
-
-                    error:
-                        data?.message ||
-                        data?.error ||
-                        'فشل حذف الطلب من قاعدة البيانات'
-                });
-            }
+            console.error(
+                'SUPABASE UPDATE ORDER STATUS ERROR:',
+                data
+            );
 
 
-            if (
-                !Array.isArray(data) ||
-                data.length === 0
-            ) {
+            return res.status(
+                response.status
+            ).json({
 
-                return res.status(404).json({
-                    success: false,
-                    error:
-                        'الطلب غير موجود في قاعدة البيانات'
-                });
-            }
+                success: false,
 
-
-            return res.status(200).json({
-
-                success: true,
-
-                message:
-                    'تم حذف الطلب نهائياً',
-
-                order:
-                    data[0]
+                error:
+                    data?.message ||
+                    data?.error ||
+                    'فشل تحديث حالة الطلب'
             });
         }
+
+
+        if (
+            !Array.isArray(data) ||
+            data.length === 0
+        ) {
+
+            return res.status(404).json({
+                success: false,
+                error:
+                    'الطلب غير موجود في قاعدة البيانات'
+            });
+        }
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            order:
+                data[0]
+        });
+    }
+
+
+    // =====================================================
+    // تحديث حالة الدفع
+    // =====================================================
+
+    if (body.paymentStatus !== undefined) {
+
+        const paymentStatus =
+            body.paymentStatus;
+
+
+        const allowedPaymentStatuses = [
+            'Pending',
+            'Partial',
+            'Paid',
+            'Failed',
+            'Refunded'
+        ];
+
+
+        if (
+            !allowedPaymentStatuses.includes(
+                paymentStatus
+            )
+        ) {
+
+            return res.status(400).json({
+                success: false,
+                error:
+                    'حالة الدفع غير صحيحة'
+            });
+        }
+
+
+        const response =
+            await fetch(
+                `${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`,
+                {
+                    method: 'PATCH',
+
+                    headers: {
+
+                        apikey:
+                            SUPABASE_SERVICE_ROLE_KEY,
+
+                        Authorization:
+                            `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+
+                        'Content-Type':
+                            'application/json',
+
+                        Prefer:
+                            'return=representation'
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            payment_status:
+                                paymentStatus
+
+                        })
+                }
+            );
+
+
+        const text =
+            await response.text();
+
+
+        let data = [];
+
+
+        try {
+
+            data =
+                text
+                    ? JSON.parse(text)
+                    : [];
+
+        } catch {
+
+            data = [];
+
+        }
+
+
+        if (!response.ok) {
+
+            console.error(
+                'SUPABASE UPDATE PAYMENT STATUS ERROR:',
+                data
+            );
+
+
+            return res.status(
+                response.status
+            ).json({
+
+                success: false,
+
+                error:
+                    data?.message ||
+                    data?.error ||
+                    'فشل تحديث حالة الدفع'
+            });
+        }
+
+
+        if (
+            !Array.isArray(data) ||
+            data.length === 0
+        ) {
+
+            return res.status(404).json({
+                success: false,
+                error:
+                    'الطلب غير موجود في قاعدة البيانات'
+            });
+        }
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            order:
+                data[0]
+        });
+    }
+
+
+    // =====================================================
+    // لا يوجد حقل للتحديث
+    // =====================================================
+
+    return res.status(400).json({
+
+        success: false,
+
+        error:
+            'لم يتم إرسال حالة الطلب أو حالة الدفع'
+    });
+}
 
 
         // =====================================================
