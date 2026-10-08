@@ -5007,25 +5007,19 @@ async function trackOrderSubmit() {
         return;
     }
 
-    // الرقم الذي يدخله العميل
     let enteredOrderId =
         input.value.trim();
 
     container.classList.remove('hidden');
 
-
-    // =====================================================
-    // التحقق من الرقم
-    // =====================================================
-
     if (!enteredOrderId) {
 
         container.innerHTML = `
             <div
-                class="bg-black p-4 rounded-2xl border border-red-900/50"
+                class="bg-black p-5 rounded-2xl border border-red-900/50"
                 dir="rtl"
             >
-                <p class="text-red-400 text-center text-xs font-bold">
+                <p class="text-red-400 text-center text-sm font-bold">
                     من فضلك أدخل رقم الطلب.
                 </p>
             </div>
@@ -5034,67 +5028,36 @@ async function trackOrderSubmit() {
         return;
     }
 
-
-    // =====================================================
-    // دعم الحالتين:
-    //
-    // العميل يكتب:
-    // 25121
-    //
-    // أو:
-    // ORD-25121
-    //
-    // وفي الحالتين نرسل للـAPI:
-    // ORD-25121
-    // =====================================================
-
     let orderId =
         enteredOrderId.toUpperCase();
 
-    if (
-        !orderId.startsWith('ORD-')
-    ) {
-        orderId =
-            `ORD-${orderId}`;
+    if (!orderId.startsWith('ORD-')) {
+        orderId = `ORD-${orderId}`;
     }
-
-
-    // =====================================================
-    // حالة التحميل
-    // =====================================================
 
     container.innerHTML = `
         <div
-            class="bg-black p-5 rounded-2xl border border-neutral-800 text-center"
+            class="bg-black p-8 rounded-2xl border border-neutral-800 text-center"
             dir="rtl"
         >
-
             <i
-                class="fas fa-spinner fa-spin text-brand-amber text-2xl"
+                class="fas fa-spinner fa-spin text-brand-amber text-3xl"
             ></i>
 
-            <p class="text-gray-400 text-xs mt-3">
-                جاري البحث عن الطلب...
+            <p class="text-gray-400 text-sm mt-4">
+                جاري جلب تفاصيل الطلب...
             </p>
-
         </div>
     `;
 
-
     try {
-
-        // =================================================
-        // طلب التتبع العام
-        // =================================================
 
         const response =
             await fetch(
                 `/api/orders?track=${encodeURIComponent(orderId)}`,
                 {
                     method: 'GET',
-
                     cache: 'no-store',
-
                     headers: {
                         'Accept':
                             'application/json'
@@ -5102,21 +5065,14 @@ async function trackOrderSubmit() {
                 }
             );
 
-
         const data =
             await response.json();
 
-
         console.log(
-            'TRACK ORDER RESPONSE:',
+            'FULL TRACK ORDER:',
             response.status,
             data
         );
-
-
-        // =================================================
-        // الطلب غير موجود
-        // =================================================
 
         if (
             response.status === 404 ||
@@ -5126,66 +5082,43 @@ async function trackOrderSubmit() {
 
             container.innerHTML = `
                 <div
-                    class="bg-black p-5 rounded-2xl border border-red-900/50"
+                    class="bg-black p-6 rounded-2xl border border-red-900/50"
                     dir="rtl"
                 >
+                    <div class="text-center">
 
-                    <i
-                        class="fas fa-circle-exclamation text-red-400 text-2xl"
-                    ></i>
+                        <i
+                            class="fas fa-circle-exclamation text-red-400 text-3xl"
+                        ></i>
 
-                    <p class="text-red-400 text-center text-xs font-bold mt-3">
-                        لم يتم العثور على طلب بهذا الرقم.
-                    </p>
+                        <p class="text-red-400 font-bold mt-4">
+                            لم يتم العثور على طلب بهذا الرقم.
+                        </p>
 
-                    <p class="text-gray-500 text-[10px] text-center mt-2">
-                        تأكد من كتابة رقم الطلب بشكل صحيح.
-                    </p>
+                        <p class="text-gray-500 text-xs mt-2">
+                            تأكد من كتابة رقم الطلب بشكل صحيح.
+                        </p>
 
+                    </div>
                 </div>
             `;
 
             return;
         }
 
-
-        // =================================================
-        // أي خطأ آخر
-        // =================================================
-
         if (!response.ok) {
-
             throw new Error(
                 `HTTP ${response.status}`
             );
         }
 
-
-        // =================================================
-        // بيانات الطلب
-        // =================================================
-
         const order =
             data.order;
 
-
         const status =
-            order.status ||
-            'New';
-
-
-        const total =
-            Number(
-                order.total || 0
-            );
-
-
-        // =================================================
-        // ترجمة الحالات
-        // =================================================
+            order.status || 'New';
 
         const statusLabels = {
-
             New:
                 'جديد',
 
@@ -5202,18 +5135,7 @@ async function trackOrderSubmit() {
                 'ملغي'
         };
 
-
-        const statusLabel =
-            statusLabels[status] ||
-            status;
-
-
-        // =================================================
-        // أيقونات الحالات
-        // =================================================
-
         const statusIcons = {
-
             New:
                 'fa-clock',
 
@@ -5230,18 +5152,7 @@ async function trackOrderSubmit() {
                 'fa-circle-xmark'
         };
 
-
-        const statusIcon =
-            statusIcons[status] ||
-            'fa-clock';
-
-
-        // =================================================
-        // ألوان الحالة
-        // =================================================
-
-        const statusClasses = {
-
+        const statusColors = {
             New:
                 'text-yellow-400',
 
@@ -5258,152 +5169,203 @@ async function trackOrderSubmit() {
                 'text-red-400'
         };
 
+        const statusLabel =
+            statusLabels[status] ||
+            status;
 
-        const statusClass =
-            statusClasses[status] ||
+        const statusIcon =
+            statusIcons[status] ||
+            'fa-clock';
+
+        const statusColor =
+            statusColors[status] ||
             'text-brand-amber';
 
-
-        // =================================================
-        // تاريخ الطلب
-        // =================================================
+        const money = value =>
+            Number(value || 0)
+                .toLocaleString('ar-EG');
 
         let createdAt =
             'غير متوفر';
 
-
         if (order.created_at) {
 
-            try {
-
-                createdAt =
-                    new Date(
-                        order.created_at
-                    ).toLocaleDateString(
-                        'ar-EG',
-                        {
-                            year:
-                                'numeric',
-
-                            month:
-                                'long',
-
-                            day:
-                                'numeric'
-                        }
-                    );
-
-            } catch {
-
-                createdAt =
-                    'غير متوفر';
-            }
+            createdAt =
+                new Date(
+                    order.created_at
+                ).toLocaleString(
+                    'ar-EG',
+                    {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }
+                );
         }
 
+        const items =
+            Array.isArray(order.items)
+                ? order.items
+                : [];
 
-        // =================================================
-        // عرض الطلب
-        // =================================================
+        const itemsHtml =
+            items.length
+                ? items.map((item, index) => {
+
+                    const name =
+                        item.productTitle ||
+                        item.title ||
+                        item.name ||
+                        `منتج ${index + 1}`;
+
+                    const quantity =
+                        Number(
+                            item.quantity ||
+                            item.qty ||
+                            1
+                        );
+
+                    const price =
+                        Number(
+                            item.price ||
+                            item.unitPrice ||
+                            0
+                        );
+
+                    const itemTotal =
+                        Number(
+                            item.total ||
+                            item.subtotal ||
+                            price * quantity
+                        );
+
+                    return `
+                        <div
+                            class="bg-neutral-900 border border-neutral-800 rounded-2xl p-4"
+                        >
+                            <div
+                                class="flex justify-between items-start gap-3"
+                            >
+                                <div>
+                                    <p
+                                        class="text-white font-bold text-sm"
+                                    >
+                                        ${name}
+                                    </p>
+
+                                    <p
+                                        class="text-gray-500 text-xs mt-2"
+                                    >
+                                        الكمية:
+                                        ${quantity}
+                                    </p>
+                                </div>
+
+                                <p
+                                    class="text-brand-amber font-bold text-sm whitespace-nowrap"
+                                >
+                                    ${money(itemTotal)}
+                                    ج.م
+                                </p>
+                            </div>
+                        </div>
+                    `;
+
+                }).join('')
+                : `
+                    <div
+                        class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 text-center"
+                    >
+                        <p class="text-gray-500 text-xs">
+                            لا توجد تفاصيل منتجات متاحة.
+                        </p>
+                    </div>
+                `;
+
+        const depositPercent =
+            Number(
+                order.deposit_percent || 0
+            );
+
+        const depositAmount =
+            Number(
+                order.deposit_amount || 0
+            );
+
+        const remainingAmount =
+            Number(
+                order.remaining_amount ||
+                Math.max(
+                    0,
+                    Number(order.total || 0) -
+                    depositAmount
+                )
+            );
 
         container.innerHTML = `
 
             <div
-                class="bg-black p-5 rounded-2xl border border-neutral-800 space-y-4"
+                class="space-y-4"
                 dir="rtl"
             >
 
-                <!-- رقم الطلب -->
+                <!-- HEADER -->
                 <div
-                    class="flex justify-between items-center border-b border-neutral-800 pb-3 gap-3"
-                >
-
-                    <div>
-
-                        <p
-                            class="text-gray-500 text-[10px] mb-1"
-                        >
-                            رقم الطلب
-                        </p>
-
-                        <p
-                            class="font-bold text-white text-sm"
-                        >
-                            ${order.order_number || order.id}
-                        </p>
-
-                    </div>
-
-
-                    <span
-                        class="wine-gradient text-white text-[10px] px-3 py-1.5 rounded-full font-bold whitespace-nowrap"
-                    >
-                        ${statusLabel}
-                    </span>
-
-                </div>
-
-
-                <!-- حالة الطلب -->
-                <div
-                    class="border border-neutral-800 rounded-2xl p-5 text-center"
-                >
-
-                    <i
-                        class="fas ${statusIcon} ${statusClass} text-3xl mb-3"
-                    ></i>
-
-                    <p
-                        class="text-gray-500 text-[10px] mb-1"
-                    >
-                        حالة الطلب الحالية
-                    </p>
-
-                    <p
-                        class="text-white font-bold text-lg"
-                    >
-                        ${statusLabel}
-                    </p>
-
-                </div>
-
-
-                <!-- تفاصيل الطلب -->
-                <div
-                    class="grid grid-cols-2 gap-3"
+                    class="bg-black rounded-2xl border border-neutral-800 p-5"
                 >
 
                     <div
-                        class="bg-neutral-900 border border-neutral-800 rounded-xl p-3"
+                        class="flex justify-between items-center gap-3"
                     >
 
-                        <p
-                            class="text-gray-500 text-[10px] mb-1"
-                        >
-                            إجمالي الطلب
-                        </p>
+                        <div>
 
-                        <p
-                            class="text-brand-amber font-bold text-sm"
+                            <p
+                                class="text-gray-500 text-xs mb-1"
+                            >
+                                رقم الطلب
+                            </p>
+
+                            <p
+                                class="text-white font-bold text-lg"
+                            >
+                                ${order.order_number || order.id}
+                            </p>
+
+                        </div>
+
+                        <div
+                            class="text-center"
                         >
-                            ${total.toLocaleString('ar-EG')}
-                            ج.م
-                        </p>
+
+                            <i
+                                class="fas ${statusIcon} ${statusColor} text-3xl"
+                            ></i>
+
+                            <p
+                                class="${statusColor} font-bold text-xs mt-2"
+                            >
+                                ${statusLabel}
+                            </p>
+
+                        </div>
 
                     </div>
 
-
                     <div
-                        class="bg-neutral-900 border border-neutral-800 rounded-xl p-3"
+                        class="mt-4 pt-4 border-t border-neutral-800"
                     >
 
                         <p
-                            class="text-gray-500 text-[10px] mb-1"
+                            class="text-gray-500 text-[10px]"
                         >
                             تاريخ الطلب
                         </p>
 
                         <p
-                            class="text-white font-bold text-xs"
+                            class="text-white text-xs font-bold mt-1"
                         >
                             ${createdAt}
                         </p>
@@ -5413,14 +5375,386 @@ async function trackOrderSubmit() {
                 </div>
 
 
-                <!-- تحديث الحالة -->
+                <!-- ORDER STATUS -->
                 <div
-                    class="text-center pt-2"
+                    class="bg-black rounded-2xl border border-neutral-800 p-5"
                 >
 
-                    <p
-                        class="text-gray-500 text-[10px]"
+                    <h3
+                        class="text-white font-bold text-sm mb-5"
                     >
+                        حالة الطلب
+                    </h3>
+
+                    <div
+                        class="grid grid-cols-5 gap-1"
+                    >
+
+                        ${[
+                            ['New','جديد','fa-clock'],
+                            ['Confirmed','تم التأكيد','fa-circle-check'],
+                            ['Shipped','تم الشحن','fa-truck'],
+                            ['Delivered','تم التسليم','fa-box-open'],
+                            ['Cancelled','ملغي','fa-circle-xmark']
+                        ].map(s => {
+
+                            const active =
+                                status === s[0];
+
+                            return `
+                                <div
+                                    class="text-center"
+                                >
+
+                                    <div
+                                        class="mx-auto w-10 h-10 rounded-full flex items-center justify-center
+                                        ${active
+                                            ? 'wine-gradient text-white'
+                                            : 'bg-neutral-900 text-gray-600 border border-neutral-800'}"
+                                    >
+
+                                        <i
+                                            class="fas ${s[2]}"
+                                        ></i>
+
+                                    </div>
+
+                                    <p
+                                        class="text-[9px] mt-2
+                                        ${active
+                                            ? 'text-white font-bold'
+                                            : 'text-gray-600'}"
+                                    >
+                                        ${s[1]}
+                                    </p>
+
+                                </div>
+                            `;
+
+                        }).join('')}
+
+                    </div>
+
+                </div>
+
+
+                <!-- CUSTOMER -->
+                <div
+                    class="bg-black rounded-2xl border border-neutral-800 p-5"
+                >
+
+                    <h3
+                        class="text-white font-bold text-sm mb-4"
+                    >
+                        بيانات العميل
+                    </h3>
+
+                    <div
+                        class="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                    >
+
+                        <div class="bg-neutral-900 rounded-xl p-3">
+
+                            <p class="text-gray-500 text-[10px]">
+                                الاسم
+                            </p>
+
+                            <p class="text-white text-xs font-bold mt-1">
+                                ${order.customer_name || 'غير متوفر'}
+                            </p>
+
+                        </div>
+
+                        <div class="bg-neutral-900 rounded-xl p-3">
+
+                            <p class="text-gray-500 text-[10px]">
+                                الهاتف
+                            </p>
+
+                            <p class="text-white text-xs font-bold mt-1">
+                                ${order.phone || 'غير متوفر'}
+                            </p>
+
+                        </div>
+
+                        <div class="bg-neutral-900 rounded-xl p-3">
+
+                            <p class="text-gray-500 text-[10px]">
+                                واتساب
+                            </p>
+
+                            <p class="text-white text-xs font-bold mt-1">
+                                ${order.whatsapp || 'غير متوفر'}
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ADDRESS -->
+                <div
+                    class="bg-black rounded-2xl border border-neutral-800 p-5"
+                >
+
+                    <h3
+                        class="text-white font-bold text-sm mb-4"
+                    >
+                        عنوان التوصيل
+                    </h3>
+
+                    <div
+                        class="space-y-3"
+                    >
+
+                        <div
+                            class="bg-neutral-900 rounded-xl p-3"
+                        >
+                            <p class="text-gray-500 text-[10px]">
+                                المحافظة
+                            </p>
+
+                            <p class="text-white text-xs font-bold mt-1">
+                                ${order.governorate || 'غير متوفر'}
+                            </p>
+                        </div>
+
+                        <div
+                            class="bg-neutral-900 rounded-xl p-3"
+                        >
+                            <p class="text-gray-500 text-[10px]">
+                                المدينة
+                            </p>
+
+                            <p class="text-white text-xs font-bold mt-1">
+                                ${order.city || 'غير متوفر'}
+                            </p>
+                        </div>
+
+                        <div
+                            class="bg-neutral-900 rounded-xl p-3"
+                        >
+                            <p class="text-gray-500 text-[10px]">
+                                العنوان
+                            </p>
+
+                            <p class="text-white text-xs font-bold mt-1">
+                                ${order.address || 'غير متوفر'}
+                            </p>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- SHIPPING -->
+                <div
+                    class="bg-black rounded-2xl border border-neutral-800 p-5"
+                >
+
+                    <h3
+                        class="text-white font-bold text-sm mb-4"
+                    >
+                        الشحن
+                    </h3>
+
+                    <div
+                        class="grid grid-cols-2 gap-3"
+                    >
+
+                        <div
+                            class="bg-neutral-900 rounded-xl p-3"
+                        >
+
+                            <p class="text-gray-500 text-[10px]">
+                                طريقة الشحن
+                            </p>
+
+                            <p class="text-white text-xs font-bold mt-1">
+                                ${order.shipping_method || 'غير متوفر'}
+                            </p>
+
+                        </div>
+
+                        <div
+                            class="bg-neutral-900 rounded-xl p-3"
+                        >
+
+                            <p class="text-gray-500 text-[10px]">
+                                تكلفة الشحن
+                            </p>
+
+                            <p class="text-brand-amber text-xs font-bold mt-1">
+                                ${money(order.shipping_cost)} ج.م
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- PRODUCTS -->
+                <div
+                    class="bg-black rounded-2xl border border-neutral-800 p-5"
+                >
+
+                    <h3
+                        class="text-white font-bold text-sm mb-4"
+                    >
+                        المنتجات
+                    </h3>
+
+                    <div class="space-y-3">
+                        ${itemsHtml}
+                    </div>
+
+                </div>
+
+
+                <!-- PAYMENT -->
+                <div
+                    class="bg-black rounded-2xl border border-neutral-800 p-5"
+                >
+
+                    <h3
+                        class="text-white font-bold text-sm mb-4"
+                    >
+                        تفاصيل الدفع
+                    </h3>
+
+                    <div
+                        class="grid grid-cols-2 gap-3"
+                    >
+
+                        <div class="bg-neutral-900 rounded-xl p-3">
+
+                            <p class="text-gray-500 text-[10px]">
+                                طريقة الدفع
+                            </p>
+
+                            <p class="text-white text-xs font-bold mt-1">
+                                ${order.payment_method || 'غير متوفر'}
+                            </p>
+
+                        </div>
+
+                        <div class="bg-neutral-900 rounded-xl p-3">
+
+                            <p class="text-gray-500 text-[10px]">
+                                حالة الدفع
+                            </p>
+
+                            <p class="text-white text-xs font-bold mt-1">
+                                ${order.payment_status || 'قيد الانتظار'}
+                            </p>
+
+                        </div>
+
+                        <div class="bg-neutral-900 rounded-xl p-3">
+
+                            <p class="text-gray-500 text-[10px]">
+                                نسبة العربون
+                            </p>
+
+                            <p class="text-brand-amber text-xs font-bold mt-1">
+                                ${depositPercent}%
+                            </p>
+
+                        </div>
+
+                        <div class="bg-neutral-900 rounded-xl p-3">
+
+                            <p class="text-gray-500 text-[10px]">
+                                قيمة العربون
+                            </p>
+
+                            <p class="text-brand-amber text-xs font-bold mt-1">
+                                ${money(depositAmount)} ج.م
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- TOTAL -->
+                <div
+                    class="bg-black rounded-2xl border border-brand-amber/30 p-5"
+                >
+
+                    <div
+                        class="flex justify-between items-center"
+                    >
+
+                        <div>
+
+                            <p class="text-gray-500 text-xs">
+                                إجمالي الطلب
+                            </p>
+
+                            <p class="text-brand-amber text-2xl font-black mt-1">
+                                ${money(order.total)}
+                                ج.م
+                            </p>
+
+                        </div>
+
+                        <div class="text-left">
+
+                            <p class="text-gray-500 text-xs">
+                                المتبقي
+                            </p>
+
+                            <p class="text-white text-lg font-bold mt-1">
+                                ${money(remainingAmount)}
+                                ج.م
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- NOTES -->
+                ${
+                    order.notes
+                        ? `
+                            <div
+                                class="bg-black rounded-2xl border border-neutral-800 p-5"
+                            >
+
+                                <h3
+                                    class="text-white font-bold text-sm mb-3"
+                                >
+                                    ملاحظات الطلب
+                                </h3>
+
+                                <p
+                                    class="text-gray-400 text-xs leading-6"
+                                >
+                                    ${order.notes}
+                                </p>
+
+                            </div>
+                        `
+                        : ''
+                }
+
+
+                <div
+                    class="text-center py-3"
+                >
+
+                    <p class="text-gray-600 text-[10px]">
                         يتم تحديث حالة الطلب من خلال المتحدة للرتان والأثاث
                     </p>
 
@@ -5429,7 +5763,6 @@ async function trackOrderSubmit() {
             </div>
         `;
 
-
     } catch (error) {
 
         console.error(
@@ -5437,34 +5770,36 @@ async function trackOrderSubmit() {
             error
         );
 
-
         container.innerHTML = `
             <div
-                class="bg-black p-5 rounded-2xl border border-red-900/50"
+                class="bg-black p-6 rounded-2xl border border-red-900/50"
                 dir="rtl"
             >
 
-                <i
-                    class="fas fa-triangle-exclamation text-red-400 text-2xl"
-                ></i>
+                <div class="text-center">
 
-                <p
-                    class="text-red-400 text-center text-xs font-bold mt-3"
-                >
-                    حدث خطأ أثناء البحث عن الطلب.
-                </p>
+                    <i
+                        class="fas fa-triangle-exclamation text-red-400 text-3xl"
+                    ></i>
 
-                <p
-                    class="text-gray-500 text-[10px] text-center mt-2"
-                >
-                    حاول مرة أخرى بعد قليل.
-                </p>
+                    <p
+                        class="text-red-400 text-sm font-bold mt-4"
+                    >
+                        حدث خطأ أثناء البحث عن الطلب.
+                    </p>
+
+                    <p
+                        class="text-gray-500 text-xs mt-2"
+                    >
+                        حاول مرة أخرى بعد قليل.
+                    </p>
+
+                </div>
 
             </div>
         `;
     }
 }
-
         
 async function handleAdminLogin(e) {
     e.preventDefault();
