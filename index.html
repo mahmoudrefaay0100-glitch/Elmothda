@@ -1024,8 +1024,6 @@
                         </div>
                         <div class="flex gap-3 max-w-sm">
                             <input type="number" id="sunbrella-rate-input" value="200" class="w-full bg-black border border-neutral-700 rounded-xl px-4 py-2 text-white text-sm">
-                            <button onclick="saveSunbrellaRate()" class="wine-gradient text-white font-bold px-6 py-2 rounded-xl text-xs whitespace-nowrap">حفظ السعر</button>
-                        </div>
                     </div>
 
                     <!-- DEPOSIT SETTINGS -->
@@ -1856,6 +1854,85 @@ categories: [
 
     } finally {
 
+        input.disabled = false;
+    }
+}
+
+async function saveSunbrellaRate() {
+    const input = document.getElementById('sunbrella-rate-input');
+
+    if (!input) {
+        showToast('مش لاقي خانة سعر Sunbrella في الصفحة', 'error');
+        return;
+    }
+
+    const tag = document.getElementById('current-sunbrella-rate-tag');
+    const token = sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
+
+    if (!token) {
+        showToast('انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.', 'error');
+        switchView('admin-login');
+        return;
+    }
+
+    const rate = Number(input.value);
+
+    if (!Number.isFinite(rate) || rate < 0 || rate > 100000) {
+        showToast('أدخل سعرًا صحيحًا بين 0 و100000 جنيه', 'error');
+        return;
+    }
+
+    const oldValue = appState.sunbrellaRate ?? 200;
+    input.disabled = true;
+
+    try {
+        const response = await fetch('/api/store', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                sunbrellaRate: rate
+            })
+        });
+
+        const responseText = await response.text();
+        let data = {};
+
+        try {
+            data = responseText ? JSON.parse(responseText) : {};
+        } catch {
+            data = { error: responseText };
+        }
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'فشل حفظ سعر Sunbrella');
+        }
+
+        appState.sunbrellaRate = Number(data.sunbrellaRate ?? rate);
+
+        if (tag) {
+            tag.textContent = appState.sunbrellaRate + ' ج.م / كرسي';
+        }
+
+        input.value = appState.sunbrellaRate;
+
+        saveState();
+
+        showToast('تم حفظ سعر Sunbrella بنجاح ✅', 'success');
+
+    } catch (error) {
+        console.error('SAVE SUNBRELLA RATE ERROR:', error);
+
+        appState.sunbrellaRate = oldValue;
+        input.value = oldValue;
+
+        showToast(
+            error?.message || 'حدث خطأ أثناء حفظ سعر Sunbrella',
+            'error'
+        );
+    } finally {
         input.disabled = false;
     }
 }
@@ -3221,117 +3298,213 @@ showToast('تم إضافة القسم بنجاح ✅');
             document.getElementById('product-detail-modal').classList.remove('hidden');
         }
 
-        function renderCustomizerModalContent() {
-            const p = activeCustomizerProduct;
-            const container = document.getElementById('modal-product-content');
-            const selectedUph = appState.upholsteryTypes.find(u => u.id === selectedUpholsteryId);
-            const uphExtraFee = (selectedUph?.extraFeePerUnit || 0) * (p.isChairProduct ? (p.chairCount || 1) : 1);
-            const chairsPerSet = p.isChairProduct ? (p.chairCount || 1) : 0;
-            const sunbrellaCostPerUnit = sunbrellaChecked ? (chairsPerSet * appState.sunbrellaRatePerChair) : 0;
-            const unitTotalPrice = p.price + uphExtraFee + sunbrellaCostPerUnit;
-            const grandTotal = unitTotalPrice * customizerQty;
+function renderCustomizerModalContent() {
+const p = activeCustomizerProduct;
+const container = document.getElementById('modal-product-content');
 
-            container.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <div class="rounded-2xl overflow-hidden border border-neutral-800 bg-black h-64 md:h-80">
-                            <img src="${p.images[0]}" alt="${p.title}" class="w-full h-full object-cover">
-                        </div>
-                    </div>
-                    <div class="space-y-4">
-                        <div>
-                            <span class="wine-gradient text-white text-[10px] font-bold px-2 py-0.5 rounded">${p.category}</span>
-                            <h3 class="text-lg font-black text-white mt-1">${p.title}</h3>
-                            <p class="text-xs text-gray-400 mt-1">${p.description}</p>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-300 mb-1.5">نوع قماش التنجيد:</label>
-                          <div class="space-y-1.5">
-    ${appState.upholsteryTypes.map(uph => `
-        <label
-            onclick="selectUpholstery('${uph.id}')"
-            class="flex items-center justify-between p-2.5 rounded-xl border text-xs cursor-pointer ${
-                selectedUpholsteryId === uph.id
-                    ? 'border-brand-amber bg-neutral-800 text-white font-bold'
-                    : 'border-neutral-800 bg-black text-gray-400'
-            }"
-        >
-            <span>${uph.name}</span>
 
-            <span class="text-brand-amber font-bold">
-                ${
-                    Number(uph.price) > 0
-                        ? `+${Number(uph.price)} ج.م`
-                        : 'أساسي'
-                }
-            </span>
-        </label>
-    `).join('')}
-</div>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-300 mb-1.5">لون التنجيد: <span class="text-brand-amber font-bold">${selectedCushionColor}</span></label>
-                            <div class="flex flex-wrap gap-2">
-                                ${appState.cushionColors.map(c => `
-                                    <button onclick="selectCushionColor('${c.name}')" title="${c.name}" class="w-7 h-7 rounded-full border border-white/20 transition transform hover:scale-110 ${selectedCushionColor === c.name ? 'ring-2 ring-brand-amber scale-110' : ''}" style="background-color: ${c.hex}"></button>
-                                `).join('')}
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-300 mb-1.5">لون مشدود الرتان: <span class="text-brand-amber font-bold">${selectedWickerColor}</span></label>
-                            <div class="flex flex-wrap gap-2">
-                                ${appState.wickerColors.map(w => `
-                                    <button onclick="selectWickerColor('${w.name}')" title="${w.name}" class="w-7 h-7 rounded-full border border-white/20 transition transform hover:scale-110 ${selectedWickerColor === w.name ? 'ring-2 ring-brand-amber scale-110' : ''}" style="background-color: ${w.hex}"></button>
-                                `).join('')}
-                            </div>
-                        </div>
-                        ${p.isChairProduct ? `
-                            <div class="border border-brand-amber/40 bg-neutral-950 p-3 rounded-2xl flex items-center justify-between">
-                                <div>
-                                    <h5 class="text-xs font-bold text-white flex items-center"><i class="fas fa-sun text-yellow-500 ml-1.5"></i> خيار أقمشة Sunbrella العالمية</h5>
-                                    <p class="text-[10px] text-gray-400">حساب تلقائي: ${chairsPerSet} كراسي × ${appState.sunbrellaRatePerChair} ج.م</p>
-                                </div>
-                                <input type="checkbox" onchange="toggleSunbrella(this.checked)" ${sunbrellaChecked ? 'checked' : ''} class="w-5 h-5 accent-brand-amber cursor-pointer">
-                            </div>
-                        ` : ''}
-                        <div class="flex items-center justify-between border-t border-neutral-800 pt-3">
-                            <span class="text-xs font-bold text-gray-300">الكمية المطلوبة:</span>
-                            <div class="flex items-center space-x-3 space-x-reverse bg-black border border-neutral-700 rounded-xl px-3 py-1">
-                                <button onclick="changeCustomizerQty(-1)" class="text-gray-400 font-bold text-base">-</button>
-                                <span class="text-white font-bold text-sm px-2">${customizerQty}</span>
-                                <button onclick="changeCustomizerQty(1)" class="text-gray-400 font-bold text-base">+</button>
-                            </div>
-                        </div>
-                        <div class="bg-black p-4 rounded-2xl border border-neutral-800 space-y-2">
-                            <div class="flex justify-between text-sm font-black text-white">
-                                <span>الإجمالي النهائي:</span>
-                                <span class="gold-gradient-text font-extrabold text-base">${grandTotal.toLocaleString()} ج.م</span>
-                            </div>
-                           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+if (!p || !container) return;
 
-    <button
-        onclick="confirmAddToCart(false)"
-        class="w-full wine-gradient hover:opacity-90 text-white font-extrabold py-3 rounded-xl border border-brand-amber/30 transition shadow-lg text-xs"
-    >
-        <i class="fas fa-cart-plus ml-1"></i>
-        إضافة للسلة
-    </button>
+const selectedUph = appState.upholsteryTypes.find(
+    u => String(u.id) === String(selectedUpholsteryId)
+);
 
-    <button
-        onclick="confirmAddToCart(true)"
-        class="w-full amber-gradient hover:opacity-90 text-black font-extrabold py-3 rounded-xl transition shadow-lg text-xs"
-    >
-        <i class="fas fa-bolt ml-1"></i>
-        إتمام الطلب
-    </button>
+const upholsteryName = String(selectedUph?.name || '');
+const isSunBadge = /صن\s*بيدج|sun\s*badge|sunbedge/i.test(upholsteryName);
 
-</div>
-                        </div>
-                    </div>
+// سعر المنتج الأساسي فقط؛ لا نضيف رسومًا لكل كرسي
+const unitTotalPrice = Number(p.price) || 0;
+const grandTotal = unitTotalPrice * customizerQty;
+
+// رسوم صن بيدج تُحسب مرة واحدة على الطلب، وليس لكل منتج
+const sunBadgeAlreadyInCart = currentCart.some(item =>
+    item.upholsteryExtraType === 'sunbadge' ||
+    /صن\s*بيدج|sun\s*badge|sunbedge/i.test(
+        String(item.upholsteryName || '')
+    )
+);
+
+const showSunBadgeNotice = isSunBadge && !sunBadgeAlreadyInCart;
+
+container.innerHTML = `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+            <div class="rounded-2xl overflow-hidden border border-neutral-800 bg-black h-64 md:h-80">
+                <img
+                    src="${p.images?.[0] || ''}"
+                    alt="${p.title || ''}"
+                    class="w-full h-full object-cover"
+                >
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <span class="wine-gradient text-white text-[10px] font-bold px-2 py-0.5 rounded">
+                    ${p.category || ''}
+                </span>
+                <h3 class="text-lg font-black text-white mt-1">
+                    ${p.title || ''}
+                </h3>
+                <p class="text-xs text-gray-400 mt-1">
+                    ${p.description || ''}
+                </p>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-300 mb-1.5">
+                    نوع قماش التنجيد:
+                </label>
+
+                <div class="space-y-1.5">
+                    ${appState.upholsteryTypes.map(uph => {
+                        const name = String(uph.name || '');
+                        const isJaguar = /جاكوار|jaguar/i.test(name);
+                        const isBadge = /صن\s*بيدج|sun\s*badge|sunbedge/i.test(name);
+                        const isSelected =
+                            String(selectedUpholsteryId) === String(uph.id);
+
+                        let priceLabel = 'أساسي';
+
+                        if (isBadge) {
+                            priceLabel = 'رسوم الطلب 1000 ج.م';
+                        } else if (isJaguar) {
+                            priceLabel = 'أساسي بدون زيادة';
+                        }
+
+                        return `
+                            <label
+                                onclick="selectUpholstery('${String(uph.id).replace(/'/g, "\\'")}')"
+                                class="flex items-center justify-between gap-3 p-2.5 rounded-xl border text-xs cursor-pointer ${
+                                    isSelected
+                                        ? 'border-brand-amber bg-neutral-800 text-white font-bold'
+                                        : 'border-neutral-800 bg-black text-gray-400'
+                                }"
+                            >
+                                <span>${name}</span>
+                                <span class="text-brand-amber font-bold text-left">
+                                    ${priceLabel}
+                                </span>
+                            </label>
+                        `;
+                    }).join('')}
                 </div>
-            `;
-        }
+            </div>
 
+            ${showSunBadgeNotice ? `
+                <div class="border border-brand-amber/40 bg-neutral-950 p-3 rounded-xl">
+                    <p class="text-xs text-brand-amber font-bold">
+                        ستُضاف رسوم صن بيدج بقيمة 1000 جنيه مرة واحدة على إجمالي الطلب.
+                    </p>
+                </div>
+            ` : ''}
+
+            ${isSunBadge && sunBadgeAlreadyInCart ? `
+                <div class="border border-neutral-800 bg-neutral-950 p-3 rounded-xl">
+                    <p class="text-xs text-gray-300">
+                        رسوم صن بيدج محسوبة بالفعل في السلة، ولن تتكرر عند إضافة هذا المنتج.
+                    </p>
+                </div>
+            ` : ''}
+
+            <div>
+                <label class="block text-xs font-bold text-gray-300 mb-1.5">
+                    لون التنجيد:
+                    <span class="text-brand-amber font-bold">${selectedCushionColor}</span>
+                </label>
+                <div class="flex flex-wrap gap-2">
+                    ${appState.cushionColors.map(c => `
+                        <button
+                            onclick="selectCushionColor('${String(c.name).replace(/'/g, "\\'")}')"
+                            title="${c.name}"
+                            class="w-7 h-7 rounded-full border border-white/20 transition transform hover:scale-110 ${
+                                selectedCushionColor === c.name
+                                    ? 'ring-2 ring-brand-amber scale-110'
+                                    : ''
+                            }"
+                            style="background-color: ${c.hex}"
+                        ></button>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-300 mb-1.5">
+                    لون مشدود الرتان:
+                    <span class="text-brand-amber font-bold">${selectedWickerColor}</span>
+                </label>
+                <div class="flex flex-wrap gap-2">
+                    ${appState.wickerColors.map(w => `
+                        <button
+                            onclick="selectWickerColor('${String(w.name).replace(/'/g, "\\'")}')"
+                            title="${w.name}"
+                            class="w-7 h-7 rounded-full border border-white/20 transition transform hover:scale-110 ${
+                                selectedWickerColor === w.name
+                                    ? 'ring-2 ring-brand-amber scale-110'
+                                    : ''
+                            }"
+                            style="background-color: ${w.hex}"
+                        ></button>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between border-t border-neutral-800 pt-3">
+                <span class="text-xs font-bold text-gray-300">
+                    الكمية المطلوبة:
+                </span>
+                <div class="flex items-center space-x-3 space-x-reverse bg-black border border-neutral-700 rounded-xl px-3 py-1">
+                    <button
+                        onclick="changeCustomizerQty(-1)"
+                        class="text-gray-400 font-bold text-base"
+                    >-</button>
+                    <span class="text-white font-bold text-sm px-2">
+                        ${customizerQty}
+                    </span>
+                    <button
+                        onclick="changeCustomizerQty(1)"
+                        class="text-gray-400 font-bold text-base"
+                    >+</button>
+                </div>
+            </div>
+
+            <div class="bg-black p-4 rounded-2xl border border-neutral-800 space-y-2">
+                <div class="flex justify-between text-sm font-black text-white">
+                    <span>إجمالي المنتجات:</span>
+                    <span class="gold-gradient-text font-extrabold text-base">
+                        ${grandTotal.toLocaleString('ar-EG')} ج.م
+                    </span>
+                </div>
+
+                <p class="text-[10px] text-gray-400">
+                    رسوم صن بيدج، إن وجدت، تُحسب مرة واحدة على الطلب بالكامل، ولا تدخل في سعر كل كرسي أو منتج.
+                </p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                    <button
+                        onclick="confirmAddToCart(false)"
+                        class="w-full wine-gradient hover:opacity-90 text-white font-extrabold py-3 rounded-xl border border-brand-amber/30 transition shadow-lg text-xs"
+                    >
+                        <i class="fas fa-cart-plus ml-1"></i>
+                        إضافة للسلة
+                    </button>
+
+                    <button
+                        onclick="confirmAddToCart(true)"
+                        class="w-full amber-gradient hover:opacity-90 text-black font-extrabold py-3 rounded-xl transition shadow-lg text-xs"
+                    >
+                        <i class="fas fa-bolt ml-1"></i>
+                        إتمام الطلب
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+`;
+
+}
+
+        
         function selectUpholstery(id) { selectedUpholsteryId = id; renderCustomizerModalContent(); }
         function selectCushionColor(name) { selectedCushionColor = name; renderCustomizerModalContent(); }
         function selectWickerColor(name) { selectedWickerColor = name; renderCustomizerModalContent(); }
@@ -3339,122 +3512,198 @@ showToast('تم إضافة القسم بنجاح ✅');
         function changeCustomizerQty(delta) { customizerQty = Math.max(1, customizerQty + delta); renderCustomizerModalContent(); }
         function closeProductModal() { document.getElementById('product-detail-modal').classList.add('hidden'); }
 
-      function confirmAddToCart(goToCheckout = false) {
-    const p = activeCustomizerProduct;
+    function confirmAddToCart(goToCheckout = false) {
+const p = activeCustomizerProduct;
 
-    const selectedUph =
-        appState.upholsteryTypes.find(
-            u => u.id === selectedUpholsteryId
-        );
 
-    const chairsPerSet =
-        p.isChairProduct
-            ? (p.chairCount || 1)
-            : 0;
-
-    const sunbrellaCost =
-        sunbrellaChecked
-            ? (
-                chairsPerSet *
-                appState.sunbrellaRatePerChair
-            )
-            : 0;
-
-    const unitPrice =
-        p.price +
-        (selectedUph?.extraFeePerUnit || 0) +
-        sunbrellaCost;
-
-    currentCart.push({
-        cartItemId:
-            "item-" + Date.now(),
-
-        productId:
-            p.id,
-
-        productTitle:
-            p.title,
-
-        image:
-            p.images[0],
-
-        qty:
-            customizerQty,
-
-        unitPrice:
-            unitPrice,
-
-        upholsteryName:
-            selectedUph?.name || 'أساسي',
-
-        cushionColor:
-            selectedCushionColor,
-
-        wickerColor:
-            selectedWickerColor,
-
-        sunbrellaAdded:
-            sunbrellaChecked
-    });
-
-    closeProductModal();
-
-    updateCartBadge();
-    renderCartDrawer();
-
-    // لو اختار "إتمام الطلب"
-    if (goToCheckout) {
-        openCheckoutModal();
-        return;
-    }
-
-    // لو اختار "إضافة للسلة"
-    toggleCartDrawer(true);
+if (!p) {
+    alert('من فضلك اختر المنتج أولاً.');
+    return;
 }
 
-        function toggleCartDrawer(open) {
-            const drawer = document.getElementById('cart-drawer');
-            const overlay = document.getElementById('cart-drawer-overlay');
-            if (open) { renderCartDrawer(); overlay.classList.remove('hidden'); drawer.classList.remove('-translate-x-full'); }
-            else { overlay.classList.add('hidden'); drawer.classList.add('-translate-x-full'); }
-        }
+const selectedUph = appState.upholsteryTypes.find(
+    u => String(u.id) === String(selectedUpholsteryId)
+);
 
-        function renderCartDrawer() {
-            const container = document.getElementById('cart-drawer-items');
-            if (!container) return;
-            if (currentCart.length === 0) {
-                container.innerHTML = `<div class="py-12 text-center text-gray-500 text-xs">سلة الشراء فارغة حالياً</div>`;
-                document.getElementById('cart-subtotal-text').innerText = "0 ج.م";
-                document.getElementById('cart-discount-text').innerText = "0 ج.م";
-                document.getElementById('cart-total-text').innerText = "0 ج.م";
-                return;
-            }
-            let subtotal = 0;
-            container.innerHTML = currentCart.map((item, index) => {
-                const itemTotal = item.unitPrice * item.qty;
-                subtotal += itemTotal;
-                return `
-                    <div class="bg-black p-3 rounded-2xl border border-neutral-800 flex gap-3 text-xs relative">
-                        <img src="${item.image}" class="w-16 h-16 rounded-xl object-cover">
-                        <div class="flex-grow space-y-1">
-                            <h5 class="font-bold text-white line-clamp-1">${item.productTitle}</h5>
-                            <p class="text-[10px] text-gray-400">التنجيد: ${item.upholsteryName} | اللون: ${item.cushionColor}</p>
-                            <div class="flex justify-between items-center pt-1">
-                                <span class="font-bold text-brand-amber">${itemTotal.toLocaleString()} ج.م</span>
-                                <div class="flex items-center space-x-2 space-x-reverse">
-                                    <button onclick="updateCartQty(${index}, -1)" class="w-5 h-5 bg-neutral-800 rounded text-gray-300">-</button>
-                                    <span class="text-white font-bold">${item.qty}</span>
-                                    <button onclick="updateCartQty(${index}, 1)" class="w-5 h-5 bg-neutral-800 rounded text-gray-300">+</button>
-                                </div>
-                            </div>
-                        </div>
-                        <button onclick="currentCart.splice(${index},1); updateCartBadge(); renderCartDrawer();" class="text-red-500 hover:text-red-400 text-xs p-1"><i class="fas fa-trash"></i></button>
+const upholsteryName = String(selectedUph?.name || 'جاكوار (Jaguar)');
+
+// السعر الأساسي للمنتج بدون رسوم لكل كرسي
+const unitPrice = Number(p.price) || 0;
+
+// تحديد نوع التنجيد المختار
+const isSunBadge = /صن\s*بيدج|sun\s*badge|sunbedge/i.test(upholsteryName);
+
+currentCart.push({
+    cartItemId: 'item-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+
+    productId: p.id,
+    productTitle: p.title,
+    image: p.images?.[0] || '',
+
+    qty: Math.max(1, Number(customizerQty) || 1),
+    unitPrice,
+
+    upholsteryName,
+
+    // تستخدمها السلة وحساب إجمالي الطلب
+    upholsteryExtraType: isSunBadge ? 'sunbadge' : 'none',
+
+    cushionColor: selectedCushionColor,
+    wickerColor: selectedWickerColor,
+
+    // إيقاف خيار Sunbrella القديم
+    sunbrellaAdded: false
+});
+
+closeProductModal();
+
+updateCartBadge();
+renderCartDrawer();
+
+if (goToCheckout) {
+    openCheckoutModal();
+    return;
+}
+
+toggleCartDrawer(true);
+
+
+}
+
+window.confirmAddToCart = confirmAddToCart;
+
+
+       function renderCartDrawer() {
+const container = document.getElementById('cart-drawer-items');
+if (!container) return;
+
+const subtotalEl = document.getElementById('cart-subtotal-text');
+const discountEl = document.getElementById('cart-discount-text');
+const totalEl = document.getElementById('cart-total-text');
+
+if (!Array.isArray(currentCart) || currentCart.length === 0) {
+    container.innerHTML = `
+        <div class="py-12 text-center text-gray-500 text-xs">
+            سلة الشراء فارغة حالياً
+        </div>
+    `;
+
+    if (subtotalEl) subtotalEl.innerText = '0 ج.م';
+    if (discountEl) discountEl.innerText = '0 ج.م';
+    if (totalEl) totalEl.innerText = '0 ج.م';
+
+    return;
+}
+
+let subtotal = 0;
+
+const itemsHTML = currentCart.map((item, index) => {
+    const itemTotal =
+        (Number(item.unitPrice ?? item.price) || 0) *
+        (Number(item.qty) || 1);
+
+    subtotal += itemTotal;
+
+    const upholsteryName = item.upholsteryName || 'جاكوار (Jaguar)';
+
+    return `
+        <div class="bg-black p-3 rounded-2xl border border-neutral-800 flex gap-3 text-xs relative">
+            <img
+                src="${item.image || ''}"
+                class="w-16 h-16 rounded-xl object-cover"
+                alt=""
+            >
+
+            <div class="flex-grow space-y-1">
+                <h5 class="font-bold text-white line-clamp-1">
+                    ${item.productTitle || ''}
+                </h5>
+
+                <p class="text-[10px] text-gray-400">
+                    التنجيد: ${upholsteryName}
+                    | اللون: ${item.cushionColor || ''}
+                </p>
+
+                <div class="flex justify-between items-center pt-1">
+                    <span class="font-bold text-brand-amber">
+                        ${itemTotal.toLocaleString('en-US')} ج.م
+                    </span>
+
+                    <div class="flex items-center space-x-2 space-x-reverse">
+                        <button
+                            onclick="updateCartQty(${index}, -1)"
+                            class="w-5 h-5 bg-neutral-800 rounded text-gray-300"
+                        >-</button>
+
+                        <span class="text-white font-bold">
+                            ${Number(item.qty) || 1}
+                        </span>
+
+                        <button
+                            onclick="updateCartQty(${index}, 1)"
+                            class="w-5 h-5 bg-neutral-800 rounded text-gray-300"
+                        >+</button>
                     </div>
-                `;
-            }).join('');
-            document.getElementById('cart-subtotal-text').innerText = `${subtotal.toLocaleString()} ج.م`;
-            document.getElementById('cart-total-text').innerText = `${subtotal.toLocaleString()} ج.م`;
-        }
+                </div>
+            </div>
+
+            <button
+                onclick="currentCart.splice(${index}, 1); updateCartBadge(); renderCartDrawer(); if (typeof updateTransferAmount === 'function') updateTransferAmount(); if (typeof updateDepositAmount === 'function') updateDepositAmount();"
+                class="text-red-500 hover:text-red-400 text-xs p-1"
+                aria-label="حذف المنتج"
+            >
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `;
+}).join('');
+
+// رسوم صن بيدج مرة واحدة على الطلب كله
+const sunBadgeSelected = currentCart.some(item => {
+    const type = String(item.upholsteryExtraType || '').toLowerCase();
+    const name = String(item.upholsteryName || '');
+
+    return type === 'sunbadge' ||
+        /صن\s*بيدج|sun\s*badge|sunbedge/i.test(name);
+});
+
+const sunBadgeFee = sunBadgeSelected ? 1000 : 0;
+const total = subtotal + sunBadgeFee;
+
+container.innerHTML = itemsHTML + (
+    sunBadgeFee > 0
+        ? `
+            <div class="flex justify-between items-center p-3 rounded-xl border border-brand-amber/40 bg-neutral-900 text-xs">
+                <span class="text-gray-300">
+                    رسوم تنجيد صن بيدج (مرة واحدة للطلب)
+                </span>
+                <span class="text-brand-amber font-bold">
+                    +${sunBadgeFee.toLocaleString('en-US')} ج.م
+                </span>
+            </div>
+        `
+        : ''
+);
+
+if (subtotalEl) {
+    subtotalEl.innerText = `${subtotal.toLocaleString('en-US')} ج.م`;
+}
+
+if (discountEl) {
+    discountEl.innerText = '0 ج.م';
+}
+
+if (totalEl) {
+    totalEl.innerText = `${total.toLocaleString('en-US')} ج.م`;
+}
+
+// إتاحة الإجمالي والرسوم لباقي حسابات الدفع
+window.currentCartSubtotal = subtotal;
+window.currentSunBadgeFee = sunBadgeFee;
+window.currentCartTotal = total;
+
+}
+
 
         function updateCartQty(index, delta) {
             currentCart[index].qty += delta;
@@ -3611,68 +3860,61 @@ showToast('تم إضافة القسم بنجاح ✅');
     }
 }
 
-   function updateTransferAmount() {
+ function updateTransferAmount() {
+const amountElement = document.getElementById('transfer-amount');
+if (!amountElement) return;
 
-    const amountElement =
-        document.getElementById('transfer-amount');
 
-    if (!amountElement) {
-        return;
-    }
+// إجمالي أسعار المنتجات
+const subtotal = currentCart.reduce((sum, item) => {
+    const price = Number(item.unitPrice ?? item.price ?? 0);
+    const qty = Number(item.qty ?? 1);
+    return sum + price * qty;
+}, 0);
 
-    const subtotal =
-        currentCart.reduce(
-            (sum, item) => {
-                const price =
-                    Number(
-                        item.unitPrice ??
-                        item.price ??
-                        0
-                    );
+// اكتشاف صن بيدج وإضافة رسوم واحدة فقط للطلب كله
+const sunBadgeSelected = currentCart.some(item => {
+    const type = String(item.upholsteryExtraType || '').toLowerCase();
+    const name = String(item.upholsteryName || '');
 
-                const qty =
-                    Number(item.qty ?? 0);
+    return type === 'sunbadge' ||
+        /صن\s*بيدج|sun\s*badge|sunbedge/i.test(name);
+});
 
-                return sum + (price * qty);
-            },
-            0
-        );
+const sunBadgeFee = sunBadgeSelected ? 1000 : 0;
 
-    const selectedShipping =
-        document.querySelector(
-            'input[name="ship_option"]:checked'
-        );
+// تكلفة الشحن
+const selectedShipping = document.querySelector(
+    'input[name="ship_option"]:checked'
+);
 
-    let shippingCost = 0;
+const shippingOptions = Array.isArray(appState.shippingOptions)
+    ? appState.shippingOptions
+    : [];
 
-    if (selectedShipping) {
+const shippingOption = selectedShipping
+    ? shippingOptions.find(
+        option => String(option.id) === String(selectedShipping.value)
+    )
+    : null;
 
-        const shippingOptions =
-            Array.isArray(appState.shippingOptions)
-                ? appState.shippingOptions
-                : [];
+const shippingCost = Number(shippingOption?.price || 0);
 
-        const shippingOption =
-            shippingOptions.find(
-                option =>
-                    String(option.id) ===
-                    String(selectedShipping.value)
-            );
+// الإجمالي النهائي
+const total = subtotal + sunBadgeFee + shippingCost;
 
-        if (shippingOption) {
-            shippingCost =
-                Number(shippingOption.price || 0);
-        }
-    }
+amountElement.textContent = `${total.toLocaleString('ar-EG')} ج.م`;
 
-    const total =
-        subtotal + shippingCost;
+// مشاركة نفس الحساب مع بقية أجزاء الدفع
+window.currentCartSubtotal = subtotal;
+window.currentSunBadgeFee = sunBadgeFee;
+window.currentShippingCost = shippingCost;
+window.currentCheckoutTotal = total;
 
-    amountElement.textContent =
-        `${total.toLocaleString('ar-EG')} ج.م`;
 }
 
 window.updateTransferAmount = updateTransferAmount;
+
 
         function handlePaymentMethodChange() {
 
@@ -3722,466 +3964,270 @@ window.updateTransferAmount = updateTransferAmount;
 
 
 function updateDepositAmount() {
+const configuredPercent = Number(appState.depositPercent ?? 30);
+const depositPercent = Number.isFinite(configuredPercent)
+&& configuredPercent >= 0
+&& configuredPercent <= 100
+? configuredPercent
+: 30;
 
-    const depositPercent =
-        Number(
-            appState.depositPercent || 30
-        );
+// إجمالي المنتجات
+const subtotal = currentCart.reduce((sum, item) => {
+    const price = Number(item.unitPrice ?? item.price ?? 0);
+    const qty = Number(item.qty ?? 1);
+    return sum + price * qty;
+}, 0);
 
-    const subtotal =
-        currentCart.reduce(
-            (sum, item) => {
+// رسوم صن بيدج مرة واحدة على الطلب كله
+const sunBadgeSelected = currentCart.some(item => {
+    const type = String(item.upholsteryExtraType || '').toLowerCase();
+    const name = String(item.upholsteryName || '');
 
-                const price =
-                    Number(
-                        item.unitPrice ??
-                        item.price ??
-                        0
-                    );
+    return type === 'sunbadge' ||
+        /صن\s*بيدج|sun\s*badge|sunbedge/i.test(name);
+});
 
-                const qty =
-                    Number(
-                        item.qty ?? 0
-                    );
+const sunBadgeFee = sunBadgeSelected ? 1000 : 0;
 
-                return sum + (price * qty);
-            },
-            0
-        );
+// تكلفة الشحن
+const selectedShipping = document.querySelector(
+    'input[name="ship_option"]:checked'
+);
 
-    const selectedShipping =
-        document.querySelector(
-            'input[name="ship_option"]:checked'
-        );
+const shippingOptions = Array.isArray(appState.shippingOptions)
+    ? appState.shippingOptions
+    : [];
 
-    let shippingCost = 0;
+const shippingOption = selectedShipping
+    ? shippingOptions.find(
+        option => String(option.id) === String(selectedShipping.value)
+    )
+    : null;
 
-    if (selectedShipping) {
+const shippingCost = Number(shippingOption?.price || 0);
 
-        const shippingOptions =
-            Array.isArray(
-                appState.shippingOptions
-            )
-                ? appState.shippingOptions
-                : [];
+// الإجمالي شامل المنتجات ورسوم صن بيدج والشحن
+const total = subtotal + sunBadgeFee + shippingCost;
 
-        const shippingOption =
-            shippingOptions.find(
-                option =>
-                    String(option.id) ===
-                    String(selectedShipping.value)
-            );
+// العربون والمتبقي
+const depositAmount = Math.round(total * depositPercent / 100);
+const remainingAmount = Math.max(total - depositAmount, 0);
 
-        if (shippingOption) {
-            shippingCost =
-                Number(
-                    shippingOption.price || 0
-                );
-        }
-    }
+const totalElement = document.getElementById('deposit-total-amount');
+const percentElement = document.getElementById('deposit-percent-value');
+const amountElement = document.getElementById('deposit-amount');
+const remainingElement = document.getElementById('deposit-remaining-amount');
+const percentLabel = document.getElementById('deposit-percent-label');
 
-    const total =
-        subtotal + shippingCost;
-
-    const depositAmount =
-        Math.round(
-            total *
-            depositPercent /
-            100
-        );
-
-    const remainingAmount =
-        total - depositAmount;
-
-    const totalElement =
-        document.getElementById(
-            'deposit-total-amount'
-        );
-
-    const percentElement =
-        document.getElementById(
-            'deposit-percent-value'
-        );
-
-    const amountElement =
-        document.getElementById(
-            'deposit-amount'
-        );
-
-    const remainingElement =
-        document.getElementById(
-            'deposit-remaining-amount'
-        );
-
-    const percentLabel =
-        document.getElementById(
-            'deposit-percent-label'
-        );
-
-    if (totalElement) {
-        totalElement.textContent =
-            `${total.toLocaleString('ar-EG')} ج.م`;
-    }
-
-    if (percentElement) {
-        percentElement.textContent =
-            `${depositPercent}%`;
-    }
-
-    if (amountElement) {
-        amountElement.textContent =
-            `${depositAmount.toLocaleString('ar-EG')} ج.م`;
-    }
-
-    if (remainingElement) {
-        remainingElement.textContent =
-            `${remainingAmount.toLocaleString('ar-EG')} ج.م`;
-    }
-
-    if (percentLabel) {
-        percentLabel.textContent =
-            `${depositPercent}%`;
-    }
+if (totalElement) {
+    totalElement.textContent = `${total.toLocaleString('ar-EG')} ج.م`;
 }
 
+if (percentElement) {
+    percentElement.textContent = `${depositPercent}%`;
+}
 
-window.handlePaymentMethodChange =
-    handlePaymentMethodChange;
+if (amountElement) {
+    amountElement.textContent = `${depositAmount.toLocaleString('ar-EG')} ج.م`;
+}
 
-window.updateDepositAmount =
-    updateDepositAmount;
+if (remainingElement) {
+    remainingElement.textContent = `${remainingAmount.toLocaleString('ar-EG')} ج.م`;
+}
 
-        async function submitDepositOrder() {
+if (percentLabel) {
+    percentLabel.textContent = `${depositPercent}%`;
+}
 
+// توحيد القيم مع بقية دوال الدفع والطلب
+window.currentCartSubtotal = subtotal;
+window.currentSunBadgeFee = sunBadgeFee;
+window.currentShippingCost = shippingCost;
+window.currentCheckoutTotal = total;
+window.currentDepositAmount = depositAmount;
+window.currentRemainingAmount = remainingAmount;
+
+}
+
+window.handlePaymentMethodChange = handlePaymentMethodChange;
+window.updateDepositAmount = updateDepositAmount;
+
+        
+      async function submitDepositOrder() {
+try {
+const name = document.getElementById('chk-name')?.value?.trim() || '';
+const phone = document.getElementById('chk-phone')?.value?.trim() || '';
+const gov = document.getElementById('chk-gov')?.value?.trim() || '';
+const city = document.getElementById('chk-city')?.value?.trim() || '';
+const address = document.getElementById('chk-address')?.value?.trim() || '';
+
+
+    if (!name || !phone || !gov || !city || !address) {
+        alert('من فضلك أكمل بيانات العميل والعنوان أولاً.');
+        return;
+    }
+
+    const shipVal = document.querySelector(
+        'input[name="ship_option"]:checked'
+    )?.value;
+
+    const shippingOptions = Array.isArray(appState.shippingOptions)
+        ? appState.shippingOptions
+        : [];
+
+    const selectedShip = shippingOptions.find(
+        s => String(s.id) === String(shipVal)
+    );
+
+    if (!selectedShip) {
+        alert('من فضلك اختر طريقة الشحن.');
+        return;
+    }
+
+    // إجمالي أسعار المنتجات قبل رسوم صن بيدج والشحن
+    const subtotal = currentCart.reduce((sum, item) => {
+        return sum + (
+            Number(item.unitPrice ?? item.price ?? 0) *
+            Number(item.qty ?? 0)
+        );
+    }, 0);
+
+    // رسوم صن بيدج تُحسب مرة واحدة للطلب كله
+    const sunBadgeSelected = currentCart.some(item => {
+        const upholsteryType = String(
+            item.upholsteryExtraType || ''
+        ).toLowerCase();
+
+        const upholsteryName = String(
+            item.upholsteryName || ''
+        );
+
+        return upholsteryType === 'sunbadge' ||
+            /صن\s*بيدج|sun\s*badge|sunbedge/i.test(upholsteryName);
+    });
+
+    const sunBadgeFee = sunBadgeSelected ? 1000 : 0;
+
+    // الشحن
+    const shippingCost = Number(selectedShip.price || 0);
+
+    // الإجمالي النهائي
+    const total = subtotal + sunBadgeFee + shippingCost;
+
+    // حساب الدفعة المقدمة والمتبقي
+    const configuredPercent = Number(appState.depositPercent);
+    const depositPercent = Number.isFinite(configuredPercent)
+        && configuredPercent > 0
+        ? configuredPercent
+        : 30;
+
+    const depositAmount = Math.round(
+        total * depositPercent / 100
+    );
+
+    const remainingAmount = Math.max(
+        total - depositAmount,
+        0
+    );
+
+    // بيانات الطلب
+    const newOrder = {
+        id: 'ORD-' + Math.floor(10000 + Math.random() * 90000),
+        date: new Date().toISOString().split('T')[0],
+
+        customer: {
+            name,
+            phone,
+            gov,
+            city,
+            address
+        },
+
+        items: currentCart,
+        subtotal,
+        sunBadgeFee,
+        shippingCost,
+        total,
+
+        shippingMethod: selectedShip.name || '',
+        paymentMethod: 'Deposit',
+        depositPercent,
+        depositAmount,
+        remainingAmount,
+        paymentStatus: 'Pending',
+        paymentProofUrl: '',
+        status: 'New'
+    };
+
+    // تسجيل الطلب في قاعدة البيانات
+    const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newOrder)
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+        throw new Error(result.error || 'فشل تسجيل الطلب');
+    }
+
+    // إرسال إشعار WhatsApp
     try {
-
-        const name =
-            document.getElementById('chk-name')?.value?.trim() || '';
-
-        const phone =
-            document.getElementById('chk-phone')?.value?.trim() || '';
-
-        const gov =
-            document.getElementById('chk-gov')?.value?.trim() || '';
-
-        const city =
-            document.getElementById('chk-city')?.value?.trim() || '';
-
-        const address =
-            document.getElementById('chk-address')?.value?.trim() || '';
-
-        // =====================================
-        // التحقق من بيانات العميل
-        // =====================================
-
-        if (!name || !phone || !gov || !city || !address) {
-
-            alert(
-                'من فضلك أكمل بيانات العميل والعنوان أولاً.'
-            );
-
-            return;
-        }
-
-        // =====================================
-        // طريقة الشحن
-        // =====================================
-
-        const shipVal =
-            document.querySelector(
-                'input[name="ship_option"]:checked'
-            )?.value;
-
-        const shippingOptions =
-            Array.isArray(appState.shippingOptions)
-                ? appState.shippingOptions
-                : [];
-
-        const selectedShip =
-            shippingOptions.find(
-                s => String(s.id) === String(shipVal)
-            );
-
-        if (!selectedShip) {
-
-            alert(
-                'من فضلك اختر طريقة الشحن.'
-            );
-
-            return;
-        }
-
-        // =====================================
-        // حساب المنتجات
-        // =====================================
-
-        const subtotal =
-            currentCart.reduce(
-                (sum, item) =>
-                    sum +
-                    (
-                        Number(
-                            item.unitPrice ??
-                            item.price ??
-                            0
-                        ) *
-                        Number(
-                            item.qty ?? 0
-                        )
-                    ),
-                0
-            );
-
-        // =====================================
-        // حساب الشحن
-        // =====================================
-
-        const shippingCost =
-            Number(
-                selectedShip.price || 0
-            );
-
-        // =====================================
-        // الإجمالي
-        // =====================================
-
-        const total =
-            subtotal +
-            shippingCost;
-
-        // =====================================
-        // حساب الـ Deposit
-        // =====================================
-
-        const depositPercent =
-            Number(
-                appState.depositPercent || 30
-            );
-
-        const depositAmount =
-            Math.round(
-                total *
-                depositPercent /
-                100
-            );
-
-        const remainingAmount =
-            Math.max(
-                total -
-                depositAmount,
-                0
-            );
-
-        // =====================================
-        // إنشاء بيانات الطلب
-        // =====================================
-
-        const newOrder = {
-
-            id:
-                "ORD-" +
-                Math.floor(
-                    10000 +
-                    Math.random() * 90000
-                ),
-
-            date:
-                new Date()
-                    .toISOString()
-                    .split('T')[0],
-
-            customer: {
-
-                name,
-
-                phone,
-
-                gov,
-
-                city,
-
-                address
-            },
-
-            items:
-                currentCart,
-
-            subtotal,
-
-            shippingCost,
-
-            total,
-
-            shippingMethod:
-                selectedShip.name || '',
-
-            paymentMethod:
-                'Deposit',
-
-            depositPercent,
-
-            depositAmount,
-
-            remainingAmount,
-
-            paymentStatus:
-                'Pending',
-
-            paymentProofUrl:
-                '',
-
-            status:
-                'New'
-        };
-
-        // =====================================
-        // تسجيل الطلب في قاعدة البيانات
-        // =====================================
-
-        const response =
-            await fetch(
-                '/api/orders',
-                {
-
-                    method:
-                        'POST',
-
-                    headers: {
-
-                        'Content-Type':
-                            'application/json'
-                    },
-
-                    body:
-                        JSON.stringify(
-                            newOrder
-                        )
-                }
-            );
-
-        const result =
-            await response.json();
-
-        if (
-            !response.ok ||
-            !result.success
-        ) {
-
-            throw new Error(
-                result.error ||
-                'فشل تسجيل الطلب'
-            );
-        }
-
-        // =====================================
-        // إرسال إشعار WhatsApp
-        // =====================================
-
-        try {
-
-            const whatsappResponse =
-                await fetch(
-                    '/api/send-whatsapp-order',
-                    {
-
-                        method:
-                            'POST',
-
-                        headers: {
-
-                            'Content-Type':
-                                'application/json'
-                        },
-
-                        body:
-                            JSON.stringify(
-                                newOrder
-                            )
-                    }
-                );
-
-            const whatsappResult =
-                await whatsappResponse.json();
-
-            if (
-                !whatsappResponse.ok ||
-                !whatsappResult.success
-            ) {
-
-                console.error(
-                    'WHATSAPP NOTIFICATION ERROR:',
-                    whatsappResult
-                );
-
-            } else {
-
-                console.log(
-                    'WHATSAPP ORDER NOTIFICATION SENT'
-                );
+        const whatsappResponse = await fetch(
+            '/api/send-whatsapp-order',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(newOrder)
             }
+        );
 
-        } catch (
-            whatsappError
-        ) {
+        const whatsappResult = await whatsappResponse.json();
 
-            // فشل WhatsApp لا يمنع تسجيل الطلب
-
+        if (!whatsappResponse.ok || !whatsappResult.success) {
             console.error(
-                'WHATSAPP NOTIFICATION FAILED:',
-                whatsappError
+                'WHATSAPP NOTIFICATION ERROR:',
+                whatsappResult
             );
         }
-
-        // =====================================
-        // حفظ الطلب لصفحة الشكر
-        // =====================================
-
-        sessionStorage.setItem(
-            'lastOrder',
-            JSON.stringify(
-                newOrder
-            )
-        );
-
-        // =====================================
-        // تفريغ السلة
-        // =====================================
-
-        currentCart = [];
-
-        localStorage.removeItem(
-            'cart'
-        );
-
-        // =====================================
-        // الانتقال إلى صفحة الشكر
-        // =====================================
-
-        window.location.href =
-            '/thank-you.html';
-
-    } catch (
-        error
-    ) {
-
+    } catch (whatsappError) {
         console.error(
-            'SUBMIT DEPOSIT ORDER ERROR:',
-            error
-        );
-
-        alert(
-            'حدث خطأ أثناء تسجيل الطلب:\n' +
-            error.message
+            'WHATSAPP NOTIFICATION FAILED:',
+            whatsappError
         );
     }
+
+    // حفظ الطلب لصفحة الشكر
+    sessionStorage.setItem(
+        'lastOrder',
+        JSON.stringify(newOrder)
+    );
+
+    // تفريغ السلة
+    currentCart = [];
+    localStorage.removeItem('cart');
+
+    // الانتقال إلى صفحة الشكر
+    window.location.href = '/thank-you.html';
+
+} catch (error) {
+    console.error('SUBMIT DEPOSIT ORDER ERROR:', error);
+
+    alert(
+        'حدث خطأ أثناء تسجيل الطلب:\n' +
+        error.message
+    );
 }
 
-// =====================================
-// جعل الدالة متاحة للأزرار
-// =====================================
+}
 
-window.submitDepositOrder =
-    submitDepositOrder;
+window.submitDepositOrder = submitDepositOrder;
+
 
 function closeCheckoutModal() {
     document
