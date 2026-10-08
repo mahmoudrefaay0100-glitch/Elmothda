@@ -8201,14 +8201,16 @@ async function saveOfferFromEditor(e) {
         let response;
 
 
-        if (editingOfferId) {
+       if (editingOfferId) {
 
-            offerData.id =
-                editingOfferId;
+    offerData.id =
+        editingOfferId;
 
+    console.log('🔥🔥 OFFER DATA BEFORE PUT:', offerData);
+    console.log('🔥🔥 END DATE BEFORE PUT:', offerData.end_date);
 
-            response =
-                await fetch(
+                    response =
+                    await fetch(
                     '/api/offers',
                     {
 
@@ -8273,6 +8275,7 @@ async function saveOfferFromEditor(e) {
         const responseText =
             await response.text();
 
+        console.log('🔥🔥 PUT RESPONSE:', responseText);
 
         let data = {};
 
