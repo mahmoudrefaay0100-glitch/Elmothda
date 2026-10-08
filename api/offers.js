@@ -13,7 +13,6 @@ export default async function handler(req, res) {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
 
-
     try {
 
         const {
@@ -32,11 +31,9 @@ export default async function handler(req, res) {
             !SUPABASE_ANON_KEY ||
             !SUPABASE_SERVICE_ROLE_KEY
         ) {
-
             return res.status(500).json({
                 success: false,
-                error:
-                    'Supabase environment variables are missing'
+                error: 'Supabase environment variables are missing'
             });
         }
 
@@ -55,43 +52,39 @@ export default async function handler(req, res) {
                     .replace(/^Bearer\s+/i, '')
                     .trim();
 
-
             if (!token) {
                 return false;
             }
 
-
             try {
 
-                const response =
-                    await fetch(
-                        `${SUPABASE_URL}/auth/v1/user`,
-                        {
-                            method: 'GET',
+                const response = await fetch(
+                    SUPABASE_URL + '/auth/v1/user',
+                    {
+                        method: 'GET',
 
-                            headers: {
-                                apikey:
-                                    SUPABASE_ANON_KEY,
-
-                                Authorization:
-                                    `Bearer ${token}`
-                            }
+                        headers: {
+                            apikey: SUPABASE_ANON_KEY,
+                            Authorization: 'Bearer ' + token
                         }
-                    );
-
+                    }
+                );
 
                 if (!response.ok) {
                     return false;
                 }
 
-
                 const user =
                     await response.json();
 
-
                 return !!user?.id;
 
-            } catch {
+            } catch (error) {
+
+                console.error(
+                    'VERIFY ADMIN ERROR:',
+                    error
+                );
 
                 return false;
             }
@@ -108,7 +101,7 @@ export default async function handler(req, res) {
                 SUPABASE_SERVICE_ROLE_KEY,
 
             Authorization:
-                `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                'Bearer ' + SUPABASE_SERVICE_ROLE_KEY,
 
             'Content-Type':
                 'application/json'
@@ -126,14 +119,15 @@ export default async function handler(req, res) {
 
 
             // =================================================
-            // المدير
+            // GET للمدير
             // =================================================
 
             if (isAdmin) {
 
                 const response =
                     await fetch(
-                        `${SUPABASE_URL}/rest/v1/offers?select=*&order=sort_order.asc,created_at.desc`,
+                        SUPABASE_URL +
+                        '/rest/v1/offers?select=*&order=sort_order.asc,created_at.desc',
                         {
                             method: 'GET',
                             headers: dbHeaders
@@ -193,18 +187,21 @@ export default async function handler(req, res) {
 
 
             // =================================================
-            // الزائر
+            // GET للزائر
             // =================================================
             //
-            // مهم:
-            // لا نحذف العروض المنتهية من هنا.
+            // مهم جدًا:
             //
-            // العرض المنتهي يظل موجودًا للصفحة الرئيسية
-            // حتى تعرض عليه:
+            // لا نحذف العروض المنتهية من قاعدة البيانات
+            // ولا نخفيها من الـ API.
+            //
+            // العرض المنتهي سيصل للواجهة،
+            // والواجهة هي التي تعرض:
             //
             // 🔴 منتهي
             //
-            // أما العرض الذي لم يبدأ بعد فقط هو الذي لا يظهر.
+            // أما العرض الذي يبدأ في المستقبل
+            // فلا يظهر للزائر.
             // =================================================
 
             const now =
@@ -213,7 +210,8 @@ export default async function handler(req, res) {
 
             const response =
                 await fetch(
-                    `${SUPABASE_URL}/rest/v1/offers?select=*&is_active=eq.true&order=sort_order.asc,created_at.desc`,
+                    SUPABASE_URL +
+                    '/rest/v1/offers?select=*&is_active=eq.true&order=sort_order.asc,created_at.desc',
                     {
                         method: 'GET',
                         headers: dbHeaders
@@ -264,14 +262,16 @@ export default async function handler(req, res) {
             // فلترة تاريخ البداية فقط
             //
             // لا يوجد فلتر end_date هنا.
+            //
+            // الهدف:
+            // العرض المنتهي يظل موجودًا للصفحة الرئيسية
+            // حتى تعرضه الصفحة كـ "منتهي".
             // =================================================
 
             const publicOffers =
                 Array.isArray(data)
-                    ? data.filter(offer => {
+                    ? data.filter(function (offer) {
 
-                        // لا يوجد تاريخ بداية
-                        // إذن العرض مسموح يظهر
                         if (!offer.start_date) {
                             return true;
                         }
@@ -283,8 +283,6 @@ export default async function handler(req, res) {
                             );
 
 
-                        // تاريخ غير صالح
-                        // لا نخفي العرض بسببه
                         if (
                             Number.isNaN(
                                 start.getTime()
@@ -294,7 +292,6 @@ export default async function handler(req, res) {
                         }
 
 
-                        // العرض بدأ بالفعل
                         return start <= now;
 
                     })
@@ -625,7 +622,8 @@ export default async function handler(req, res) {
 
             const response =
                 await fetch(
-                    `${SUPABASE_URL}/rest/v1/offers`,
+                    SUPABASE_URL +
+                    '/rest/v1/offers',
                     {
                         method: 'POST',
 
@@ -786,7 +784,7 @@ export default async function handler(req, res) {
 
 
             // =================================================
-            // التحقق من أن ID رقم صحيح
+            // التحقق من ID
             // =================================================
 
             const numericId =
@@ -1036,7 +1034,7 @@ export default async function handler(req, res) {
 
 
             // =================================================
-            // تجهيز بيانات التحديث
+            // بيانات التحديث
             // =================================================
 
             const offerData = {
@@ -1120,7 +1118,10 @@ export default async function handler(req, res) {
 
             const findResponse =
                 await fetch(
-                    `${SUPABASE_URL}/rest/v1/offers?select=*&id=eq.${numericId}&limit=1`,
+                    SUPABASE_URL +
+                    '/rest/v1/offers?select=*&id=eq.' +
+                    numericId +
+                    '&limit=1',
                     {
                         method: 'GET',
                         headers: dbHeaders
@@ -1208,7 +1209,9 @@ export default async function handler(req, res) {
 
             const updateResponse =
                 await fetch(
-                    `${SUPABASE_URL}/rest/v1/offers?id=eq.${numericId}`,
+                    SUPABASE_URL +
+                    '/rest/v1/offers?id=eq.' +
+                    numericId,
                     {
                         method: 'PATCH',
 
@@ -1280,7 +1283,10 @@ export default async function handler(req, res) {
 
             const verifyResponse =
                 await fetch(
-                    `${SUPABASE_URL}/rest/v1/offers?select=*&id=eq.${numericId}&limit=1`,
+                    SUPABASE_URL +
+                    '/rest/v1/offers?select=*&id=eq.' +
+                    numericId +
+                    '&limit=1',
                     {
                         method: 'GET',
                         headers: dbHeaders
@@ -1395,10 +1401,6 @@ export default async function handler(req, res) {
             }
 
 
-            // =================================================
-            // نجاح نهائي
-            // =================================================
-
             console.log(
                 '✅ OFFER UPDATED AND VERIFIED:',
                 updatedOffer
@@ -1482,7 +1484,9 @@ export default async function handler(req, res) {
 
             const response =
                 await fetch(
-                    `${SUPABASE_URL}/rest/v1/offers?id=eq.${numericId}`,
+                    SUPABASE_URL +
+                    '/rest/v1/offers?id=eq.' +
+                    numericId,
                     {
                         method: 'DELETE',
 
@@ -1580,6 +1584,7 @@ export default async function handler(req, res) {
             error:
                 'Method not allowed'
         });
+
 
     } catch (error) {
 
