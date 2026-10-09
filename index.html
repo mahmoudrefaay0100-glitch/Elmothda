@@ -71,13 +71,14 @@
             transform: translateY(-6px);
             box-shadow: 0 12px 30px -10px rgba(232, 122, 24, 0.25);
         }
-        .admin-editor-grid { display:grid; grid-template-columns:repeat(1,minmax(0,1fr)); gap:1rem; }
-        @media (min-width:768px){ .admin-editor-grid{grid-template-columns:repeat(2,minmax(0,1fr));} .admin-editor-full{grid-column:1/-1;} }
-        .upload-box{border:1px dashed #525252;border-radius:1rem;padding:1rem;background:#050505;}
-        .upload-preview{width:100%;height:180px;object-fit:contain;border-radius:.75rem;background:#111;display:none;}
-    </style>
-</head>
-<body class="min-h-screen flex flex-col justify-between">
+            .admin-editor-grid { display:grid; grid-template-columns:repeat(1,minmax(0,1fr)); gap:1rem; }
+            @media (min-width:768px){ .admin-editor-grid{grid-template-columns:repeat(2,minmax(0,1fr));} .admin-editor-full{grid-column:1/-1;} }
+            .upload-box{border:1px dashed #525252;border-radius:1rem;padding:1rem;background:#050505;}
+            .upload-preview{width:100%;height:180px;object-fit:contain;border-radius:.75rem;background:#111;display:none;}
+        </style>
+         <link rel="icon" type="image/jpeg" href="/united-logo.jpg">
+    </head>
+    <body class="min-h-screen flex flex-col justify-between">
 
     <!-- Top Announcement Bar -->
     <div id="top-announcement" class="wine-gradient text-white text-xs sm:text-sm py-2 px-4 text-center font-medium flex justify-between items-center px-6">
