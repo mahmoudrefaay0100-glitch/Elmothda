@@ -1,10 +1,10 @@
 
 export default async function handler(req, res) {
+    // منع تخزين بيانات المتجر مؤقتًا
     res.setHeader(
         'Cache-Control',
         'no-store, no-cache, must-revalidate, proxy-revalidate'
     );
-
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
 
@@ -26,11 +26,13 @@ export default async function handler(req, res) {
             });
         }
 
-        // رابط Supabase
         const SUPABASE_BASE_URL =
             'https://kxtiqtcxkcwdvljiadfn.supabase.co';
 
-        // الاتصال بقاعدة البيانات
+        // =====================================================
+        // SUPABASE REQUEST
+        // =====================================================
+
         async function supabaseRequest(
             table,
             method = 'GET',
@@ -62,7 +64,7 @@ export default async function handler(req, res) {
 
             const responseText = await response.text();
 
-            let data = [];
+            let data;
 
             try {
                 data = responseText
@@ -70,7 +72,8 @@ export default async function handler(req, res) {
                     : [];
             } catch {
                 throw new Error(
-                    `Supabase returned non-JSON response: ${responseText.substring(0, 300)}`
+                    'Supabase returned a non-JSON response: ' +
+                    responseText.substring(0, 300)
                 );
             }
 
@@ -87,7 +90,27 @@ export default async function handler(req, res) {
         }
 
         // =====================================================
-        // PUT: حفظ إعدادات المتجر
+        // SAFE NUMBER
+        // =====================================================
+
+        function safeNumber(value, fallback = 0) {
+            if (
+                value === null ||
+                value === undefined ||
+                value === ''
+            ) {
+                return fallback;
+            }
+
+            const number = Number(value);
+
+            return Number.isFinite(number) && number >= 0
+                ? number
+                : fallback;
+        }
+
+        // =====================================================
+        // PUT: SAVE STORE SETTINGS
         // =====================================================
 
         if (req.method === 'PUT') {
@@ -115,7 +138,7 @@ export default async function handler(req, res) {
 
             const updateData = {};
 
-            // نسبة الديبوزت
+            // نسبة العربون
             if (hasDepositPercent) {
                 const depositPercent =
                     Number(body.depositPercent);
@@ -128,15 +151,16 @@ export default async function handler(req, res) {
                     return res.status(400).json({
                         success: false,
                         error:
-                            'نسبة الديبوزت يجب أن تكون بين 0% و100%'
+                            'نسبة العربون يجب أن تكون بين 0% و100%'
                     });
                 }
 
                 updateData.deposit_percent =
-                    Math.round(depositPercent);
+                    depositPercent;
             }
 
-            // رسوم صن بيدج العامة للطلب
+            // رسوم صن بيدج العامة
+            // منفصلة عن رسوم صن بيدج الخاصة بكل منتج.
             if (hasSunbadgeOrderFee) {
                 const sunbadgeOrderFee =
                     Number(body.sunbadgeOrderFee);
@@ -178,7 +202,7 @@ export default async function handler(req, res) {
                     sunbrellaRate;
             }
 
-            // جلب إعدادات المتجر الحالية
+            // جلب سجل الإعدادات الحالي
             const existingSettings =
                 await supabaseRequest(
                     'site_settings',
@@ -203,7 +227,6 @@ export default async function handler(req, res) {
                         updateData
                     );
             } else {
-                // القيم الافتراضية عند إنشاء أول سجل
                 savedSettings =
                     await supabaseRequest(
                         'site_settings',
@@ -212,6 +235,7 @@ export default async function handler(req, res) {
                         {
                             deposit_percent: 30,
                             sunbadge_order_fee: 0,
+                            sunbrella_rate: 200,
                             ...updateData
                         }
                     );
@@ -219,7 +243,7 @@ export default async function handler(req, res) {
 
             const saved =
                 Array.isArray(savedSettings)
-                    ? (savedSettings[0] || {})
+                    ? savedSettings[0] || {}
                     : {};
 
             return res.status(200).json({
@@ -227,20 +251,20 @@ export default async function handler(req, res) {
                 message: 'تم حفظ إعدادات المتجر بنجاح',
 
                 depositPercent:
-                    Number(saved.deposit_percent ?? 30),
+                    safeNumber(saved.deposit_percent, 30),
 
                 sunbadgeOrderFee:
-                    Number(saved.sunbadge_order_fee ?? 0),
+                    safeNumber(saved.sunbadge_order_fee, 0),
 
                 sunbrellaRate:
-                    Number(saved.sunbrella_rate ?? 200),
+                    safeNumber(saved.sunbrella_rate, 200),
 
                 siteSettings: saved
             });
         }
 
         // =====================================================
-        // GET: تحميل بيانات المتجر
+        // GET: LOAD PRODUCTS
         // =====================================================
 
         const products =
@@ -250,12 +274,49 @@ export default async function handler(req, res) {
                 'select=*'
             );
 
+        // =====================================================
+        // NORMALIZE PRODUCT SUNBADGE FEE
+        //
+        // sunbadge_fee = رسوم القطعة الواحدة.
+        // لا نضرب الرسوم في الكمية هنا.
+        // حساب إجمالي الرسوم يتم في السلة والطلب:
+        // رسوم القطعة الواحدة × كمية السطر.
+        // =====================================================
+
+        const normalizedProducts =
+            (Array.isArray(products) ? products : [])
+                .map(product => {
+                    const rawFee =
+                        product.sunbadge_fee ??
+                        product.sunbadgeFee ??
+                        0;
+
+                    const sunbadgeFee =
+                        safeNumber(rawFee, 0);
+
+                    return {
+                        ...product,
+
+                        // اسم موحد للواجهة
+                        sunbadge_fee: sunbadgeFee,
+                        sunbadgeFee: sunbadgeFee
+                    };
+                });
+
+        // =====================================================
+        // LOAD OFFERS
+        // =====================================================
+
         const offers =
             await supabaseRequest(
                 'offers',
                 'GET',
                 'select=*&order=sort_order.asc,created_at.desc'
             );
+
+        // =====================================================
+        // LOAD CATEGORIES
+        // =====================================================
 
         const categories =
             await supabaseRequest(
@@ -264,12 +325,20 @@ export default async function handler(req, res) {
                 'select=*'
             );
 
+        // =====================================================
+        // LOAD SITE SETTINGS
+        // =====================================================
+
         const siteSettings =
             await supabaseRequest(
                 'site_settings',
                 'GET',
                 'select=*'
             );
+
+        // =====================================================
+        // LOAD SHIPPING OPTIONS
+        // =====================================================
 
         const shippingOptions =
             await supabaseRequest(
@@ -278,12 +347,20 @@ export default async function handler(req, res) {
                 'select=*'
             );
 
+        // =====================================================
+        // LOAD UPHOLSTERY TYPES
+        // =====================================================
+
         const upholsteryTypes =
             await supabaseRequest(
                 'upholstery_types',
                 'GET',
                 'select=*'
             );
+
+        // =====================================================
+        // LOAD STORE COLORS
+        // =====================================================
 
         const storeColors =
             await supabaseRequest(
@@ -292,42 +369,61 @@ export default async function handler(req, res) {
                 'select=*'
             );
 
-        // تقسيم الألوان
+        // =====================================================
+        // SPLIT COLORS BY TYPE
+        // =====================================================
+
+        const allColors =
+            Array.isArray(storeColors)
+                ? storeColors
+                : [];
+
         const cushionColors =
-            (storeColors || []).filter(
+            allColors.filter(
                 color => color.type === 'cushion'
             );
 
         const wickerColors =
-            (storeColors || []).filter(
+            allColors.filter(
                 color => color.type === 'wicker'
             );
 
         const woodColors =
-            (storeColors || []).filter(
+            allColors.filter(
                 color => color.type === 'wood'
             );
 
-        // إعدادات المتجر
+        // =====================================================
+        // STORE SETTINGS
+        // =====================================================
+
         const settings =
-            siteSettings?.[0] || {};
+            Array.isArray(siteSettings) &&
+            siteSettings.length > 0
+                ? siteSettings[0]
+                : {};
 
         const depositPercent =
-            Number(settings.deposit_percent ?? 30);
+            safeNumber(settings.deposit_percent, 30);
 
         const sunbadgeOrderFee =
-            Number(settings.sunbadge_order_fee ?? 0);
+            safeNumber(settings.sunbadge_order_fee, 0);
 
         const sunbrellaRate =
-            Number(settings.sunbrella_rate ?? 200);
+            safeNumber(settings.sunbrella_rate, 200);
 
-        // الاستجابة النهائية
+        // =====================================================
+        // FINAL RESPONSE
+        // =====================================================
+
         return res.status(200).json({
             success: true,
 
-            products: products || [],
-            offers: offers || [],
-            categories: categories || [],
+            products: normalizedProducts,
+            offers: Array.isArray(offers) ? offers : [],
+            categories: Array.isArray(categories)
+                ? categories
+                : [],
 
             siteSettings: settings,
 
@@ -335,8 +431,13 @@ export default async function handler(req, res) {
             sunbadgeOrderFee,
             sunbrellaRate,
 
-            shippingOptions: shippingOptions || [],
-            upholsteryTypes: upholsteryTypes || [],
+            shippingOptions: Array.isArray(shippingOptions)
+                ? shippingOptions
+                : [],
+
+            upholsteryTypes: Array.isArray(upholsteryTypes)
+                ? upholsteryTypes
+                : [],
 
             cushionColors,
             wickerColors,
