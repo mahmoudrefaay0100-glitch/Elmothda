@@ -1,4 +1,3 @@
-
 export default async function handler(req, res) {
     try {
         const SUPABASE_URL =
@@ -205,7 +204,7 @@ export default async function handler(req, res) {
         // POST /api/orders
         //
         // أسعار المنتجات ورسوم صن بيدج من قاعدة البيانات.
-        // رسوم صن بيدج مرة واحدة لكل منتج مختلف في الطلب.
+        // رسوم صن بيدج للقطعة الواحدة × الكمية المختارة.
         // =====================================================
 
         if (req.method === 'POST') {
@@ -258,7 +257,7 @@ export default async function handler(req, res) {
             }
 
             // -------------------------------------------------
-            // تحقق من معرف كل منتج
+            // التحقق من معرفات المنتجات
             // -------------------------------------------------
 
             const productIds = [
@@ -275,7 +274,7 @@ export default async function handler(req, res) {
             }
 
             // -------------------------------------------------
-            // جلب السعر ورسوم صن بيدج من قاعدة البيانات
+            // جلب أسعار المنتجات ورسوم صن بيدج من قاعدة البيانات
             // -------------------------------------------------
 
             const productsById = new Map();
@@ -345,10 +344,11 @@ export default async function handler(req, res) {
             }
 
             // -------------------------------------------------
-            // إعادة حساب المنتجات والرسوم من بيانات موثوقة
+            // إعادة حساب المنتجات والرسوم من قاعدة البيانات
+            //
+            // رسوم صن بيدج = رسوم القطعة × الكمية
+            // لا نمنع تكرار الرسوم إذا تكرر المنتج في سطر آخر.
             // -------------------------------------------------
-
-            const chargedProductIds = new Set();
 
             let subtotal = 0;
             let submittedSunBadgeFee = 0;
@@ -358,6 +358,14 @@ export default async function handler(req, res) {
             for (const item of items) {
                 const productId = getProductId(item);
                 const product = productsById.get(productId);
+
+                if (!product) {
+                    return res.status(400).json({
+                        success: false,
+                        error:
+                            'تعذر العثور على بيانات أحد المنتجات.'
+                    });
+                }
 
                 const rawQty = Number(
                     item.qty ?? item.quantity ?? 1
@@ -378,25 +386,43 @@ export default async function handler(req, res) {
                 const unitPrice = product.price;
                 const itemSubtotal = unitPrice * rawQty;
 
-                if (!Number.isFinite(itemSubtotal)) {
+                if (
+                    !Number.isFinite(itemSubtotal) ||
+                    !Number.isFinite(subtotal + itemSubtotal)
+                ) {
                     return res.status(400).json({
                         success: false,
-                        error: 'تعذر حساب قيمة أحد المنتجات.'
+                        error:
+                            'تعذر حساب قيمة أحد المنتجات.'
                     });
                 }
 
-                let appliedFee = 0;
+                // رسوم صن بيدج للقطعة الواحدة من قاعدة البيانات.
+                // جاكوار لا تُفرض عليه رسوم صن بيدج.
+                const sunbadgeUnitFee =
+                    isSunBadgeItem(item)
+                        ? product.sunbadgeFee
+                        : 0;
+
+                // ضرب رسوم القطعة الواحدة في الكمية.
+                const appliedFee =
+                    sunbadgeUnitFee * rawQty;
 
                 if (
-                    isSunBadgeItem(item) &&
-                    !chargedProductIds.has(productId)
+                    !Number.isFinite(appliedFee) ||
+                    !Number.isFinite(
+                        submittedSunBadgeFee + appliedFee
+                    )
                 ) {
-                    appliedFee = product.sunbadgeFee;
-                    chargedProductIds.add(productId);
-                    submittedSunBadgeFee += appliedFee;
+                    return res.status(400).json({
+                        success: false,
+                        error:
+                            'تعذر حساب رسوم صن بيدج.'
+                    });
                 }
 
                 subtotal += itemSubtotal;
+                submittedSunBadgeFee += appliedFee;
 
                 savedItems.push({
                     ...item,
@@ -407,19 +433,24 @@ export default async function handler(req, res) {
                     qty: rawQty,
                     quantity: rawQty,
 
-                    // السعر المعتمد من قاعدة البيانات
+                    // السعر الأساسي المعتمد من قاعدة البيانات.
                     unitPrice,
                     price: unitPrice,
 
-                    // إجمالي هذا السطر بعد إضافة الرسم المطبق عليه
+                    // إجمالي المنتجات في السطر قبل رسوم صن بيدج.
                     itemSubtotal,
-                    lineTotal: itemSubtotal + appliedFee,
 
-                    // صفر في الأسطر التالية لنفس المنتج
+                    // رسوم القطعة الواحدة.
+                    sunbadgeUnitFee,
+
+                    // إجمالي الرسوم لهذا السطر حسب الكمية.
                     sunbadgeFee: appliedFee,
                     sunbadge_fee: appliedFee,
 
-                    // نحافظ على نوع التنجيد حتى لو الرسم صفر
+                    // إجمالي السطر شامل رسوم صن بيدج.
+                    lineTotal: itemSubtotal + appliedFee,
+
+                    // الاحتفاظ بنوع التنجيد المختار.
                     upholsteryExtraType:
                         isSunBadgeItem(item)
                             ? 'sunbadge'
@@ -537,16 +568,17 @@ export default async function handler(req, res) {
 
                 items: savedItems,
 
+                // إجمالي أسعار المنتجات قبل رسوم صن بيدج.
                 subtotal,
 
-                sunbadge_fee:
-                    submittedSunBadgeFee,
+                // رسوم صن بيدج لجميع القطع.
+                sunbadge_fee: submittedSunBadgeFee,
 
-                shipping_cost:
-                    shippingCost,
+                shipping_cost: shippingCost,
 
                 discount,
 
+                // الإجمالي شامل رسوم صن بيدج والشحن والخصم.
                 total,
 
                 shipping_method:
@@ -556,14 +588,12 @@ export default async function handler(req, res) {
                     order.paymentMethod ||
                     'Visa / Mastercard',
 
-                deposit_percent:
-                    depositPercent,
+                deposit_percent: depositPercent,
 
-                deposit_amount:
-                    depositAmount,
+                // العربون محسوب من الإجمالي النهائي.
+                deposit_amount: depositAmount,
 
-                remaining_amount:
-                    remainingAmount,
+                remaining_amount: remainingAmount,
 
                 payment_status:
                     order.paymentStatus || 'Pending',
@@ -571,8 +601,7 @@ export default async function handler(req, res) {
                 payment_proof_url:
                     order.paymentProofUrl || '',
 
-                status:
-                    order.status || 'New'
+                status: order.status || 'New'
             };
 
             const {
@@ -713,7 +742,8 @@ export default async function handler(req, res) {
             if (!Array.isArray(data) || data.length === 0) {
                 return res.status(404).json({
                     success: false,
-                    error: 'الطلب غير موجود في قاعدة البيانات'
+                    error:
+                        'الطلب غير موجود في قاعدة البيانات'
                 });
             }
 
@@ -826,7 +856,8 @@ export default async function handler(req, res) {
             if (!Array.isArray(data) || data.length === 0) {
                 return res.status(404).json({
                     success: false,
-                    error: 'الطلب غير موجود في قاعدة البيانات'
+                    error:
+                        'الطلب غير موجود في قاعدة البيانات'
                 });
             }
 
