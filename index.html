@@ -3431,48 +3431,54 @@ function renderCustomizerModalContent() {
         !isJaguar &&
         /صن\s*بيدج|sun\s*badge|sunbedge/i.test(upholsteryName);
 
-    // =====================================================
-    // قراءة رسوم صن بيدج من المنتج
-    // الرسوم هنا للقطعة الواحدة
-    // =====================================================
+// =====================================================
+// رسوم صن بيدج الخاصة بالمنتج الحالي
+// الرسوم للقطعة الواحدة ولا تُضاف إلا عند اختيار صن بيدج
+// =====================================================
 
-    const rawFee =
-        p.sunbadge_fee ??
-        p.sunbadgeFee ??
-        p.sunbadge_unit_fee ??
-        p.sunbadgeUnitFee ??
-        0;
+const rawFee =
+    p.sunbadge_fee ??
+    p.sunbadgeFee ??
+    p.sunbadge_unit_fee ??
+    p.sunbadgeUnitFee ??
+    0;
 
-    const parsedFee = Number(rawFee);
+const parsedFee = Number(rawFee);
 
-    const productSunBadgeFee =
-        Number.isFinite(parsedFee) && parsedFee >= 0
-            ? parsedFee
-            : 0;
-
-    // =====================================================
-    // الكمية والأسعار
-    // =====================================================
-
-    const qty = Math.max(
-        1,
-        Math.floor(Number(customizerQty) || 1)
-    );
-
-    const parsedPrice = Number(p.price ?? 0);
-
-    const unitPrice =
-        Number.isFinite(parsedPrice) && parsedPrice >= 0
-            ? parsedPrice
-            : 0;
-
-    const productsTotal = unitPrice * qty;
-
-    const sunBadgeTotal = isSunBadge
-        ? productSunBadgeFee * qty
+const productSunBadgeFee =
+    Number.isFinite(parsedFee) && parsedFee >= 0
+        ? parsedFee
         : 0;
 
-    const grandTotal = productsTotal + sunBadgeTotal;
+// =====================================================
+// الكمية والسعر الأساسي
+// =====================================================
+
+const qty = Math.max(
+    1,
+    Math.floor(Number(customizerQty) || 1)
+);
+
+const parsedPrice = Number(p.price ?? 0);
+
+const unitPrice =
+    Number.isFinite(parsedPrice) && parsedPrice >= 0
+        ? parsedPrice
+        : 0;
+
+// إجمالي المنتجات قبل رسوم صن بيدج
+const productsTotal = unitPrice * qty;
+
+// رسوم صن بيدج لا تُحسب مع جاكوار
+const sunBadgeUnitFee = isSunBadge
+    ? productSunBadgeFee
+    : 0;
+
+// إجمالي رسوم صن بيدج للكمية المطلوبة
+const sunBadgeTotal = sunBadgeUnitFee * qty;
+
+// الإجمالي النهائي المعروض في نافذة التخصيص
+const grandTotal = productsTotal + sunBadgeTotal;
 
     // =====================================================
     // عرض نافذة التخصيص
@@ -3713,14 +3719,34 @@ function renderCustomizerModalContent() {
 
 
 function confirmAddToCart(goToCheckout = false) {
-    const p = activeCustomizerProduct;
+    const originalProduct = activeCustomizerProduct;
 
-    if (!p) {
+    if (!originalProduct) {
         alert('من فضلك اختر المنتج أولاً.');
         return;
     }
 
-    const selectedUph = appState.upholsteryTypes.find(
+    const productId = String(
+        originalProduct.id ??
+        originalProduct.productId ??
+        originalProduct.product_id ??
+        ''
+    ).trim();
+
+    const storedProduct = (appState.products || []).find(product =>
+        String(
+            product.id ??
+            product.productId ??
+            product.product_id ??
+            ''
+        ) === productId
+    );
+
+    const p = storedProduct
+        ? { ...originalProduct, ...storedProduct }
+        : originalProduct;
+
+    const selectedUph = (appState.upholsteryTypes || []).find(
         u => String(u.id) === String(selectedUpholsteryId)
     );
 
@@ -3741,12 +3767,21 @@ function confirmAddToCart(goToCheckout = false) {
         return;
     }
 
-    const rawFee = Number(
-        p.sunbadge_fee ?? p.sunbadgeFee ?? 0
+    const parsedFee = Number(
+        p.sunbadge_fee ??
+        p.sunbadgeFee ??
+        p.sunbadge_unit_fee ??
+        p.sunbadgeUnitFee ??
+        0
     );
 
-    if (!Number.isFinite(rawFee) || rawFee < 0) {
-        alert('رسوم الصن بيدج لهذا المنتج غير صحيحة.');
+    if (!Number.isFinite(parsedFee) || parsedFee < 0) {
+        alert('رسوم صن بيدج لهذا المنتج غير صحيحة.');
+        return;
+    }
+
+    if (!productId) {
+        alert('معرّف المنتج غير موجود. حدّث المنتجات وحاول مرة أخرى.');
         return;
     }
 
@@ -3755,17 +3790,8 @@ function confirmAddToCart(goToCheckout = false) {
         Math.floor(Number(customizerQty) || 1)
     );
 
-    const productId = String(p.id ?? '').trim();
-
-    if (!productId) {
-        alert('معرّف المنتج غير موجود. حدّث المنتجات وحاول مرة أخرى.');
-        return;
-    }
-
-    // رسوم القطعة الواحدة، وتكون صفرًا لجاكوار أو أي قماش آخر.
-    const sunbadgeUnitFee = isSunBadge ? rawFee : 0;
-
-    // إجمالي رسوم هذا السطر وفق الكمية المطلوبة.
+    // الرسوم للقطعة الواحدة، وتُطبق فقط مع اختيار صن بيدج.
+    const sunbadgeUnitFee = isSunBadge ? parsedFee : 0;
     const sunbadgeLineFee = sunbadgeUnitFee * qty;
 
     const cartItem = {
@@ -3784,23 +3810,25 @@ function confirmAddToCart(goToCheckout = false) {
         qty,
         quantity: qty,
 
-        // السعر الأساسي للقطعة فقط، دون إضافة رسوم صن بيدج.
+        // سعر القطعة الأساسي دون رسوم صن بيدج.
         unitPrice: rawPrice,
         price: rawPrice,
 
         upholsteryName,
-
         upholsteryExtraType: isSunBadge ? 'sunbadge' : 'none',
 
-        // الرسوم الأصلية للقطعة الواحدة.
+        // رسوم القطعة الواحدة.
         sunbadgeUnitFee,
         sunbadge_unit_fee: sunbadgeUnitFee,
         sunbadgeFee: sunbadgeUnitFee,
         sunbadge_fee: sunbadgeUnitFee,
 
-        // إجمالي الرسوم لهذا السطر حسب الكمية.
+        // إجمالي الرسوم لكل الكمية.
         sunbadgeLineFee,
         sunbadge_line_fee: sunbadgeLineFee,
+
+        // الإجمالي المتوقع لهذا السطر، شامل الرسوم مرة واحدة.
+        lineTotal: (rawPrice * qty) + sunbadgeLineFee,
 
         cushionColor: selectedCushionColor,
         wickerColor: selectedWickerColor,
@@ -3811,7 +3839,6 @@ function confirmAddToCart(goToCheckout = false) {
     currentCart.push(cartItem);
 
     closeProductModal();
-
     updateCartBadge();
     renderCartDrawer();
 
@@ -3824,6 +3851,7 @@ function confirmAddToCart(goToCheckout = false) {
 }
 
 window.confirmAddToCart = confirmAddToCart;
+
         
 function toggleCartDrawer(forceOpen) {
 const drawer = document.getElementById('cart-drawer');
@@ -3853,8 +3881,6 @@ document.body.classList.toggle('overflow-hidden', shouldOpen);
 }
 
 window.toggleCartDrawer = toggleCartDrawer;
-
-
 
 
 
@@ -3907,17 +3933,48 @@ function renderCartDrawer() {
         );
     };
 
-    const getConfiguredFee = item => {
-        const value = Number(
-            item.sunbadgeUnitFee ??
-            item.sunbadge_unit_fee ??
-            item.sunbadgeFee ??
-            item.sunbadge_fee ??
-            0
-        );
+const getConfiguredFee = item => {
+    const productId = String(
+        item.productId ?? item.product_id ?? ''
+    ).trim();
 
-        return Number.isFinite(value) && value >= 0 ? value : 0;
-    };
+    // الرسوم المحفوظة مع عنصر السلة.
+    const savedFee = Number(
+        item.sunbadgeUnitFee ??
+        item.sunbadge_unit_fee ??
+        item.sunbadgeFee ??
+        item.sunbadge_fee
+    );
+
+    if (
+        Number.isFinite(savedFee) &&
+        savedFee >= 0 &&
+        (
+            item.sunbadgeUnitFee != null ||
+            item.sunbadge_unit_fee != null ||
+            item.sunbadgeFee != null ||
+            item.sunbadge_fee != null
+        )
+    ) {
+        return savedFee;
+    }
+
+    // الرجوع إلى أحدث بيانات المنتج إذا لم تُحفظ الرسوم مع عنصر السلة.
+    const product = (appState.products || []).find(p =>
+        String(p.id ?? p.productId ?? p.product_id ?? '') === productId
+    );
+
+    const currentFee = Number(
+        product?.sunbadge_fee ??
+        product?.sunbadgeFee ??
+        product?.sunbadge_unit_fee ??
+        product?.sunbadgeUnitFee
+    );
+
+    return Number.isFinite(currentFee) && currentFee >= 0
+        ? currentFee
+        : 0;
+};
 
     if (!Array.isArray(currentCart) || currentCart.length === 0) {
         container.innerHTML = `
@@ -4329,103 +4386,97 @@ window.openCheckoutModal = openCheckoutModal;
         
 
 function updateTransferAmount() {
-const amountElement = document.getElementById('transfer-amount');
-if (!amountElement) return;
-let subtotal = 0;
-let sunBadgeFee = 0;
+    const amountElement = document.getElementById('transfer-amount');
+    if (!amountElement) return;
 
-const cart = Array.isArray(currentCart) ? currentCart : [];
+    const cart = Array.isArray(currentCart) ? currentCart : [];
 
-// حساب أسعار المنتجات حسب الكمية
-cart.forEach(item => {
-    const qty = Math.max(1, Number(item.qty) || 1);
+    let subtotal = 0;
+    let sunBadgeFee = 0;
 
-    const unitPrice = Number(
-        item.unitPrice ?? item.price ?? 0
-    ) || 0;
+    cart.forEach(item => {
+        const qty = Math.max(
+            1,
+            Math.floor(Number(item.qty ?? item.quantity) || 1)
+        );
 
-    subtotal += unitPrice * qty;
-});
+        const rawPrice = Number(item.unitPrice ?? item.price ?? 0);
+        const unitPrice =
+            Number.isFinite(rawPrice) && rawPrice >= 0
+                ? rawPrice
+                : 0;
 
-// احتساب رسوم صن بيدج مرة واحدة لكل منتج مختلف
-const chargedProducts = new Set();
+        subtotal += unitPrice * qty;
 
-cart.forEach(item => {
-    const upholsteryName = String(
-        item.upholsteryName || ''
+        const upholsteryName = String(item.upholsteryName || '');
+        const upholsteryType = String(
+            item.upholsteryExtraType || ''
+        ).toLowerCase().trim();
+
+        const isJaguar = /جاكوار|jaguar/i.test(upholsteryName);
+
+        const isSunBadge =
+            !isJaguar &&
+            (
+                upholsteryType === 'sunbadge' ||
+                /صن\s*بيدج|sun\s*badge|sunbedge/i.test(upholsteryName)
+            );
+
+        if (!isSunBadge) return;
+
+        const rawFee = Number(
+            item.sunbadgeUnitFee ??
+            item.sunbadge_unit_fee ??
+            item.sunbadgeFee ??
+            item.sunbadge_fee ??
+            0
+        );
+
+        const unitFee =
+            Number.isFinite(rawFee) && rawFee >= 0
+                ? rawFee
+                : 0;
+
+        // رسوم كل قطعة مضروبة في الكمية.
+        sunBadgeFee += unitFee * qty;
+    });
+
+    const selectedShipping = document.querySelector(
+        'input[name="ship_option"]:checked'
     );
 
-    const upholsteryType = String(
-        item.upholsteryExtraType || ''
-    ).toLowerCase();
+    const shippingOptions = Array.isArray(appState.shippingOptions)
+        ? appState.shippingOptions
+        : [];
 
-    const isSunBadge =
-        upholsteryType === 'sunbadge' ||
-        /صن\s*بيدج|sun\s*badge|sunbedge/i.test(upholsteryName);
+    const shippingOption = selectedShipping
+        ? shippingOptions.find(option =>
+            String(option.id) === String(selectedShipping.value)
+        )
+        : null;
 
-    const isJaguar =
-        /جاكوار|jaguar/i.test(upholsteryName);
+    const rawShippingCost = Number(shippingOption?.price ?? 0);
 
-    if (!isSunBadge || isJaguar) return;
+    const shippingCost =
+        Number.isFinite(rawShippingCost) && rawShippingCost >= 0
+            ? rawShippingCost
+            : 0;
 
-    const productId = String(
-        item.productId ?? item.id ?? item.productTitle ?? ''
-    );
+    const cartTotal = subtotal + sunBadgeFee;
+    const total = cartTotal + shippingCost;
 
-    if (!productId || chargedProducts.has(productId)) return;
+    amountElement.textContent =
+        `${total.toLocaleString('ar-EG')} ج.م`;
 
-    chargedProducts.add(productId);
-
-    const rawFee = Number(
-        item.sunbadgeFee ??
-        item.sunbadge_fee ??
-        0
-    );
-
-    if (Number.isFinite(rawFee) && rawFee > 0) {
-        sunBadgeFee += rawFee;
-    }
-});
-
-// حساب الشحن المختار
-const selectedShipping = document.querySelector(
-    'input[name="ship_option"]:checked'
-);
-
-const shippingOptions = Array.isArray(appState.shippingOptions)
-    ? appState.shippingOptions
-    : [];
-
-const shippingOption = selectedShipping
-    ? shippingOptions.find(
-        option =>
-            String(option.id) ===
-            String(selectedShipping.value)
-    )
-    : null;
-
-const shippingCost = Math.max(
-    0,
-    Number(shippingOption?.price || 0)
-);
-
-// الإجمالي قبل الشحن وبعده
-const cartTotal = subtotal + sunBadgeFee;
-const total = cartTotal + shippingCost;
-
-amountElement.textContent =
-    `${total.toLocaleString('ar-EG')} ج.م`;
-
-// توحيد القيم المستخدمة في بقية الموقع
-window.currentCartSubtotal = subtotal;
-window.currentSunBadgeFee = sunBadgeFee;
-window.currentShippingCost = shippingCost;
-window.currentCartTotal = cartTotal;
-window.currentCheckoutTotal = total;
-
+    window.currentCartSubtotal = subtotal;
+    window.currentSunBadgeFee = sunBadgeFee;
+    window.currentShippingCost = shippingCost;
+    window.currentCartTotal = cartTotal;
+    window.currentCheckoutTotal = total;
 }
 
 window.updateTransferAmount = updateTransferAmount;
+
 
         
         function handlePaymentMethodChange() {
@@ -4477,140 +4528,150 @@ window.updateTransferAmount = updateTransferAmount;
 
 
 function updateDepositAmount() {
-const configuredPercent = Number(appState.depositPercent ?? 30);
-const depositPercent =
-    Number.isFinite(configuredPercent) &&
-    configuredPercent >= 0 &&
-    configuredPercent <= 100
-        ? configuredPercent
-        : 30;
+    const configuredPercent = Number(appState.depositPercent ?? 30);
 
-const cart = Array.isArray(currentCart) ? currentCart : [];
+    const depositPercent =
+        Number.isFinite(configuredPercent) &&
+        configuredPercent >= 0 &&
+        configuredPercent <= 100
+            ? configuredPercent
+            : 30;
 
-let subtotal = 0;
-let sunBadgeFee = 0;
+    const cart = Array.isArray(currentCart) ? currentCart : [];
 
-// حساب أسعار المنتجات حسب الكمية
-cart.forEach(item => {
-    const qty = Math.max(1, Number(item.qty) || 1);
-    const price = Number(item.unitPrice ?? item.price ?? 0) || 0;
+    let subtotal = 0;
+    let sunBadgeFee = 0;
 
-    subtotal += price * qty;
-});
+    cart.forEach(item => {
+        const qty = Math.max(
+            1,
+            Math.floor(Number(item.qty ?? item.quantity) || 1)
+        );
 
-// رسوم صن بيدج مرة واحدة لكل منتج مختلف
-const chargedProducts = new Set();
+        const rawPrice = Number(item.unitPrice ?? item.price ?? 0);
 
-cart.forEach(item => {
-    const upholsteryName = String(item.upholsteryName || '');
+        const unitPrice =
+            Number.isFinite(rawPrice) && rawPrice >= 0
+                ? rawPrice
+                : 0;
 
-    const upholsteryType = String(
-        item.upholsteryExtraType || ''
-    ).toLowerCase();
+        subtotal += unitPrice * qty;
 
-    const isSunBadge =
-        upholsteryType === 'sunbadge' ||
-        /صن\s*بيدج|sun\s*badge|sunbedge/i.test(upholsteryName);
+        const upholsteryName = String(item.upholsteryName || '');
+        const upholsteryType = String(
+            item.upholsteryExtraType || ''
+        ).toLowerCase().trim();
 
-    const isJaguar =
-        /جاكوار|jaguar/i.test(upholsteryName);
+        const isJaguar = /جاكوار|jaguar/i.test(upholsteryName);
 
-    if (!isSunBadge || isJaguar) return;
+        const isSunBadge =
+            !isJaguar &&
+            (
+                upholsteryType === 'sunbadge' ||
+                /صن\s*بيدج|sun\s*badge|sunbedge/i.test(upholsteryName)
+            );
 
-    const productId = String(
-        item.productId ?? item.id ?? item.productTitle ?? ''
+        if (!isSunBadge) return;
+
+        const rawFee = Number(
+            item.sunbadgeUnitFee ??
+            item.sunbadge_unit_fee ??
+            item.sunbadgeFee ??
+            item.sunbadge_fee ??
+            0
+        );
+
+        const unitFee =
+            Number.isFinite(rawFee) && rawFee >= 0
+                ? rawFee
+                : 0;
+
+        // رسوم صن بيدج لكل قطعة مضروبة في الكمية.
+        sunBadgeFee += unitFee * qty;
+    });
+
+    const selectedShipping = document.querySelector(
+        'input[name="ship_option"]:checked'
     );
 
-    if (!productId || chargedProducts.has(productId)) return;
+    const shippingOptions = Array.isArray(appState.shippingOptions)
+        ? appState.shippingOptions
+        : [];
 
-    chargedProducts.add(productId);
+    const shippingOption = selectedShipping
+        ? shippingOptions.find(option =>
+            String(option.id) === String(selectedShipping.value)
+        )
+        : null;
 
-    const rawFee = Number(
-        item.sunbadgeFee ?? item.sunbadge_fee ?? 0
+    const rawShippingCost = Number(shippingOption?.price ?? 0);
+
+    const shippingCost =
+        Number.isFinite(rawShippingCost) && rawShippingCost >= 0
+            ? rawShippingCost
+            : 0;
+
+    const cartTotal = subtotal + sunBadgeFee;
+    const total = cartTotal + shippingCost;
+
+    const depositAmount = Math.round(
+        total * depositPercent / 100
     );
 
-    if (Number.isFinite(rawFee) && rawFee > 0) {
-        sunBadgeFee += rawFee;
+    const remainingAmount = Math.max(
+        total - depositAmount,
+        0
+    );
+
+    const formatMoney = value =>
+        `${value.toLocaleString('ar-EG')} ج.م`;
+
+    const totalElement =
+        document.getElementById('deposit-total-amount');
+
+    const percentElement =
+        document.getElementById('deposit-percent-value');
+
+    const amountElement =
+        document.getElementById('deposit-amount');
+
+    const remainingElement =
+        document.getElementById('deposit-remaining-amount');
+
+    const percentLabel =
+        document.getElementById('deposit-percent-label');
+
+    if (totalElement) {
+        totalElement.textContent = formatMoney(total);
     }
-});
 
-// حساب الشحن المختار
-const selectedShipping = document.querySelector(
-    'input[name="ship_option"]:checked'
-);
+    if (percentElement) {
+        percentElement.textContent = `${depositPercent}%`;
+    }
 
-const shippingOptions = Array.isArray(appState.shippingOptions)
-    ? appState.shippingOptions
-    : [];
+    if (amountElement) {
+        amountElement.textContent = formatMoney(depositAmount);
+    }
 
-const shippingOption = selectedShipping
-    ? shippingOptions.find(
-        option => String(option.id) === String(selectedShipping.value)
-    )
-    : null;
+    if (remainingElement) {
+        remainingElement.textContent = formatMoney(remainingAmount);
+    }
 
-const rawShippingCost = Number(shippingOption?.price ?? 0);
+    if (percentLabel) {
+        percentLabel.textContent = `${depositPercent}%`;
+    }
 
-const shippingCost =
-    Number.isFinite(rawShippingCost) && rawShippingCost > 0
-        ? rawShippingCost
-        : 0;
-
-// الإجمالي شامل المنتجات ورسوم صن بيدج والشحن
-const cartTotal = subtotal + sunBadgeFee;
-const total = cartTotal + shippingCost;
-
-// حساب العربون والمتبقي
-const depositAmount = Math.round(
-    total * depositPercent / 100
-);
-
-const remainingAmount = Math.max(
-    total - depositAmount,
-    0
-);
-
-const totalElement = document.getElementById('deposit-total-amount');
-const percentElement = document.getElementById('deposit-percent-value');
-const amountElement = document.getElementById('deposit-amount');
-const remainingElement = document.getElementById('deposit-remaining-amount');
-const percentLabel = document.getElementById('deposit-percent-label');
-
-if (totalElement) {
-    totalElement.textContent =
-        `${total.toLocaleString('ar-EG')} ج.م`;
-}
-
-if (percentElement) {
-    percentElement.textContent = `${depositPercent}%`;
-}
-
-if (amountElement) {
-    amountElement.textContent =
-        `${depositAmount.toLocaleString('ar-EG')} ج.م`;
-}
-
-if (remainingElement) {
-    remainingElement.textContent =
-        `${remainingAmount.toLocaleString('ar-EG')} ج.م`;
-}
-
-if (percentLabel) {
-    percentLabel.textContent = `${depositPercent}%`;
-}
-
-// توحيد الإجماليات لباقي أجزاء الموقع
-window.currentCartSubtotal = subtotal;
-window.currentSunBadgeFee = sunBadgeFee;
-window.currentShippingCost = shippingCost;
-window.currentCheckoutTotal = total;
-window.currentCartTotal = cartTotal;
-window.currentDepositAmount = depositAmount;
-window.currentRemainingAmount = remainingAmount;
-
+    window.currentCartSubtotal = subtotal;
+    window.currentSunBadgeFee = sunBadgeFee;
+    window.currentShippingCost = shippingCost;
+    window.currentCartTotal = cartTotal;
+    window.currentCheckoutTotal = total;
+    window.currentDepositAmount = depositAmount;
+    window.currentRemainingAmount = remainingAmount;
 }
 
 window.updateDepositAmount = updateDepositAmount;
+
 
 
         
