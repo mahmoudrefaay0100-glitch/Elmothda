@@ -255,7 +255,7 @@
 
                         <div class="grid grid-cols-3 gap-4 pt-6 border-t border-neutral-800/80 text-right">
                             <div>
-                                <h4 class="text-xl font-bold text-brand-amber">+1000</h4>
+                                <h4 class="text-xl font-bold text-brand-amber">+0</h4>
                                 <p class="text-xs text-gray-400">مشروع و كافيه مجهز</p>
                             </div>
                             <div>
@@ -550,13 +550,14 @@
         type="number"
         min="0"
         step="1"
-        value="1000"
-        placeholder="مثال: 1000 أو 2000"
+        value="0"
+        placeholder="مثال: 0 أو 500 أو 1000"
         class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white text-sm"
     >
 
     <p class="text-xs text-gray-400 mt-2">
-        الرسوم تُحسب حسب كمية المنتج المطلوبة، والجاكوار بدون رسوم إضافية.
+        اكتب رسوم الصن بيدج لهذا المنتج. اكتب 0 لإلغاء الرسوم،
+        والجاكوار بدون رسوم إضافية.
     </p>
 </div>
 
@@ -573,6 +574,7 @@
         class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white text-sm"
     >
 </div>
+
 
 <div>
     <label class="block text-xs text-gray-300 font-bold mb-2">
@@ -3421,13 +3423,13 @@ if (isBadge) {
                 </div>
             </div>
 
-            ${showSunBadgeNotice ? `
-                <div class="border border-brand-amber/40 bg-neutral-950 p-3 rounded-xl">
-                    <p class="text-xs text-brand-amber font-bold">
-                        ستُضاف رسوم صن بيدج بقيمة 1000 جنيه مرة واحدة على إجمالي الطلب.
-                    </p>
-                </div>
-            ` : ''}
+          ${showSunBadgeNotice ? `
+    <div class="border border-brand-amber/40 bg-neutral-950 p-3 rounded-xl">
+        <p class="text-xs text-brand-amber font-bold">
+            رسوم صن بيدج، إن وُجدت، تُحسب حسب الرسوم المحددة لهذا المنتج.
+        </p>
+    </div>
+` : ''}
 
             ${isSunBadge && sunBadgeAlreadyInCart ? `
                 <div class="border border-neutral-800 bg-neutral-950 p-3 rounded-xl">
@@ -4037,8 +4039,17 @@ const sunBadgeSelected = currentCart.some(item => {
         /صن\s*بيدج|sun\s*badge|sunbedge/i.test(name);
 });
 
-const sunBadgeFee = sunBadgeSelected ? 1000 : 0;
-
+const sunBadgeFee = sunBadgeSelected
+    ? Math.max(
+        0,
+        Number(
+            product.sunbadge_fee ??
+            product.sunbadgeFee ??
+            0
+        ) || 0
+    )
+    : 0;
+     
 // تكلفة الشحن
 const selectedShipping = document.querySelector(
     'input[name="ship_option"]:checked'
@@ -7910,15 +7921,14 @@ function openProductModal() {
             .join('');
     }
 
-    // رسوم صن بيدج الافتراضية للمنتج الجديد
-    const feeInput = document.getElementById(
-        'product-editor-sunbadge-fee'
-    );
+   // رسوم صن بيدج الافتراضية للمنتج الجديد: صفر جنيه
+const feeInput = document.getElementById(
+    'product-editor-sunbadge-fee'
+);
 
-    if (feeInput) {
-        feeInput.value = '1000';
-    }
-
+if (feeInput) {
+    feeInput.value = '0';
+}
     const saveButton = document.querySelector(
         '#product-editor-form button[type="submit"]'
     );
@@ -8011,22 +8021,22 @@ function openEditProduct(productId) {
         tableInput.value = product.table_count ?? product.tableCount ?? 0;
     }
 
-    // الحفاظ على الرسوم المحفوظة، وعدم استبدال الصفر الصحيح
-    const feeInput = document.getElementById(
-        'product-editor-sunbadge-fee'
-    );
+   // الحفاظ على الرسوم المحفوظة، وجعل القيمة الافتراضية صفرًا
+const feeInput = document.getElementById(
+    'product-editor-sunbadge-fee'
+);
 
-    if (feeInput) {
-        const savedFee =
-            product.sunbadge_fee ?? product.sunbadgeFee;
+if (feeInput) {
+    const savedFee =
+        product.sunbadge_fee ?? product.sunbadgeFee;
 
-        feeInput.value =
-            savedFee !== undefined &&
-            savedFee !== null &&
-            savedFee !== ''
-                ? String(savedFee)
-                : '1000';
-    }
+    feeInput.value =
+        savedFee !== undefined &&
+        savedFee !== null &&
+        savedFee !== ''
+            ? String(savedFee)
+            : '0';
+}
 
     const visibleInput = document.getElementById('product-editor-visible');
     if (visibleInput) {
@@ -9666,33 +9676,53 @@ async function saveProductFromEditor(e) {
             );
         }
 
-        // رسوم صن بيدج الافتراضية للمنتج الجديد: 1000 جنيه
-        const feeInput = document.getElementById(
-            'product-editor-sunbadge-fee'
-        );
+       // رسوم صن بيدج الافتراضية للمنتج الجديد: صفر جنيه
+const feeInput = document.getElementById(
+    'product-editor-sunbadge-fee'
+);
 
-        let sunbadgeFee;
+if (feeInput) {
+    feeInput.value = 0;
+}
 
-        if (feeInput && feeInput.value.trim() !== '') {
-            sunbadgeFee = Number(feeInput.value);
-        } else if (isEditing) {
-            sunbadgeFee = Number(
-                oldProduct.sunbadge_fee ??
-                oldProduct.sunbadgeFee ??
-                1000
-            );
-        } else {
-            sunbadgeFee = 1000;
-        }
+     let sunbadgeFee;
 
-        if (
-            !Number.isFinite(sunbadgeFee) ||
-            sunbadgeFee < 0
-        ) {
-            throw new Error(
-                'اكتب رسوم صن بيدج صحيحة، أو اكتب 0 بدون رسوم.'
-            );
-        }
+if (feeInput && feeInput.value.trim() !== '') {
+    sunbadgeFee = Number(feeInput.value);
+} else if (isEditing) {
+    sunbadgeFee = Number(
+        oldProduct.sunbadge_fee ??
+        oldProduct.sunbadgeFee ??
+        0
+    );
+} else {
+    sunbadgeFee = 0;
+}
+
+// التحقق من صحة الرسوم
+if (!Number.isFinite(sunbadgeFee) || sunbadgeFee < 0) {
+    throw new Error(
+        'اكتب رسوم صن بيدج صحيحة، أو اكتب 0 بدون رسوم.'
+    );
+}
+
+// تجهيز بيانات المنتج
+const productData = {
+    name: document
+        .getElementById('product-editor-title')
+        .value.trim(),
+
+    category: document
+        .getElementById('product-editor-category')
+        .value,
+
+    price: Number(
+        document.getElementById('product-editor-price').value
+    ) || 0,
+
+    old_price: Number(
+        document.getElementById('product-editor-old-price').value
+    ) || 0,
 
         // تجهيز بيانات المنتج
         const productData = {
