@@ -10418,6 +10418,35 @@ if (isEditing) {
     productData.image_url = uploadedImage;
 }
 
+// =====================================================
+// إضافة رسوم صن بيدج إلى بيانات المنتج قبل الحفظ
+// =====================================================
+
+const sunbadgeFeeInput = document.getElementById(
+    'product-editor-sunbadge-fee'
+);
+
+if (sunbadgeFeeInput) {
+    const rawSunbadgeFee = sunbadgeFeeInput.value.trim();
+    const sunbadgeFee = Number(rawSunbadgeFee);
+
+    if (
+        rawSunbadgeFee === '' ||
+        !Number.isFinite(sunbadgeFee) ||
+        sunbadgeFee < 0
+    ) {
+        showToast(
+            'اكتب رسوم صن بيدج صحيحة أو اكتب 0.',
+            'error'
+        );
+
+        sunbadgeFeeInput.focus();
+        return;
+    }
+
+    productData.sunbadge_fee = sunbadgeFee;
+}
+        
         // حفظ المنتج في قاعدة البيانات
         const response = await fetch('/api/products', {
             method: isEditing ? 'PUT' : 'POST',
@@ -12524,6 +12553,131 @@ async function addUpholsteryTypePrompt() {
            // تحميل بيانات المتجر عند فتح الموقع
     loadStoreDataFromDatabase();
 
+        // =====================================================
+// حفظ رسوم صن بيدج للمنتج
+// =====================================================
+
+async function saveProductSunbadgeFee(productId) {
+    try {
+        const feeInput = document.getElementById(
+            'product-editor-sunbadge-fee'
+        );
+
+        if (!feeInput) {
+            alert('حقل رسوم صن بيدج غير موجود في الصفحة.');
+            return false;
+        }
+
+        const feeValue = feeInput.value.trim();
+        const fee = Number(feeValue);
+
+        if (
+            feeValue === '' ||
+            !Number.isFinite(fee) ||
+            fee < 0
+        ) {
+            alert('اكتب رسوم صن بيدج صحيحة، أو اكتب 0 لإلغاء الرسوم.');
+            feeInput.focus();
+            return false;
+        }
+
+        if (!productId) {
+            alert('معرّف المنتج غير موجود.');
+            return false;
+        }
+
+        // جلب المنتج الحالي حتى نحافظ على بياناته الأخرى
+        const productsResponse = await fetch(
+            '/api/products',
+            {
+                method: 'GET',
+                cache: 'no-store'
+            }
+        );
+
+        const productsData = await productsResponse.json();
+
+        if (
+            !productsResponse.ok ||
+            !productsData.success ||
+            !Array.isArray(productsData.products)
+        ) {
+            throw new Error('تعذر تحميل بيانات المنتجات.');
+        }
+
+        const product = productsData.products.find(
+            item => String(item.id) === String(productId)
+        );
+
+        if (!product) {
+            throw new Error('المنتج غير موجود في قاعدة البيانات.');
+        }
+
+        // رمز جلسة الأدمن
+        const adminToken =
+            sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN') || '';
+
+        if (!adminToken) {
+            throw new Error('جلسة الأدمن غير موجودة. سجّل الدخول من جديد.');
+        }
+
+        // حفظ الرسوم مع بيانات المنتج
+        const response = await fetch('/api/products', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${adminToken}`
+            },
+            body: JSON.stringify({
+                ...product,
+                id: product.id,
+                sunbadge_fee: fee
+            }),
+            cache: 'no-store'
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success || !result.product) {
+            throw new Error(
+                result.error || 'فشل حفظ رسوم صن بيدج.'
+            );
+        }
+
+        // تحديث نسخة المنتج في حالة الموقع الحالية إن كانت متاحة
+        if (
+            typeof appState !== 'undefined' &&
+            Array.isArray(appState.products)
+        ) {
+            const index = appState.products.findIndex(
+                item => String(item.id) === String(productId)
+            );
+
+            if (index !== -1) {
+                appState.products[index] = {
+                    ...appState.products[index],
+                    ...result.product,
+                    sunbadge_fee: Number(
+                        result.product.sunbadge_fee ?? fee
+                    )
+                };
+            }
+        }
+
+        alert(
+            `تم حفظ رسوم صن بيدج بنجاح: ${fee.toLocaleString('ar-EG')} جنيه للقطعة.`
+        );
+
+        return true;
+
+    } catch (error) {
+        console.error('SAVE SUNBADGE FEE ERROR:', error);
+        alert(error.message || 'حدث خطأ أثناء حفظ الرسوم.');
+        return false;
+    }
+}
+
+        
 </script>
 
 </body>
