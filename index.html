@@ -3433,22 +3433,52 @@ function renderCustomizerModalContent() {
 
 // =====================================================
 // رسوم صن بيدج الخاصة بالمنتج الحالي
-// الرسوم للقطعة الواحدة ولا تُضاف إلا عند اختيار صن بيدج
+// الأولوية لبيانات المنتج المحفوظة في المتجر
 // =====================================================
 
-const rawFee =
-    p.sunbadge_fee ??
-    p.sunbadgeFee ??
-    p.sunbadge_unit_fee ??
-    p.sunbadgeUnitFee ??
-    0;
+const productId = String(
+    p.id ??
+    p.productId ??
+    p.product_id ??
+    originalProduct.id ??
+    originalProduct.productId ??
+    originalProduct.product_id ??
+    ''
+).trim();
 
-const parsedFee = Number(rawFee);
+const latestProduct = Array.isArray(appState.products)
+    ? appState.products.find(product =>
+        String(
+            product.id ??
+            product.productId ??
+            product.product_id ??
+            ''
+        ).trim() === productId
+    )
+    : null;
+
+const feeSource = latestProduct
+    ? { ...p, ...latestProduct }
+    : p;
+
+const rawFee =
+    feeSource.sunbadge_fee ??
+    feeSource.sunbadgeFee ??
+    feeSource.sunbadge_unit_fee ??
+    feeSource.sunbadgeUnitFee ??
+    null;
+
+const parsedFee =
+    rawFee !== null && rawFee !== ''
+        ? Number(rawFee)
+        : NaN;
 
 const productSunBadgeFee =
     Number.isFinite(parsedFee) && parsedFee >= 0
         ? parsedFee
         : 0;
+
+
 
 // =====================================================
 // الكمية والسعر الأساسي
