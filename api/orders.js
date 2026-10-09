@@ -1,4 +1,3 @@
-
 export default async function handler(req, res) {
     try {
         const SUPABASE_URL =
@@ -13,6 +12,12 @@ export default async function handler(req, res) {
                 error: 'SUPABASE_SERVICE_ROLE_KEY is missing'
             });
         }
+
+        const supabaseHeaders = {
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json'
+        };
 
         // =====================================================
         // ADMIN AUTH TOKEN
@@ -29,6 +34,34 @@ export default async function handler(req, res) {
         const token =
             adminToken ||
             authHeader.replace(/^Bearer\s+/i, '').trim();
+
+        // =====================================================
+        // HELPERS
+        // =====================================================
+
+        function toNonNegativeNumber(value, fallback = 0) {
+            if (
+                value === null ||
+                value === undefined ||
+                value === ''
+            ) {
+                return fallback;
+            }
+
+            const number = Number(value);
+
+            return Number.isFinite(number) && number >= 0
+                ? number
+                : fallback;
+        }
+
+        function parseJson(text, fallback = []) {
+            try {
+                return text ? JSON.parse(text) : fallback;
+            } catch {
+                return fallback;
+            }
+        }
 
         // =====================================================
         // PUBLIC ORDER TRACKING
@@ -56,16 +89,13 @@ export default async function handler(req, res) {
 
             const orderResponse = await fetch(supabaseUrl, {
                 method: 'GET',
-                headers: {
-                    apikey: SUPABASE_SERVICE_ROLE_KEY,
-                    Authorization:
-                        `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-                    'Content-Type': 'application/json'
-                },
+                headers: supabaseHeaders,
                 cache: 'no-store'
             });
 
-            const orders = await orderResponse.json();
+            const orders = parseJson(
+                await orderResponse.text()
+            );
 
             if (
                 !orderResponse.ok ||
@@ -82,11 +112,14 @@ export default async function handler(req, res) {
 
             const publicOrder = {
                 id: order.id,
+
                 order_number:
                     order.order_number || order.id,
 
                 status: order.status || 'New',
+
                 created_at: order.created_at || null,
+
                 updated_at: order.updated_at || null,
 
                 customer_name:
@@ -105,7 +138,9 @@ export default async function handler(req, res) {
                     '',
 
                 governorate: order.governorate || '',
+
                 city: order.city || '',
+
                 address: order.address || '',
 
                 shipping_method:
@@ -138,7 +173,6 @@ export default async function handler(req, res) {
                 subtotal:
                     Number(order.subtotal || 0),
 
-                // إجمالي رسوم الصن بيدج المحفوظة
                 sunBadgeFee:
                     Number(
                         order.sunbadge_fee ??
@@ -180,6 +214,11 @@ export default async function handler(req, res) {
         // =====================================================
         // CREATE NEW ORDER
         // POST /api/orders
+        //
+        // رسوم صن بيدج:
+        // - تُقرأ من قاعدة بيانات المنتجات.
+        // - تُضاف مرة واحدة لكل منتج مختلف.
+        // - لا تُضرب في كمية المنتج.
         // =====================================================
 
         if (req.method === 'POST') {
@@ -192,36 +231,234 @@ export default async function handler(req, res) {
                 });
             }
 
-            // دعم الاسمين المستخدمين في الواجهة
-            const submittedSunBadgeFee = Number(
-                order.sunBadgeFee ??
-                order.sunbadge_fee ??
-                0
-            );
+            const items = Array.isArray(order.items)
+                ? order.items
+                : [];
+
+            if (items.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'الطلب لا يحتوي على منتجات'
+                });
+            }
+
+            // -------------------------------------------------
+            // تحديد اختيار صن بيدج
+            // -------------------------------------------------
+
+            function isSunBadgeItem(item) {
+                const upholsteryName =
+                    String(item.upholsteryName || '');
+
+                const upholsteryType =
+                    String(item.upholsteryExtraType || '')
+                        .toLowerCase();
+
+                const isJaguar =
+                    /جاكوار|jaguar/i.test(upholsteryName);
+
+                const isSunBadge =
+                    upholsteryType === 'sunbadge' ||
+                    /صن\s*بيدج|sun\s*badge|sunbedge/i
+                        .test(upholsteryName);
+
+                return isSunBadge && !isJaguar;
+            }
+
+            // -------------------------------------------------
+            // جمع معرفات المنتجات المختارة
+            // -------------------------------------------------
+
+            const sunBadgeItems =
+                items.filter(isSunBadgeItem);
+
+            const selectedProductIds = [
+                ...new Set(
+                    sunBadgeItems
+                        .map(item =>
+                            String(
+                                item.productId ??
+                                item.product_id ??
+                                ''
+                            ).trim()
+                        )
+                        .filter(Boolean)
+                )
+            ];
 
             if (
-                !Number.isFinite(submittedSunBadgeFee) ||
-                submittedSunBadgeFee < 0
+                sunBadgeItems.length > 0 &&
+                selectedProductIds.length === 0
             ) {
                 return res.status(400).json({
                     success: false,
-                    error: 'قيمة رسوم الصن بيدج غير صحيحة'
+                    error:
+                        'تعذر تحديد المنتج لحساب رسوم صن بيدج. ' +
+                        'يرجى تحديث بيانات المنتج في السلة.'
                 });
             }
+
+            // -------------------------------------------------
+            // جلب الرسوم المحفوظة لكل منتج
+            // -------------------------------------------------
+
+            const productFees = new Map();
+
+            for (const productId of selectedProductIds) {
+                const productUrl =
+                    `${SUPABASE_URL}/rest/v1/products` +
+                    `?id=eq.${encodeURIComponent(productId)}` +
+                    '&select=id,sunbadge_fee';
+
+                const productResponse = await fetch(
+                    productUrl,
+                    {
+                        method: 'GET',
+                        headers: supabaseHeaders,
+                        cache: 'no-store'
+                    }
+                );
+
+                const productData = parseJson(
+                    await productResponse.text()
+                );
+
+                if (
+                    !productResponse.ok ||
+                    !Array.isArray(productData) ||
+                    productData.length === 0
+                ) {
+                    console.error(
+                        'SUNBADGE PRODUCT LOOKUP ERROR:',
+                        productData
+                    );
+
+                    return res.status(400).json({
+                        success: false,
+                        error:
+                            'تعذر قراءة رسوم المنتج من قاعدة البيانات. ' +
+                            'تحقق من معرف المنتج وعمود sunbadge_fee.'
+                    });
+                }
+
+                const rawFee =
+                    productData[0].sunbadge_fee ?? 0;
+
+                const fee = Number(rawFee);
+
+                if (
+                    !Number.isFinite(fee) ||
+                    fee < 0
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        error:
+                            'رسوم أحد المنتجات غير صحيحة في قاعدة البيانات.'
+                    });
+                }
+
+                productFees.set(productId, fee);
+            }
+
+            // -------------------------------------------------
+            // تطبيق الرسوم مرة واحدة لكل منتج مختلف
+            // -------------------------------------------------
+
+            const chargedProductIds = new Set();
+
+            let submittedSunBadgeFee = 0;
+
+            const savedItems = items.map(item => {
+                const productId = String(
+                    item.productId ??
+                    item.product_id ??
+                    ''
+                ).trim();
+
+                let appliedFee = 0;
+
+                if (
+                    isSunBadgeItem(item) &&
+                    productId &&
+                    !chargedProductIds.has(productId)
+                ) {
+                    appliedFee =
+                        productFees.get(productId) ?? 0;
+
+                    chargedProductIds.add(productId);
+
+                    submittedSunBadgeFee += appliedFee;
+                }
+
+                return {
+                    ...item,
+                    sunbadgeFee: appliedFee,
+                    sunbadge_fee: appliedFee
+                };
+            });
+
+            // -------------------------------------------------
+            // حساب المبالغ
+            // -------------------------------------------------
+
+            const subtotal =
+                toNonNegativeNumber(order.subtotal, 0);
+
+            const shippingCost =
+                toNonNegativeNumber(order.shippingCost, 0);
+
+            const discount =
+                toNonNegativeNumber(order.discount, 0);
+
+            const total = Math.max(
+                0,
+                subtotal +
+                submittedSunBadgeFee +
+                shippingCost -
+                discount
+            );
+
+            const rawDepositPercent = Number(
+                order.depositPercent ?? 30
+            );
+
+            if (
+                !Number.isFinite(rawDepositPercent) ||
+                rawDepositPercent < 0 ||
+                rawDepositPercent > 100
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'نسبة العربون غير صحيحة'
+                });
+            }
+
+            const depositPercent = rawDepositPercent;
+
+            const depositAmount = Math.round(
+                total * depositPercent / 100
+            );
+
+            const remainingAmount = Math.max(
+                0,
+                total - depositAmount
+            );
+
+            // -------------------------------------------------
+            // حفظ الطلب
+            // -------------------------------------------------
 
             const response = await fetch(
                 `${SUPABASE_URL}/rest/v1/orders`,
                 {
                     method: 'POST',
                     headers: {
-                        apikey: SUPABASE_SERVICE_ROLE_KEY,
-                        Authorization:
-                            `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-                        'Content-Type': 'application/json',
+                        ...supabaseHeaders,
                         Prefer: 'return=representation'
                     },
                     body: JSON.stringify({
                         id: order.id,
+
                         order_number: order.id,
 
                         customer_name:
@@ -244,25 +481,19 @@ export default async function handler(req, res) {
 
                         location: '',
 
-                        items:
-                            Array.isArray(order.items)
-                                ? order.items
-                                : [],
+                        items: savedItems,
 
-                        subtotal:
-                            Number(order.subtotal ?? 0),
+                        subtotal,
 
-                        // إجمالي الرسوم لكل المنتجات والكميات
-                        sunbadge_fee: submittedSunBadgeFee,
+                        sunbadge_fee:
+                            submittedSunBadgeFee,
 
                         shipping_cost:
-                            Number(order.shippingCost ?? 0),
+                            shippingCost,
 
-                        discount:
-                            Number(order.discount ?? 0),
+                        discount,
 
-                        total:
-                            Number(order.total ?? 0),
+                        total,
 
                         shipping_method:
                             order.shippingMethod || '',
@@ -272,13 +503,13 @@ export default async function handler(req, res) {
                             'Visa / Mastercard',
 
                         deposit_percent:
-                            Number(order.depositPercent ?? 30),
+                            depositPercent,
 
                         deposit_amount:
-                            Number(order.depositAmount ?? 0),
+                            depositAmount,
 
                         remaining_amount:
-                            Number(order.remainingAmount ?? 0),
+                            remainingAmount,
 
                         payment_status:
                             order.paymentStatus || 'Pending',
@@ -294,15 +525,7 @@ export default async function handler(req, res) {
 
             const responseText = await response.text();
 
-            let data = [];
-
-            try {
-                data = responseText
-                    ? JSON.parse(responseText)
-                    : [];
-            } catch {
-                data = [];
-            }
+            const data = parseJson(responseText);
 
             if (!response.ok) {
                 console.error(
@@ -341,7 +564,6 @@ export default async function handler(req, res) {
 
         // =====================================================
         // GET ALL ORDERS
-        // GET /api/orders
         // =====================================================
 
         if (req.method === 'GET') {
@@ -349,26 +571,14 @@ export default async function handler(req, res) {
                 `${SUPABASE_URL}/rest/v1/orders?select=*&order=created_at.desc`,
                 {
                     method: 'GET',
-                    headers: {
-                        apikey: SUPABASE_SERVICE_ROLE_KEY,
-                        Authorization:
-                            `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-                        'Content-Type': 'application/json'
-                    }
+                    headers: supabaseHeaders,
+                    cache: 'no-store'
                 }
             );
 
-            const responseText = await response.text();
-
-            let data = [];
-
-            try {
-                data = responseText
-                    ? JSON.parse(responseText)
-                    : [];
-            } catch {
-                data = [];
-            }
+            const data = parseJson(
+                await response.text()
+            );
 
             if (!response.ok) {
                 console.error(
@@ -393,7 +603,6 @@ export default async function handler(req, res) {
 
         // =====================================================
         // DELETE ORDER
-        // DELETE /api/orders?id=ORDER_ID
         // =====================================================
 
         if (req.method === 'DELETE') {
@@ -413,26 +622,15 @@ export default async function handler(req, res) {
                 {
                     method: 'DELETE',
                     headers: {
-                        apikey: SUPABASE_SERVICE_ROLE_KEY,
-                        Authorization:
-                            `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-                        'Content-Type': 'application/json',
+                        ...supabaseHeaders,
                         Prefer: 'return=representation'
                     }
                 }
             );
 
-            const responseText = await response.text();
-
-            let data = [];
-
-            try {
-                data = responseText
-                    ? JSON.parse(responseText)
-                    : [];
-            } catch {
-                data = [];
-            }
+            const data = parseJson(
+                await response.text()
+            );
 
             if (!response.ok) {
                 console.error(
@@ -465,11 +663,12 @@ export default async function handler(req, res) {
 
         // =====================================================
         // UPDATE ORDER STATUS OR PAYMENT STATUS
-        // PUT /api/orders?id=ORDER_ID
         // =====================================================
 
         if (req.method === 'PUT') {
-            const orderId = req.query?.id;
+            const orderId = String(
+                req.query?.id || ''
+            ).trim();
 
             if (!orderId) {
                 return res.status(400).json({
@@ -480,7 +679,8 @@ export default async function handler(req, res) {
 
             const body = req.body || {};
 
-            // Update order status
+            let updateData = {};
+
             if (body.status !== undefined) {
                 const allowedStatuses = [
                     'New',
@@ -497,64 +697,9 @@ export default async function handler(req, res) {
                     });
                 }
 
-                const response = await fetch(
-                    `${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`,
-                    {
-                        method: 'PATCH',
-                        headers: {
-                            apikey: SUPABASE_SERVICE_ROLE_KEY,
-                            Authorization:
-                                `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-                            'Content-Type': 'application/json',
-                            Prefer: 'return=representation'
-                        },
-                        body: JSON.stringify({
-                            status: body.status
-                        })
-                    }
-                );
-
-                const responseText = await response.text();
-
-                let data = [];
-
-                try {
-                    data = responseText
-                        ? JSON.parse(responseText)
-                        : [];
-                } catch {
-                    data = [];
-                }
-
-                if (!response.ok) {
-                    console.error(
-                        'SUPABASE UPDATE ORDER STATUS ERROR:',
-                        data
-                    );
-
-                    return res.status(response.status).json({
-                        success: false,
-                        error:
-                            data?.message ||
-                            data?.error ||
-                            'فشل تحديث حالة الطلب'
-                    });
-                }
-
-                if (!Array.isArray(data) || data.length === 0) {
-                    return res.status(404).json({
-                        success: false,
-                        error: 'الطلب غير موجود في قاعدة البيانات'
-                    });
-                }
-
-                return res.status(200).json({
-                    success: true,
-                    order: data[0]
-                });
+                updateData.status = body.status;
             }
 
-            // Update payment status
             if (body.paymentStatus !== undefined) {
                 const allowedPaymentStatuses = [
                     'Pending',
@@ -575,66 +720,59 @@ export default async function handler(req, res) {
                     });
                 }
 
-                const response = await fetch(
-                    `${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`,
-                    {
-                        method: 'PATCH',
-                        headers: {
-                            apikey: SUPABASE_SERVICE_ROLE_KEY,
-                            Authorization:
-                                `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-                            'Content-Type': 'application/json',
-                            Prefer: 'return=representation'
-                        },
-                        body: JSON.stringify({
-                            payment_status: body.paymentStatus
-                        })
-                    }
-                );
+                updateData.payment_status =
+                    body.paymentStatus;
+            }
 
-                const responseText = await response.text();
-
-                let data = [];
-
-                try {
-                    data = responseText
-                        ? JSON.parse(responseText)
-                        : [];
-                } catch {
-                    data = [];
-                }
-
-                if (!response.ok) {
-                    console.error(
-                        'SUPABASE UPDATE PAYMENT STATUS ERROR:',
-                        data
-                    );
-
-                    return res.status(response.status).json({
-                        success: false,
-                        error:
-                            data?.message ||
-                            data?.error ||
-                            'فشل تحديث حالة الدفع'
-                    });
-                }
-
-                if (!Array.isArray(data) || data.length === 0) {
-                    return res.status(404).json({
-                        success: false,
-                        error: 'الطلب غير موجود في قاعدة البيانات'
-                    });
-                }
-
-                return res.status(200).json({
-                    success: true,
-                    order: data[0]
+            if (Object.keys(updateData).length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        'لم يتم إرسال حالة الطلب أو حالة الدفع'
                 });
             }
 
-            return res.status(400).json({
-                success: false,
-                error: 'لم يتم إرسال حالة الطلب أو حالة الدفع'
+            const response = await fetch(
+                `${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        ...supabaseHeaders,
+                        Prefer: 'return=representation'
+                    },
+                    body: JSON.stringify(updateData)
+                }
+            );
+
+            const data = parseJson(
+                await response.text()
+            );
+
+            if (!response.ok) {
+                console.error(
+                    'SUPABASE UPDATE ORDER ERROR:',
+                    data
+                );
+
+                return res.status(response.status).json({
+                    success: false,
+                    error:
+                        data?.message ||
+                        data?.error ||
+                        'فشل تحديث الطلب'
+                });
+            }
+
+            if (!Array.isArray(data) || data.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'الطلب غير موجود في قاعدة البيانات'
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                order: data[0]
             });
         }
 
