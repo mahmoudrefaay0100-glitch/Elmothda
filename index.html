@@ -3570,10 +3570,21 @@ function confirmAddToCart(goToCheckout = false) {
     const isJaguar =
         /جاكوار|jaguar/i.test(upholsteryName);
 
-    // رسوم الصن بيدج الخاصة بهذا المنتج
-    const rawSunbadgeFee = Number(
-        p.sunbadge_fee ?? p.sunbadgeFee ?? 1000
-    );
+   const rawSunbadgeFee = Number(
+    p.sunbadge_fee ??
+    p.sunbadgeFee ??
+    1000
+);
+
+const sunbadgeFee =
+    Number.isFinite(rawSunbadgeFee) && rawSunbadgeFee >= 0
+        ? rawSunbadgeFee
+        : 1000;
+
+const appliedSunbadgeFee =
+    isSunBadge && !isJaguar
+        ? (sunbadgeFee === 0 ? 1000 : sunbadgeFee)
+        : 0;
 
     const sunbadgeFee =
         Number.isFinite(rawSunbadgeFee) && rawSunbadgeFee >= 0
@@ -9544,6 +9555,7 @@ async function deleteOfferFromDatabase(
 }    
        
 
+
 async function saveProductFromEditor(e) {
     e.preventDefault();
 
@@ -9591,9 +9603,12 @@ async function saveProductFromEditor(e) {
 
             const fileData = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
+
                 reader.onload = () => resolve(reader.result);
+
                 reader.onerror = () =>
                     reject(new Error('فشل قراءة الصورة من الجهاز.'));
+
                 reader.readAsDataURL(imageFile);
             });
 
@@ -9630,7 +9645,9 @@ async function saveProductFromEditor(e) {
             uploadedImage = uploadData.image_url || '';
 
             if (!uploadedImage) {
-                throw new Error('لم يرجع السيرفر رابط الصورة بعد رفعها.');
+                throw new Error(
+                    'لم يرجع السيرفر رابط الصورة بعد رفعها.'
+                );
             }
         }
 
@@ -9649,17 +9666,32 @@ async function saveProductFromEditor(e) {
             );
         }
 
-        // قراءة رسوم الصن بيدج
-        const feeInput =
-            document.getElementById('product-editor-sunbadge-fee');
+        // رسوم صن بيدج الافتراضية للمنتج الجديد: 1000 جنيه
+        const feeInput = document.getElementById(
+            'product-editor-sunbadge-fee'
+        );
 
-        const sunbadgeFee = Number(feeInput?.value);
+        let sunbadgeFee;
+
+        if (feeInput && feeInput.value.trim() !== '') {
+            sunbadgeFee = Number(feeInput.value);
+        } else if (isEditing) {
+            sunbadgeFee = Number(
+                oldProduct.sunbadge_fee ??
+                oldProduct.sunbadgeFee ??
+                1000
+            );
+        } else {
+            sunbadgeFee = 1000;
+        }
 
         if (
             !Number.isFinite(sunbadgeFee) ||
             sunbadgeFee < 0
         ) {
-            throw new Error('اكتب رسوم صن بيدج صحيحة، أو اكتب 0 بدون رسوم.');
+            throw new Error(
+                'اكتب رسوم صن بيدج صحيحة، أو اكتب 0 بدون رسوم.'
+            );
         }
 
         // تجهيز بيانات المنتج
@@ -9708,11 +9740,14 @@ async function saveProductFromEditor(e) {
                 document.getElementById('product-editor-table-count').value
             ) || 0,
 
-            // رسوم الصن بيدج الخاصة بهذا المنتج
+            // حفظ الرسوم باسم العمود المستخدم في قاعدة البيانات
             sunbadge_fee: sunbadgeFee,
 
-            visible: document.getElementById('product-editor-visible').checked,
-            featured: document.getElementById('product-editor-featured').checked
+            visible: document
+                .getElementById('product-editor-visible').checked,
+
+            featured: document
+                .getElementById('product-editor-featured').checked
         };
 
         if (!productData.name) {
@@ -9729,6 +9764,7 @@ async function saveProductFromEditor(e) {
 
         if (isEditing) {
             productData.id = editingProductId;
+
             productData.image_url =
                 uploadedImage ||
                 oldProduct.image_url ||
@@ -9747,10 +9783,12 @@ async function saveProductFromEditor(e) {
         // حفظ المنتج في قاعدة البيانات
         const response = await fetch('/api/products', {
             method: isEditing ? 'PUT' : 'POST',
+
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + token
             },
+
             body: JSON.stringify(productData)
         });
 
