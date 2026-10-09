@@ -1,3 +1,4 @@
+
 export default async function handler(req, res) {
     try {
         const SUPABASE_URL =
@@ -12,6 +13,8 @@ export default async function handler(req, res) {
                 error: 'SUPABASE_SERVICE_ROLE_KEY is missing'
             });
         }
+
+        res.setHeader('Cache-Control', 'no-store, max-age=0');
 
         const supabaseHeaders = {
             apikey: SUPABASE_SERVICE_ROLE_KEY,
@@ -29,7 +32,7 @@ export default async function handler(req, res) {
 
         const token =
             adminToken ||
-            authHeader.replace(/^Bearer\s+/i, '').trim();
+            String(authHeader).replace(/^Bearer\s+/i, '').trim();
 
         function toNonNegativeNumber(value, fallback = 0) {
             if (
@@ -47,7 +50,7 @@ export default async function handler(req, res) {
                 : fallback;
         }
 
-        function parseJson(text, fallback = []) {
+        function parseJson(text, fallback = null) {
             try {
                 return text ? JSON.parse(text) : fallback;
             } catch {
@@ -66,13 +69,63 @@ export default async function handler(req, res) {
             });
 
             const text = await response.text();
-            const data = parseJson(text, null);
 
             return {
                 response,
-                data,
+                data: parseJson(text, null),
                 text
             };
+        }
+
+        function getProductId(item) {
+            return String(
+                item?.productId ??
+                item?.product_id ??
+                ''
+            ).trim();
+        }
+
+        function getItemQuantity(item) {
+            const qty = Number(
+                item?.qty ?? item?.quantity ?? 1
+            );
+
+            if (
+                !Number.isFinite(qty) ||
+                !Number.isInteger(qty) ||
+                qty < 1
+            ) {
+                return null;
+            }
+
+            return qty;
+        }
+
+        function getUpholsteryName(item) {
+            return String(item?.upholsteryName || '').trim();
+        }
+
+        function isJaguarItem(item) {
+            return /جاكوار|jaguar/i.test(
+                getUpholsteryName(item)
+            );
+        }
+
+        function isSunBadgeItem(item) {
+            if (isJaguarItem(item)) {
+                return false;
+            }
+
+            const type = String(
+                item?.upholsteryExtraType || ''
+            ).toLowerCase().trim();
+
+            const name = getUpholsteryName(item);
+
+            return (
+                type === 'sunbadge' ||
+                /صن\s*بيدج|sun\s*badge|sunbedge/i.test(name)
+            );
         }
 
         // =====================================================
@@ -82,8 +135,7 @@ export default async function handler(req, res) {
 
         if (
             req.method === 'GET' &&
-            req.query &&
-            req.query.track
+            req.query?.track
         ) {
             const trackId = String(req.query.track).trim();
 
@@ -117,9 +169,14 @@ export default async function handler(req, res) {
 
             const order = orders[0];
 
+            // تنبيه: رقم الطلب وحده ليس وسيلة تحقق من هوية صاحبه.
+            // لا تعرض بيانات الهاتف والعنوان في التتبع العام
+            // قبل إضافة تحقق خاص بملكية الطلب.
+
             const publicOrder = {
                 id: order.id,
                 order_number: order.order_number || order.id,
+
                 status: order.status || 'New',
                 created_at: order.created_at || null,
                 updated_at: order.updated_at || null,
@@ -129,63 +186,41 @@ export default async function handler(req, res) {
                     order.name ||
                     '',
 
-                phone:
-                    order.phone ||
-                    order.customer_phone ||
-                    '',
-
-                whatsapp:
-                    order.whatsapp ||
-                    order.whatsapp_number ||
-                    '',
-
-                governorate: order.governorate || '',
-                city: order.city || '',
-                address: order.address || '',
-
                 shipping_method:
                     order.shipping_method ||
                     order.delivery_method ||
                     '',
 
-                shipping_cost:
-                    Number(order.shipping_cost || 0),
+                shipping_cost: Number(order.shipping_cost || 0),
 
                 payment_method: order.payment_method || '',
                 payment_status: order.payment_status || 'Pending',
 
-                deposit_percent:
-                    Number(order.deposit_percent || 0),
+                deposit_percent: Number(order.deposit_percent || 0),
 
-                deposit_amount:
-                    Number(
-                        order.deposit_amount ??
-                        order.deposit ??
-                        0
-                    ),
+                deposit_amount: Number(
+                    order.deposit_amount ??
+                    order.deposit ??
+                    0
+                ),
 
-                remaining_amount:
-                    Number(order.remaining_amount || 0),
+                remaining_amount: Number(order.remaining_amount || 0),
 
                 subtotal: Number(order.subtotal || 0),
 
-                sunBadgeFee:
-                    Number(order.sunbadge_fee ?? 0),
-
-                sunbadge_fee:
-                    Number(order.sunbadge_fee ?? 0),
+                sunBadgeFee: Number(order.sunbadge_fee || 0),
+                sunbadge_fee: Number(order.sunbadge_fee || 0),
 
                 discount: Number(order.discount || 0),
                 total: Number(order.total || 0),
 
-                items:
-                    Array.isArray(order.items)
-                        ? order.items
-                        : (
-                            Array.isArray(order.products)
-                                ? order.products
-                                : []
-                        ),
+                items: Array.isArray(order.items)
+                    ? order.items
+                    : (
+                        Array.isArray(order.products)
+                            ? order.products
+                            : []
+                    ),
 
                 notes:
                     order.notes ||
@@ -203,8 +238,8 @@ export default async function handler(req, res) {
         // CREATE NEW ORDER
         // POST /api/orders
         //
-        // أسعار المنتجات ورسوم صن بيدج من قاعدة البيانات.
-        // رسوم صن بيدج للقطعة الواحدة × الكمية المختارة.
+        // الأسعار والرسوم يؤخذان من قاعدة البيانات.
+        // رسوم صن بيدج = رسوم القطعة الواحدة × كمية السطر.
         // =====================================================
 
         if (req.method === 'POST') {
@@ -228,38 +263,6 @@ export default async function handler(req, res) {
                 });
             }
 
-            function getProductId(item) {
-                return String(
-                    item.productId ??
-                    item.product_id ??
-                    ''
-                ).trim();
-            }
-
-            function isSunBadgeItem(item) {
-                const upholsteryName =
-                    String(item.upholsteryName || '');
-
-                const upholsteryType =
-                    String(item.upholsteryExtraType || '')
-                        .toLowerCase()
-                        .trim();
-
-                const isJaguar =
-                    /جاكوار|jaguar/i.test(upholsteryName);
-
-                const isSunBadge =
-                    upholsteryType === 'sunbadge' ||
-                    /صن\s*بيدج|sun\s*badge|sunbedge/i
-                        .test(upholsteryName);
-
-                return isSunBadge && !isJaguar;
-            }
-
-            // -------------------------------------------------
-            // التحقق من معرفات المنتجات
-            // -------------------------------------------------
-
             const productIds = [
                 ...new Set(items.map(getProductId))
             ];
@@ -273,9 +276,9 @@ export default async function handler(req, res) {
                 });
             }
 
-            // -------------------------------------------------
-            // جلب أسعار المنتجات ورسوم صن بيدج من قاعدة البيانات
-            // -------------------------------------------------
+            // ---------------------------------------------
+            // جلب السعر ورسوم صن بيدج من قاعدة البيانات
+            // ---------------------------------------------
 
             const productsById = new Map();
 
@@ -303,18 +306,14 @@ export default async function handler(req, res) {
                     return res.status(400).json({
                         success: false,
                         error:
-                            'تعذر العثور على أحد المنتجات في قاعدة البيانات. ' +
-                            'راجع المنتجات الموجودة في السلة.'
+                            'تعذر العثور على أحد المنتجات في قاعدة البيانات.'
                     });
                 }
 
                 const product = productData[0];
                 const price = Number(product.price);
 
-                if (
-                    !Number.isFinite(price) ||
-                    price < 0
-                ) {
+                if (!Number.isFinite(price) || price < 0) {
                     return res.status(400).json({
                         success: false,
                         error:
@@ -322,13 +321,9 @@ export default async function handler(req, res) {
                     });
                 }
 
-                const rawFee = product.sunbadge_fee ?? 0;
-                const fee = Number(rawFee);
+                const fee = Number(product.sunbadge_fee ?? 0);
 
-                if (
-                    !Number.isFinite(fee) ||
-                    fee < 0
-                ) {
+                if (!Number.isFinite(fee) || fee < 0) {
                     return res.status(400).json({
                         success: false,
                         error:
@@ -343,15 +338,12 @@ export default async function handler(req, res) {
                 });
             }
 
-            // -------------------------------------------------
-            // إعادة حساب المنتجات والرسوم من قاعدة البيانات
-            //
-            // رسوم صن بيدج = رسوم القطعة × الكمية
-            // لا نمنع تكرار الرسوم إذا تكرر المنتج في سطر آخر.
-            // -------------------------------------------------
+            // ---------------------------------------------
+            // حساب أسعار المنتجات ورسوم صن بيدج
+            // ---------------------------------------------
 
             let subtotal = 0;
-            let submittedSunBadgeFee = 0;
+            let totalSunBadgeFee = 0;
 
             const savedItems = [];
 
@@ -362,29 +354,24 @@ export default async function handler(req, res) {
                 if (!product) {
                     return res.status(400).json({
                         success: false,
-                        error:
-                            'تعذر العثور على بيانات أحد المنتجات.'
+                        error: 'تعذر العثور على بيانات أحد المنتجات.'
                     });
                 }
 
-                const rawQty = Number(
-                    item.qty ?? item.quantity ?? 1
-                );
+                const qty = getItemQuantity(item);
 
-                if (
-                    !Number.isFinite(rawQty) ||
-                    rawQty < 1 ||
-                    !Number.isInteger(rawQty)
-                ) {
+                if (qty === null) {
                     return res.status(400).json({
                         success: false,
-                        error:
-                            'كمية أحد المنتجات غير صحيحة.'
+                        error: 'كمية أحد المنتجات غير صحيحة.'
                     });
                 }
 
+                // السعر الأساسي للقطعة، من قاعدة البيانات.
                 const unitPrice = product.price;
-                const itemSubtotal = unitPrice * rawQty;
+
+                // إجمالي أسعار المنتجات في هذا السطر.
+                const itemSubtotal = unitPrice * qty;
 
                 if (
                     !Number.isFinite(itemSubtotal) ||
@@ -392,37 +379,34 @@ export default async function handler(req, res) {
                 ) {
                     return res.status(400).json({
                         success: false,
-                        error:
-                            'تعذر حساب قيمة أحد المنتجات.'
+                        error: 'تعذر حساب قيمة أحد المنتجات.'
                     });
                 }
 
-                // رسوم صن بيدج للقطعة الواحدة من قاعدة البيانات.
-                // جاكوار لا تُفرض عليه رسوم صن بيدج.
+                // رسوم صن بيدج لا تُطبق على جاكوار.
                 const sunbadgeUnitFee =
                     isSunBadgeItem(item)
                         ? product.sunbadgeFee
                         : 0;
 
-                // ضرب رسوم القطعة الواحدة في الكمية.
-                const appliedFee =
-                    sunbadgeUnitFee * rawQty;
+                // الرسوم لكل قطعة مضروبة في كمية هذا السطر.
+                const sunbadgeLineFee =
+                    sunbadgeUnitFee * qty;
 
                 if (
-                    !Number.isFinite(appliedFee) ||
+                    !Number.isFinite(sunbadgeLineFee) ||
                     !Number.isFinite(
-                        submittedSunBadgeFee + appliedFee
+                        totalSunBadgeFee + sunbadgeLineFee
                     )
                 ) {
                     return res.status(400).json({
                         success: false,
-                        error:
-                            'تعذر حساب رسوم صن بيدج.'
+                        error: 'تعذر حساب رسوم صن بيدج.'
                     });
                 }
 
                 subtotal += itemSubtotal;
-                submittedSunBadgeFee += appliedFee;
+                totalSunBadgeFee += sunbadgeLineFee;
 
                 savedItems.push({
                     ...item,
@@ -430,27 +414,29 @@ export default async function handler(req, res) {
                     productId,
                     product_id: productId,
 
-                    qty: rawQty,
-                    quantity: rawQty,
+                    qty,
+                    quantity: qty,
 
-                    // السعر الأساسي المعتمد من قاعدة البيانات.
+                    // السعر الأساسي دون رسوم صن بيدج.
                     unitPrice,
                     price: unitPrice,
 
-                    // إجمالي المنتجات في السطر قبل رسوم صن بيدج.
+                    // مجموع سعر المنتجات في السطر.
                     itemSubtotal,
 
                     // رسوم القطعة الواحدة.
                     sunbadgeUnitFee,
+                    sunbadge_unit_fee: sunbadgeUnitFee,
 
-                    // إجمالي الرسوم لهذا السطر حسب الكمية.
-                    sunbadgeFee: appliedFee,
-                    sunbadge_fee: appliedFee,
+                    // إجمالي رسوم هذا السطر حسب الكمية.
+                    sunbadgeFee: sunbadgeLineFee,
+                    sunbadge_fee: sunbadgeLineFee,
+                    sunbadgeLineFee,
+                    sunbadge_line_fee: sunbadgeLineFee,
 
-                    // إجمالي السطر شامل رسوم صن بيدج.
-                    lineTotal: itemSubtotal + appliedFee,
+                    // إجمالي السطر شامل الرسوم.
+                    lineTotal: itemSubtotal + sunbadgeLineFee,
 
-                    // الاحتفاظ بنوع التنجيد المختار.
                     upholsteryExtraType:
                         isSunBadgeItem(item)
                             ? 'sunbadge'
@@ -461,19 +447,24 @@ export default async function handler(req, res) {
                 });
             }
 
-            // -------------------------------------------------
-            // حساب الشحن والخصم والإجمالي
-            // -------------------------------------------------
+            // ---------------------------------------------
+            // الشحن والخصم والإجمالي النهائي
+            // ---------------------------------------------
 
-            const shippingCost =
-                toNonNegativeNumber(order.shippingCost, 0);
+            const shippingCost = toNonNegativeNumber(
+                order.shippingCost ??
+                order.shipping_cost,
+                0
+            );
 
-            const requestedDiscount =
-                toNonNegativeNumber(order.discount, 0);
+            const requestedDiscount = toNonNegativeNumber(
+                order.discount,
+                0
+            );
 
             const beforeDiscount =
                 subtotal +
-                submittedSunBadgeFee +
+                totalSunBadgeFee +
                 shippingCost;
 
             const discount = Math.min(
@@ -487,7 +478,9 @@ export default async function handler(req, res) {
             );
 
             const rawDepositPercent = Number(
-                order.depositPercent ?? 30
+                order.depositPercent ??
+                order.deposit_percent ??
+                30
             );
 
             if (
@@ -497,7 +490,7 @@ export default async function handler(req, res) {
             ) {
                 return res.status(400).json({
                     success: false,
-                    error: 'نسبة العربون غير صحيحة'
+                    error: 'نسبة العربون غير صحيحة.'
                 });
             }
 
@@ -512,26 +505,49 @@ export default async function handler(req, res) {
                 total - depositAmount
             );
 
-            // -------------------------------------------------
+            // ---------------------------------------------
             // بيانات العميل
-            // -------------------------------------------------
+            // ---------------------------------------------
 
             const customer = order.customer || {};
 
-            const customerName =
-                String(customer.name || '').trim();
+            const customerName = String(
+                customer.name ??
+                order.customer_name ??
+                order.name ??
+                ''
+            ).trim();
 
-            const customerPhone =
-                String(customer.phone || '').trim();
+            const customerPhone = String(
+                customer.phone ??
+                order.phone ??
+                ''
+            ).trim();
 
-            const customerGov =
-                String(customer.gov || '').trim();
+            const customerWhatsapp = String(
+                customer.whatsapp ??
+                order.whatsapp ??
+                customerPhone
+            ).trim();
 
-            const customerCity =
-                String(customer.city || '').trim();
+            const customerGov = String(
+                customer.gov ??
+                customer.governorate ??
+                order.governorate ??
+                ''
+            ).trim();
 
-            const customerAddress =
-                String(customer.address || '').trim();
+            const customerCity = String(
+                customer.city ??
+                order.city ??
+                ''
+            ).trim();
+
+            const customerAddress = String(
+                customer.address ??
+                order.address ??
+                ''
+            ).trim();
 
             if (
                 !customerName ||
@@ -548,17 +564,19 @@ export default async function handler(req, res) {
                 });
             }
 
-            // -------------------------------------------------
-            // حفظ الطلب في Supabase
-            // -------------------------------------------------
+            // ---------------------------------------------
+            // تجهيز الطلب للحفظ
+            // ---------------------------------------------
 
             const insertPayload = {
                 id: String(order.id),
-                order_number: String(order.id),
+                order_number: String(
+                    order.order_number || order.id
+                ),
 
                 customer_name: customerName,
                 phone: customerPhone,
-                whatsapp: customerPhone,
+                whatsapp: customerWhatsapp,
 
                 governorate: customerGov,
                 city: customerCity,
@@ -568,38 +586,41 @@ export default async function handler(req, res) {
 
                 items: savedItems,
 
-                // إجمالي أسعار المنتجات قبل رسوم صن بيدج.
+                // مجموع المنتجات دون رسوم صن بيدج.
                 subtotal,
 
-                // رسوم صن بيدج لجميع القطع.
-                sunbadge_fee: submittedSunBadgeFee,
+                // مجموع رسوم صن بيدج لكل القطع.
+                sunbadge_fee: totalSunBadgeFee,
 
                 shipping_cost: shippingCost,
-
                 discount,
 
-                // الإجمالي شامل رسوم صن بيدج والشحن والخصم.
+                // الإجمالي النهائي بعد الشحن والخصم.
                 total,
 
                 shipping_method:
-                    order.shippingMethod || '',
+                    order.shippingMethod ??
+                    order.shipping_method ??
+                    '',
 
                 payment_method:
-                    order.paymentMethod ||
+                    order.paymentMethod ??
+                    order.payment_method ??
                     'Visa / Mastercard',
 
                 deposit_percent: depositPercent,
-
-                // العربون محسوب من الإجمالي النهائي.
                 deposit_amount: depositAmount,
-
                 remaining_amount: remainingAmount,
 
                 payment_status:
-                    order.paymentStatus || 'Pending',
+                    order.paymentStatus ??
+                    order.payment_status ??
+                    'Pending',
 
                 payment_proof_url:
-                    order.paymentProofUrl || '',
+                    order.paymentProofUrl ??
+                    order.payment_proof_url ??
+                    '',
 
                 status: order.status || 'New'
             };
@@ -629,7 +650,7 @@ export default async function handler(req, res) {
                     error:
                         insertedData?.message ||
                         insertedData?.error ||
-                        'فشل حفظ الطلب'
+                        'فشل حفظ الطلب.'
                 });
             }
 
@@ -637,11 +658,11 @@ export default async function handler(req, res) {
                 ? insertedData[0]
                 : insertedData;
 
-            if (!savedOrder || !savedOrder.id) {
+            if (!savedOrder?.id) {
                 return res.status(500).json({
                     success: false,
                     error:
-                        'تم إرسال الطلب لكن لم تصل بيانات الطلب المحفوظ.'
+                        'لم تصل بيانات الطلب المحفوظ من قاعدة البيانات.'
                 });
             }
 
@@ -652,9 +673,13 @@ export default async function handler(req, res) {
         }
 
         // =====================================================
-        // ADMIN-ONLY OPERATIONS
+        // ADMIN OPERATIONS
         // =====================================================
 
+        // ملاحظة أمنية:
+        // وجود token وحده لا يثبت صحته.
+        // يجب التحقق من التوكن باستخدام آلية المصادقة الفعلية
+        // قبل السماح بعمليات GET وPUT وDELETE الخاصة بالأدمن.
         if (!token) {
             return res.status(401).json({
                 success: false,
@@ -685,7 +710,7 @@ export default async function handler(req, res) {
                     error:
                         data?.message ||
                         data?.error ||
-                        'فشل جلب الطلبات'
+                        'فشل جلب الطلبات.'
                 });
             }
 
@@ -707,7 +732,7 @@ export default async function handler(req, res) {
             if (!orderId) {
                 return res.status(400).json({
                     success: false,
-                    error: 'رقم الطلب غير موجود'
+                    error: 'رقم الطلب غير موجود.'
                 });
             }
 
@@ -735,27 +760,26 @@ export default async function handler(req, res) {
                     error:
                         data?.message ||
                         data?.error ||
-                        'فشل حذف الطلب من قاعدة البيانات'
+                        'فشل حذف الطلب من قاعدة البيانات.'
                 });
             }
 
             if (!Array.isArray(data) || data.length === 0) {
                 return res.status(404).json({
                     success: false,
-                    error:
-                        'الطلب غير موجود في قاعدة البيانات'
+                    error: 'الطلب غير موجود في قاعدة البيانات.'
                 });
             }
 
             return res.status(200).json({
                 success: true,
-                message: 'تم حذف الطلب بنجاح',
+                message: 'تم حذف الطلب بنجاح.',
                 deletedOrderId: orderId
             });
         }
 
         // =====================================================
-        // UPDATE ORDER STATUS OR PAYMENT STATUS
+        // UPDATE ORDER STATUS / PAYMENT STATUS
         // =====================================================
 
         if (req.method === 'PUT') {
@@ -766,7 +790,7 @@ export default async function handler(req, res) {
             if (!orderId) {
                 return res.status(400).json({
                     success: false,
-                    error: 'رقم الطلب غير موجود'
+                    error: 'رقم الطلب غير موجود.'
                 });
             }
 
@@ -785,7 +809,7 @@ export default async function handler(req, res) {
                 if (!allowedStatuses.includes(body.status)) {
                     return res.status(400).json({
                         success: false,
-                        error: 'حالة الطلب غير صحيحة'
+                        error: 'حالة الطلب غير صحيحة.'
                     });
                 }
 
@@ -808,19 +832,18 @@ export default async function handler(req, res) {
                 ) {
                     return res.status(400).json({
                         success: false,
-                        error: 'حالة الدفع غير صحيحة'
+                        error: 'حالة الدفع غير صحيحة.'
                     });
                 }
 
-                updateData.payment_status =
-                    body.paymentStatus;
+                updateData.payment_status = body.paymentStatus;
             }
 
             if (Object.keys(updateData).length === 0) {
                 return res.status(400).json({
                     success: false,
                     error:
-                        'لم يتم إرسال حالة الطلب أو حالة الدفع'
+                        'لم يتم إرسال حالة الطلب أو حالة الدفع.'
                 });
             }
 
@@ -849,15 +872,14 @@ export default async function handler(req, res) {
                     error:
                         data?.message ||
                         data?.error ||
-                        'فشل تحديث الطلب'
+                        'فشل تحديث الطلب.'
                 });
             }
 
             if (!Array.isArray(data) || data.length === 0) {
                 return res.status(404).json({
                     success: false,
-                    error:
-                        'الطلب غير موجود في قاعدة البيانات'
+                    error: 'الطلب غير موجود في قاعدة البيانات.'
                 });
             }
 
@@ -866,10 +888,6 @@ export default async function handler(req, res) {
                 order: data[0]
             });
         }
-
-        // =====================================================
-        // METHOD NOT ALLOWED
-        // =====================================================
 
         return res.status(405).json({
             success: false,
@@ -883,7 +901,7 @@ export default async function handler(req, res) {
             success: false,
             error:
                 error?.message ||
-                'حدث خطأ في نظام الطلبات'
+                'حدث خطأ في نظام الطلبات.'
         });
     }
 }
