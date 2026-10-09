@@ -3569,23 +3569,23 @@ function confirmAddToCart(goToCheckout = false) {
     const isJaguar =
         /جاكوار|jaguar/i.test(upholsteryName);
 
-    // رسوم الصن بيدج الافتراضية 1000 جنيه للوحدة
-    const rawSunbadgeFee = Number(
-        p.sunbadge_fee ??
-        p.sunbadgeFee ??
-        1000
-    );
+// رسوم صن بيدج الافتراضية صفر
+const rawSunbadgeFee = Number(
+    p.sunbadge_fee ??
+    p.sunbadgeFee ??
+    0
+);
 
-    const sunbadgeFee =
-        Number.isFinite(rawSunbadgeFee) && rawSunbadgeFee >= 0
-            ? rawSunbadgeFee
-            : 1000;
+const sunbadgeFee =
+    Number.isFinite(rawSunbadgeFee) && rawSunbadgeFee >= 0
+        ? rawSunbadgeFee
+        : 0;
 
-    // الجاكوار بدون رسوم، والصن بيدج برسوم لا تقل عن 1000 جنيه
-    const appliedSunbadgeFee =
-        isSunBadge && !isJaguar
-            ? (sunbadgeFee > 0 ? sunbadgeFee : 1000)
-            : 0;
+// لا توجد رسوم تلقائية؛ تُستخدم فقط القيمة المحفوظة للمنتج
+const appliedSunbadgeFee =
+    isSunBadge && !isJaguar
+        ? sunbadgeFee
+        : 0;
 
     const qty = Math.max(1, Number(customizerQty) || 1);
 
