@@ -4385,262 +4385,332 @@ window.updateDepositAmount = updateDepositAmount;
 
 
         
+
 async function submitDepositOrder() {
-try {
-if (!Array.isArray(currentCart) || currentCart.length === 0) {
-alert('سلة الشراء فارغة.');
-return;
-}
+    try {
+        if (!Array.isArray(currentCart) || currentCart.length === 0) {
+            alert('سلة الشراء فارغة.');
+            return;
+        }
 
-    const name = document.getElementById('chk-name')?.value?.trim() || '';
-    const phone = document.getElementById('chk-phone')?.value?.trim() || '';
-    const gov = document.getElementById('chk-gov')?.value?.trim() || '';
-    const city = document.getElementById('chk-city')?.value?.trim() || '';
-    const address = document.getElementById('chk-address')?.value?.trim() || '';
+        const name =
+            document.getElementById('chk-name')?.value?.trim() || '';
 
-    if (!name || !phone || !gov || !city || !address) {
-        alert('من فضلك أكمل بيانات العميل والعنوان أولاً.');
-        return;
-    }
+        const phone =
+            document.getElementById('chk-phone')?.value?.trim() || '';
 
-    const shipVal = document.querySelector(
-        'input[name="ship_option"]:checked'
-    )?.value;
+        const gov =
+            document.getElementById('chk-gov')?.value?.trim() || '';
 
-    const shippingOptions = Array.isArray(appState.shippingOptions)
-        ? appState.shippingOptions
-        : [];
+        const city =
+            document.getElementById('chk-city')?.value?.trim() || '';
 
-    const selectedShip = shippingOptions.find(
-        s => String(s.id) === String(shipVal)
-    );
+        const address =
+            document.getElementById('chk-address')?.value?.trim() || '';
 
-    if (!selectedShip) {
-        alert('من فضلك اختر طريقة الشحن.');
-        return;
-    }
+        if (!name || !phone || !gov || !city || !address) {
+            alert('من فضلك أكمل بيانات العميل والعنوان أولاً.');
+            return;
+        }
 
-    let subtotal = 0;
-    let sunBadgeFee = 0;
+        const shipVal = document.querySelector(
+            'input[name="ship_option"]:checked'
+        )?.value;
 
-    // منع تكرار رسوم صن بيدج لنفس المنتج
-    const chargedSunBadgeProducts = new Set();
+        const shippingOptions = Array.isArray(appState.shippingOptions)
+            ? appState.shippingOptions
+            : [];
 
-    const orderItems = currentCart.map(item => {
-        const qty = Math.max(1, Number(item.qty) || 1);
-
-        const rawPrice = Number(
-            item.unitPrice ?? item.price ?? 0
+        const selectedShip = shippingOptions.find(
+            s => String(s.id) === String(shipVal)
         );
 
-        const unitPrice =
-            Number.isFinite(rawPrice) && rawPrice >= 0
-                ? rawPrice
+        if (!selectedShip) {
+            alert('من فضلك اختر طريقة الشحن.');
+            return;
+        }
+
+        const orderItems = currentCart.map(item => {
+            const qty = Math.max(1, Number(item.qty) || 1);
+
+            const upholsteryName =
+                String(item.upholsteryName || '');
+
+            const upholsteryType =
+                String(item.upholsteryExtraType || '')
+                    .toLowerCase()
+                    .trim();
+
+            const isJaguar =
+                /جاكوار|jaguar/i.test(upholsteryName);
+
+            const isSunBadge =
+                !isJaguar &&
+                (
+                    upholsteryType === 'sunbadge' ||
+                    /صن\s*بيدج|sun\s*badge|sunbedge/i
+                        .test(upholsteryName)
+                );
+
+            const productId = String(
+                item.productId ??
+                item.product_id ??
+                item.id ??
+                ''
+            ).trim();
+
+            if (!productId) {
+                throw new Error(
+                    'أحد المنتجات لا يحتوي على معرف. أفرغ السلة وأضف المنتج مرة أخرى.'
+                );
+            }
+
+            return {
+                ...item,
+                productId,
+                product_id: productId,
+                qty,
+                upholsteryExtraType: isSunBadge
+                    ? 'sunbadge'
+                    : (item.upholsteryExtraType || 'none'),
+
+                // الخادم هو المسؤول عن تحديد الرسوم المعتمدة
+                sunbadgeFee: 0,
+                sunbadge_fee: 0
+            };
+        });
+
+        const rawShippingCost = Number(selectedShip.price ?? 0);
+
+        const shippingCost =
+            Number.isFinite(rawShippingCost) && rawShippingCost >= 0
+                ? rawShippingCost
                 : 0;
 
-        const itemSubtotal = unitPrice * qty;
-        subtotal += itemSubtotal;
-
-        const upholsteryName = String(
-            item.upholsteryName || ''
+        const configuredPercent = Number(
+            appState.depositPercent ?? 30
         );
 
-        const upholsteryType = String(
-            item.upholsteryExtraType || ''
-        ).toLowerCase();
+        const depositPercent =
+            Number.isFinite(configuredPercent) &&
+            configuredPercent >= 0 &&
+            configuredPercent <= 100
+                ? configuredPercent
+                : 30;
 
-        const isSunBadge =
-            upholsteryType === 'sunbadge' ||
-            /صن\s*بيدج|sun\s*badge|sunbedge/i.test(upholsteryName);
+        // السعر المرسل هنا ليس المرجع النهائي؛ الخادم يعيد الحساب.
+        const newOrder = {
+            id: 'ORD-' + Date.now() + '-' +
+                Math.random().toString(36).slice(2, 7),
 
-        const isJaguar =
-            /جاكوار|jaguar/i.test(upholsteryName);
+            date: new Date().toISOString().split('T')[0],
 
-        const productId = String(
-            item.productId ??
-            item.id ??
-            item.productTitle ??
-            item.cartItemId ??
-            ''
-        );
+            customer: {
+                name,
+                phone,
+                gov,
+                city,
+                address
+            },
 
-        let itemSunBadgeFee = 0;
+            items: orderItems,
 
-        // الرسوم مرة واحدة فقط للمنتج إذا اختير له صن بيدج
-        if (
-            isSunBadge &&
-            !isJaguar &&
-            productId &&
-            !chargedSunBadgeProducts.has(productId)
-        ) {
-            chargedSunBadgeProducts.add(productId);
+            // لا نثق في المجموع القادم من المتصفح.
+            // /api/orders يعيد حساب subtotal من قاعدة البيانات.
+            subtotal: 0,
+            sunBadgeFee: 0,
+            sunbadge_fee: 0,
 
-            const rawFee = Number(
-                item.sunbadgeFee ??
-                item.sunbadge_fee ??
-                0
-            );
+            shippingCost,
 
-            itemSunBadgeFee =
-                Number.isFinite(rawFee) && rawFee > 0
-                    ? rawFee
-                    : 0;
-
-            sunBadgeFee += itemSunBadgeFee;
-        }
-
-        return {
-            ...item,
-            qty,
-            unitPrice,
-
-            // الرسوم تظهر على سطر واحد فقط لكل منتج
-            sunbadgeFee: itemSunBadgeFee,
-            sunbadge_fee: itemSunBadgeFee,
-            sunBadgeTotalFee: itemSunBadgeFee,
-
-            lineSubtotal: itemSubtotal,
-            lineTotal: itemSubtotal + itemSunBadgeFee
+            shippingMethod: selectedShip.name || '',
+            paymentMethod: 'Deposit',
+            depositPercent,
+            paymentStatus: 'Pending',
+            paymentProofUrl: '',
+            status: 'New'
         };
-    });
 
-    const rawShippingCost = Number(selectedShip.price ?? 0);
+        // حفظ الطلب في قاعدة البيانات
+        const response = await fetch('/api/orders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(newOrder)
+        });
 
-    const shippingCost =
-        Number.isFinite(rawShippingCost) && rawShippingCost > 0
-            ? rawShippingCost
-            : 0;
+        const result = await response.json();
 
-    // الإجمالي النهائي شامل رسوم صن بيدج والشحن
-    const cartTotal = subtotal + sunBadgeFee;
-    const total = cartTotal + shippingCost;
-
-    const configuredPercent = Number(
-        appState.depositPercent ?? 30
-    );
-
-    const depositPercent =
-        Number.isFinite(configuredPercent) &&
-        configuredPercent >= 0 &&
-        configuredPercent <= 100
-            ? configuredPercent
-            : 30;
-
-    const depositAmount = Math.round(
-        total * depositPercent / 100
-    );
-
-    const remainingAmount = Math.max(
-        total - depositAmount,
-        0
-    );
-
-    const newOrder = {
-        id: 'ORD-' + Math.floor(10000 + Math.random() * 90000),
-        date: new Date().toISOString().split('T')[0],
-
-        customer: {
-            name,
-            phone,
-            gov,
-            city,
-            address
-        },
-
-        items: orderItems,
-        subtotal,
-        sunBadgeFee,
-        sunbadge_fee: sunBadgeFee,
-        shippingCost,
-        total,
-
-        shippingMethod: selectedShip.name || '',
-        paymentMethod: 'Deposit',
-        depositPercent,
-        depositAmount,
-        remainingAmount,
-        paymentStatus: 'Pending',
-        paymentProofUrl: '',
-        status: 'New'
-    };
-
-    // تحديث القيم المستخدمة في بقية واجهة الموقع
-    window.currentCartSubtotal = subtotal;
-    window.currentSunBadgeFee = sunBadgeFee;
-    window.currentShippingCost = shippingCost;
-    window.currentCartTotal = cartTotal;
-    window.currentCheckoutTotal = total;
-    window.currentDepositAmount = depositAmount;
-    window.currentRemainingAmount = remainingAmount;
-
-    // تسجيل الطلب في قاعدة البيانات
-    const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(newOrder)
-    });
-
-    const result = await response.json();
-
-    if (!response.ok || !result.success) {
-        throw new Error(result.error || 'فشل تسجيل الطلب');
-    }
-
-    // إرسال إشعار واتساب
-    try {
-        const whatsappResponse = await fetch(
-            '/api/send-whatsapp-order',
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(newOrder)
-            }
-        );
-
-        const whatsappResult = await whatsappResponse.json();
-
-        if (!whatsappResponse.ok || !whatsappResult.success) {
-            console.error(
-                'WHATSAPP NOTIFICATION ERROR:',
-                whatsappResult
+        if (!response.ok || !result.success || !result.order) {
+            throw new Error(
+                result.error || 'فشل تسجيل الطلب'
             );
         }
-    } catch (whatsappError) {
+
+        // استخدام الطلب الذي رجع من قاعدة البيانات
+        const savedOrder = result.order;
+
+        // تحويل أسماء الحقول من قاعدة البيانات إلى الصيغة
+        // التي تتوقعها صفحة الشكر وإشعار واتساب.
+        const confirmedOrder = {
+            ...newOrder,
+            ...savedOrder,
+
+            id: savedOrder.id || newOrder.id,
+
+            customer: {
+                ...newOrder.customer,
+                name:
+                    savedOrder.customer_name ??
+                    newOrder.customer.name,
+
+                phone:
+                    savedOrder.phone ??
+                    newOrder.customer.phone,
+
+                gov:
+                    savedOrder.governorate ??
+                    newOrder.customer.gov,
+
+                city:
+                    savedOrder.city ??
+                    newOrder.customer.city,
+
+                address:
+                    savedOrder.address ??
+                    newOrder.customer.address
+            },
+
+            items: Array.isArray(savedOrder.items)
+                ? savedOrder.items
+                : orderItems,
+
+            subtotal: Number(savedOrder.subtotal ?? 0),
+
+            sunBadgeFee: Number(
+                savedOrder.sunbadge_fee ?? 0
+            ),
+
+            sunbadge_fee: Number(
+                savedOrder.sunbadge_fee ?? 0
+            ),
+
+            shippingCost: Number(
+                savedOrder.shipping_cost ?? shippingCost
+            ),
+
+            total: Number(savedOrder.total ?? 0),
+
+            shippingMethod:
+                savedOrder.shipping_method ??
+                newOrder.shippingMethod,
+
+            paymentMethod:
+                savedOrder.payment_method ??
+                newOrder.paymentMethod,
+
+            depositPercent: Number(
+                savedOrder.deposit_percent ??
+                depositPercent
+            ),
+
+            depositAmount: Number(
+                savedOrder.deposit_amount ?? 0
+            ),
+
+            remainingAmount: Number(
+                savedOrder.remaining_amount ?? 0
+            ),
+
+            paymentStatus:
+                savedOrder.payment_status ?? 'Pending',
+
+            status:
+                savedOrder.status ?? 'New'
+        };
+
+        // تحديث القيم المشتركة في واجهة الموقع
+        window.currentCartSubtotal =
+            confirmedOrder.subtotal;
+
+        window.currentSunBadgeFee =
+            confirmedOrder.sunBadgeFee;
+
+        window.currentShippingCost =
+            confirmedOrder.shippingCost;
+
+        window.currentCartTotal =
+            confirmedOrder.subtotal +
+            confirmedOrder.sunBadgeFee;
+
+        window.currentCheckoutTotal =
+            confirmedOrder.total;
+
+        window.currentDepositAmount =
+            confirmedOrder.depositAmount;
+
+        window.currentRemainingAmount =
+            confirmedOrder.remainingAmount;
+
+        // إرسال نفس بيانات الطلب المعتمدة إلى واتساب
+        try {
+            const whatsappResponse = await fetch(
+                '/api/send-whatsapp-order',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(confirmedOrder)
+                }
+            );
+
+            const whatsappResult =
+                await whatsappResponse.json();
+
+            if (
+                !whatsappResponse.ok ||
+                !whatsappResult.success
+            ) {
+                console.error(
+                    'WHATSAPP NOTIFICATION ERROR:',
+                    whatsappResult
+                );
+            }
+        } catch (whatsappError) {
+            console.error(
+                'WHATSAPP NOTIFICATION FAILED:',
+                whatsappError
+            );
+        }
+
+        // حفظ نفس الطلب المعتمد لصفحة الشكر
+        sessionStorage.setItem(
+            'lastOrder',
+            JSON.stringify(confirmedOrder)
+        );
+
+        // تفريغ السلة بعد نجاح حفظ الطلب
+        currentCart = [];
+        localStorage.removeItem('cart');
+
+        window.location.href = '/thank-you.html';
+
+    } catch (error) {
         console.error(
-            'WHATSAPP NOTIFICATION FAILED:',
-            whatsappError
+            'SUBMIT DEPOSIT ORDER ERROR:',
+            error
+        );
+
+        alert(
+            'حدث خطأ أثناء تسجيل الطلب:\n' +
+            (error?.message || 'خطأ غير معروف')
         );
     }
-
-    // حفظ الطلب لصفحة الشكر
-    sessionStorage.setItem(
-        'lastOrder',
-        JSON.stringify(newOrder)
-    );
-
-    // تفريغ السلة
-    currentCart = [];
-    localStorage.removeItem('cart');
-
-    window.location.href = '/thank-you.html';
-
-} catch (error) {
-    console.error('SUBMIT DEPOSIT ORDER ERROR:', error);
-
-    alert(
-        'حدث خطأ أثناء تسجيل الطلب:\n' +
-        error.message
-    );
-}
-
 }
 
 window.submitDepositOrder = submitDepositOrder;
-
      
 function closeCheckoutModal() {
     document
