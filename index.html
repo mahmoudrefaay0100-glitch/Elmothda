@@ -4018,70 +4018,93 @@ function openCheckoutModal() {
 
 window.openCheckoutModal = openCheckoutModal;
         
- function updateTransferAmount() {
-const amountElement = document.getElementById('transfer-amount');
-if (!amountElement) return;
 
+function updateTransferAmount() {
+    const amountElement = document.getElementById('transfer-amount');
+    if (!amountElement) return;
 
-// إجمالي أسعار المنتجات
-const subtotal = currentCart.reduce((sum, item) => {
-    const price = Number(item.unitPrice ?? item.price ?? 0);
-    const qty = Number(item.qty ?? 1);
-    return sum + price * qty;
-}, 0);
+    let subtotal = 0;
+    let sunBadgeFee = 0;
 
-// اكتشاف صن بيدج وإضافة رسوم واحدة فقط للطلب كله
-const sunBadgeSelected = currentCart.some(item => {
-    const type = String(item.upholsteryExtraType || '').toLowerCase();
-    const name = String(item.upholsteryName || '');
+    // حساب أسعار المنتجات ورسوم صن بيدج لكل منتج وكمية
+    (Array.isArray(currentCart) ? currentCart : []).forEach(item => {
+        const qty = Math.max(1, Number(item.qty) || 1);
 
-    return type === 'sunbadge' ||
-        /صن\s*بيدج|sun\s*badge|sunbedge/i.test(name);
-});
+        const unitPrice = Number(
+            item.unitPrice ?? item.price ?? 0
+        ) || 0;
 
-const sunBadgeFee = sunBadgeSelected
-    ? Math.max(
-        0,
-        Number(
-            product.sunbadge_fee ??
-            product.sunbadgeFee ??
+        subtotal += unitPrice * qty;
+
+        const upholsteryName = String(
+            item.upholsteryName || ''
+        );
+
+        const upholsteryType = String(
+            item.upholsteryExtraType || ''
+        ).toLowerCase();
+
+        const isSunBadge =
+            upholsteryType === 'sunbadge' ||
+            /صن\s*بيدج|sun\s*badge|sunbedge/i.test(upholsteryName);
+
+        const isJaguar =
+            /جاكوار|jaguar/i.test(upholsteryName);
+
+        const rawFee = Number(
+            item.sunbadgeFee ??
+            item.sunbadge_fee ??
             0
-        ) || 0
-    )
-    : 0;
-     
-// تكلفة الشحن
-const selectedShipping = document.querySelector(
-    'input[name="ship_option"]:checked'
-);
+        );
 
-const shippingOptions = Array.isArray(appState.shippingOptions)
-    ? appState.shippingOptions
-    : [];
+        // استخدام الرسوم المحفوظة مع المنتج فقط
+        if (
+            isSunBadge &&
+            !isJaguar &&
+            Number.isFinite(rawFee) &&
+            rawFee > 0
+        ) {
+            sunBadgeFee += rawFee * qty;
+        }
+    });
 
-const shippingOption = selectedShipping
-    ? shippingOptions.find(
-        option => String(option.id) === String(selectedShipping.value)
-    )
-    : null;
+    // حساب تكلفة الشحن المختارة
+    const selectedShipping = document.querySelector(
+        'input[name="ship_option"]:checked'
+    );
 
-const shippingCost = Number(shippingOption?.price || 0);
+    const shippingOptions = Array.isArray(appState.shippingOptions)
+        ? appState.shippingOptions
+        : [];
 
-// الإجمالي النهائي
-const total = subtotal + sunBadgeFee + shippingCost;
+    const shippingOption = selectedShipping
+        ? shippingOptions.find(
+            option =>
+                String(option.id) ===
+                String(selectedShipping.value)
+        )
+        : null;
 
-amountElement.textContent = `${total.toLocaleString('ar-EG')} ج.م`;
+    const shippingCost = Math.max(
+        0,
+        Number(shippingOption?.price || 0)
+    );
 
-// مشاركة نفس الحساب مع بقية أجزاء الدفع
-window.currentCartSubtotal = subtotal;
-window.currentSunBadgeFee = sunBadgeFee;
-window.currentShippingCost = shippingCost;
-window.currentCheckoutTotal = total;
+    // الإجمالي النهائي دون أي رسوم تلقائية
+    const total = subtotal + sunBadgeFee + shippingCost;
 
+    amountElement.textContent =
+        `${total.toLocaleString('ar-EG')} ج.م`;
+
+    // توحيد القيم المستخدمة في الدفع
+    window.currentCartSubtotal = subtotal;
+    window.currentSunBadgeFee = sunBadgeFee;
+    window.currentShippingCost = shippingCost;
+    window.currentCheckoutTotal = total;
+    window.currentCartTotal = subtotal + sunBadgeFee;
 }
 
 window.updateTransferAmount = updateTransferAmount;
-
 
         function handlePaymentMethodChange() {
 
@@ -9686,38 +9709,30 @@ async function saveProductFromEditor(e) {
             );
         }
 
-       // رسوم صن بيدج الافتراضية للمنتج الجديد: صفر جنيه
+
+
+ // قراءة رسوم صن بيدج يدويًا
 const feeInput = document.getElementById(
     'product-editor-sunbadge-fee'
 );
 
-if (feeInput) {
-    feeInput.value = 0;
-}
-
-// حساب رسوم صن بيدج
-let sunbadgeFee;
+let sunbadgeFee = 0;
 
 if (feeInput && feeInput.value.trim() !== '') {
     sunbadgeFee = Number(feeInput.value);
-} else if (isEditing) {
-    sunbadgeFee = Number(
-        oldProduct.sunbadge_fee ??
-        oldProduct.sunbadgeFee ??
-        0
-    );
-} else {
-    sunbadgeFee = 0;
 }
 
 // التحقق من صحة الرسوم
-if (!Number.isFinite(sunbadgeFee) || sunbadgeFee < 0) {
+if (
+    !Number.isFinite(sunbadgeFee) ||
+    sunbadgeFee < 0
+) {
     throw new Error(
-        'اكتب رسوم صن بيدج صحيحة، أو اكتب 0 بدون رسوم.'
+        'اكتب رسوم صن بيدج صحيحة، أو اترك الخانة فارغة بدون رسوم.'
     );
 }
 
-// تجهيز بيانات المنتج مرة واحدة فقط
+// تجهيز بيانات المنتج
 const productData = {
     name: document
         .getElementById('product-editor-title')
@@ -9737,47 +9752,44 @@ const productData = {
 
     sunbadge_fee: sunbadgeFee,
 
+    visible: document
+        .getElementById('product-editor-visible').checked,
 
+    featured: document
+        .getElementById('product-editor-featured').checked
+};
 
-            // حفظ الرسوم باسم العمود المستخدم في قاعدة البيانات
-            sunbadge_fee: sunbadgeFee,
+// التحقق من بيانات المنتج
+if (!productData.name) {
+    throw new Error('اكتب اسم المنتج أولاً.');
+}
 
-            visible: document
-                .getElementById('product-editor-visible').checked,
+if (!productData.category) {
+    throw new Error('اختار قسم المنتج أولاً.');
+}
 
-            featured: document
-                .getElementById('product-editor-featured').checked
-        };
+if (productData.price <= 0) {
+    throw new Error('اكتب سعرًا صحيحًا للمنتج.');
+}
 
-        if (!productData.name) {
-            throw new Error('اكتب اسم المنتج أولاً.');
-        }
+// تجهيز المنتج للتعديل أو الإضافة
+if (isEditing) {
+    productData.id = editingProductId;
 
-        if (!productData.category) {
-            throw new Error('اختار قسم المنتج أولاً.');
-        }
+    productData.image_url =
+        uploadedImage ||
+        oldProduct.image_url ||
+        oldProduct.imageUrl ||
+        '';
+} else {
+    productData.id =
+        'prod-' +
+        Date.now() +
+        '-' +
+        Math.random().toString(36).substring(2, 8);
 
-        if (productData.price <= 0) {
-            throw new Error('اكتب سعرًا صحيحًا للمنتج.');
-        }
-
-        if (isEditing) {
-            productData.id = editingProductId;
-
-            productData.image_url =
-                uploadedImage ||
-                oldProduct.image_url ||
-                oldProduct.imageUrl ||
-                '';
-        } else {
-            productData.id =
-                'prod-' +
-                Date.now() +
-                '-' +
-                Math.random().toString(36).substring(2, 8);
-
-            productData.image_url = uploadedImage;
-        }
+    productData.image_url = uploadedImage;
+}
 
         // حفظ المنتج في قاعدة البيانات
         const response = await fetch('/api/products', {
