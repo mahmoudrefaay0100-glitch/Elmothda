@@ -1,3 +1,4 @@
+
 export default async function handler(req, res) {
     try {
         const SUPABASE_URL =
@@ -19,10 +20,6 @@ export default async function handler(req, res) {
             'Content-Type': 'application/json'
         };
 
-        // =====================================================
-        // ADMIN AUTH TOKEN
-        // =====================================================
-
         const authHeader =
             req.headers.authorization ||
             req.headers.Authorization ||
@@ -34,10 +31,6 @@ export default async function handler(req, res) {
         const token =
             adminToken ||
             authHeader.replace(/^Bearer\s+/i, '').trim();
-
-        // =====================================================
-        // HELPERS
-        // =====================================================
 
         function toNonNegativeNumber(value, fallback = 0) {
             if (
@@ -63,6 +56,26 @@ export default async function handler(req, res) {
             }
         }
 
+        async function getSupabaseJson(url, options = {}) {
+            const response = await fetch(url, {
+                ...options,
+                headers: {
+                    ...supabaseHeaders,
+                    ...(options.headers || {})
+                },
+                cache: 'no-store'
+            });
+
+            const text = await response.text();
+            const data = parseJson(text, null);
+
+            return {
+                response,
+                data,
+                text
+            };
+        }
+
         // =====================================================
         // PUBLIC ORDER TRACKING
         // GET /api/orders?track=ORDER_ID
@@ -82,23 +95,18 @@ export default async function handler(req, res) {
                 });
             }
 
-            const supabaseUrl =
+            const url =
                 `${SUPABASE_URL}/rest/v1/orders` +
                 `?id=eq.${encodeURIComponent(trackId)}` +
                 '&select=*';
 
-            const orderResponse = await fetch(supabaseUrl, {
-                method: 'GET',
-                headers: supabaseHeaders,
-                cache: 'no-store'
-            });
-
-            const orders = parseJson(
-                await orderResponse.text()
-            );
+            const {
+                response,
+                data: orders
+            } = await getSupabaseJson(url);
 
             if (
-                !orderResponse.ok ||
+                !response.ok ||
                 !Array.isArray(orders) ||
                 orders.length === 0
             ) {
@@ -112,14 +120,9 @@ export default async function handler(req, res) {
 
             const publicOrder = {
                 id: order.id,
-
-                order_number:
-                    order.order_number || order.id,
-
+                order_number: order.order_number || order.id,
                 status: order.status || 'New',
-
                 created_at: order.created_at || null,
-
                 updated_at: order.updated_at || null,
 
                 customer_name:
@@ -138,9 +141,7 @@ export default async function handler(req, res) {
                     '',
 
                 governorate: order.governorate || '',
-
                 city: order.city || '',
-
                 address: order.address || '',
 
                 shipping_method:
@@ -151,11 +152,8 @@ export default async function handler(req, res) {
                 shipping_cost:
                     Number(order.shipping_cost || 0),
 
-                payment_method:
-                    order.payment_method || '',
-
-                payment_status:
-                    order.payment_status || 'Pending',
+                payment_method: order.payment_method || '',
+                payment_status: order.payment_status || 'Pending',
 
                 deposit_percent:
                     Number(order.deposit_percent || 0),
@@ -170,25 +168,16 @@ export default async function handler(req, res) {
                 remaining_amount:
                     Number(order.remaining_amount || 0),
 
-                subtotal:
-                    Number(order.subtotal || 0),
+                subtotal: Number(order.subtotal || 0),
 
                 sunBadgeFee:
-                    Number(
-                        order.sunbadge_fee ??
-                        order.sunBadgeFee ??
-                        0
-                    ),
+                    Number(order.sunbadge_fee ?? 0),
 
                 sunbadge_fee:
-                    Number(
-                        order.sunbadge_fee ??
-                        order.sunBadgeFee ??
-                        0
-                    ),
+                    Number(order.sunbadge_fee ?? 0),
 
-                total:
-                    Number(order.total || 0),
+                discount: Number(order.discount || 0),
+                total: Number(order.total || 0),
 
                 items:
                     Array.isArray(order.items)
@@ -215,10 +204,8 @@ export default async function handler(req, res) {
         // CREATE NEW ORDER
         // POST /api/orders
         //
-        // رسوم صن بيدج:
-        // - تُقرأ من قاعدة بيانات المنتجات.
-        // - تُضاف مرة واحدة لكل منتج مختلف.
-        // - لا تُضرب في كمية المنتج.
+        // أسعار المنتجات ورسوم صن بيدج من قاعدة البيانات.
+        // رسوم صن بيدج مرة واحدة لكل منتج مختلف في الطلب.
         // =====================================================
 
         if (req.method === 'POST') {
@@ -242,9 +229,13 @@ export default async function handler(req, res) {
                 });
             }
 
-            // -------------------------------------------------
-            // تحديد اختيار صن بيدج
-            // -------------------------------------------------
+            function getProductId(item) {
+                return String(
+                    item.productId ??
+                    item.product_id ??
+                    ''
+                ).trim();
+            }
 
             function isSunBadgeItem(item) {
                 const upholsteryName =
@@ -252,7 +243,8 @@ export default async function handler(req, res) {
 
                 const upholsteryType =
                     String(item.upholsteryExtraType || '')
-                        .toLowerCase();
+                        .toLowerCase()
+                        .trim();
 
                 const isJaguar =
                     /جاكوار|jaguar/i.test(upholsteryName);
@@ -266,84 +258,72 @@ export default async function handler(req, res) {
             }
 
             // -------------------------------------------------
-            // جمع معرفات المنتجات المختارة
+            // تحقق من معرف كل منتج
             // -------------------------------------------------
 
-            const sunBadgeItems =
-                items.filter(isSunBadgeItem);
-
-            const selectedProductIds = [
-                ...new Set(
-                    sunBadgeItems
-                        .map(item =>
-                            String(
-                                item.productId ??
-                                item.product_id ??
-                                ''
-                            ).trim()
-                        )
-                        .filter(Boolean)
-                )
+            const productIds = [
+                ...new Set(items.map(getProductId))
             ];
 
-            if (
-                sunBadgeItems.length > 0 &&
-                selectedProductIds.length === 0
-            ) {
+            if (productIds.some(id => !id)) {
                 return res.status(400).json({
                     success: false,
                     error:
-                        'تعذر تحديد المنتج لحساب رسوم صن بيدج. ' +
-                        'يرجى تحديث بيانات المنتج في السلة.'
+                        'يوجد منتج بدون معرف صالح. ' +
+                        'حدّث السلة ثم حاول مرة أخرى.'
                 });
             }
 
             // -------------------------------------------------
-            // جلب الرسوم المحفوظة لكل منتج
+            // جلب السعر ورسوم صن بيدج من قاعدة البيانات
             // -------------------------------------------------
 
-            const productFees = new Map();
+            const productsById = new Map();
 
-            for (const productId of selectedProductIds) {
+            for (const productId of productIds) {
                 const productUrl =
                     `${SUPABASE_URL}/rest/v1/products` +
                     `?id=eq.${encodeURIComponent(productId)}` +
-                    '&select=id,sunbadge_fee';
+                    '&select=id,price,sunbadge_fee';
 
-                const productResponse = await fetch(
-                    productUrl,
-                    {
-                        method: 'GET',
-                        headers: supabaseHeaders,
-                        cache: 'no-store'
-                    }
-                );
-
-                const productData = parseJson(
-                    await productResponse.text()
-                );
+                const {
+                    response,
+                    data: productData
+                } = await getSupabaseJson(productUrl);
 
                 if (
-                    !productResponse.ok ||
+                    !response.ok ||
                     !Array.isArray(productData) ||
                     productData.length === 0
                 ) {
                     console.error(
-                        'SUNBADGE PRODUCT LOOKUP ERROR:',
+                        'ORDER PRODUCT LOOKUP ERROR:',
                         productData
                     );
 
                     return res.status(400).json({
                         success: false,
                         error:
-                            'تعذر قراءة رسوم المنتج من قاعدة البيانات. ' +
-                            'تحقق من معرف المنتج وعمود sunbadge_fee.'
+                            'تعذر العثور على أحد المنتجات في قاعدة البيانات. ' +
+                            'راجع المنتجات الموجودة في السلة.'
                     });
                 }
 
-                const rawFee =
-                    productData[0].sunbadge_fee ?? 0;
+                const product = productData[0];
+                const price = Number(product.price);
 
+                if (
+                    !Number.isFinite(price) ||
+                    price < 0
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        error:
+                            'سعر أحد المنتجات غير صالح في قاعدة البيانات.'
+                    });
+                }
+
+                const rawFee = product.sunbadge_fee ?? 0;
                 const fee = Number(rawFee);
 
                 if (
@@ -353,69 +333,126 @@ export default async function handler(req, res) {
                     return res.status(400).json({
                         success: false,
                         error:
-                            'رسوم أحد المنتجات غير صحيحة في قاعدة البيانات.'
+                            'رسوم صن بيدج غير صحيحة لأحد المنتجات.'
                     });
                 }
 
-                productFees.set(productId, fee);
+                productsById.set(productId, {
+                    id: product.id,
+                    price,
+                    sunbadgeFee: fee
+                });
             }
 
             // -------------------------------------------------
-            // تطبيق الرسوم مرة واحدة لكل منتج مختلف
+            // إعادة حساب المنتجات والرسوم من بيانات موثوقة
             // -------------------------------------------------
 
             const chargedProductIds = new Set();
 
+            let subtotal = 0;
             let submittedSunBadgeFee = 0;
 
-            const savedItems = items.map(item => {
-                const productId = String(
-                    item.productId ??
-                    item.product_id ??
-                    ''
-                ).trim();
+            const savedItems = [];
+
+            for (const item of items) {
+                const productId = getProductId(item);
+                const product = productsById.get(productId);
+
+                const rawQty = Number(
+                    item.qty ?? item.quantity ?? 1
+                );
+
+                if (
+                    !Number.isFinite(rawQty) ||
+                    rawQty < 1 ||
+                    !Number.isInteger(rawQty)
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        error:
+                            'كمية أحد المنتجات غير صحيحة.'
+                    });
+                }
+
+                const unitPrice = product.price;
+                const itemSubtotal = unitPrice * rawQty;
+
+                if (!Number.isFinite(itemSubtotal)) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'تعذر حساب قيمة أحد المنتجات.'
+                    });
+                }
 
                 let appliedFee = 0;
 
                 if (
                     isSunBadgeItem(item) &&
-                    productId &&
                     !chargedProductIds.has(productId)
                 ) {
-                    appliedFee =
-                        productFees.get(productId) ?? 0;
-
+                    appliedFee = product.sunbadgeFee;
                     chargedProductIds.add(productId);
-
                     submittedSunBadgeFee += appliedFee;
                 }
 
-                return {
+                subtotal += itemSubtotal;
+
+                savedItems.push({
                     ...item,
+
+                    productId,
+                    product_id: productId,
+
+                    qty: rawQty,
+                    quantity: rawQty,
+
+                    // السعر المعتمد من قاعدة البيانات
+                    unitPrice,
+                    price: unitPrice,
+
+                    // إجمالي هذا السطر بعد إضافة الرسم المطبق عليه
+                    itemSubtotal,
+                    lineTotal: itemSubtotal + appliedFee,
+
+                    // صفر في الأسطر التالية لنفس المنتج
                     sunbadgeFee: appliedFee,
-                    sunbadge_fee: appliedFee
-                };
-            });
+                    sunbadge_fee: appliedFee,
+
+                    // نحافظ على نوع التنجيد حتى لو الرسم صفر
+                    upholsteryExtraType:
+                        isSunBadgeItem(item)
+                            ? 'sunbadge'
+                            : (
+                                item.upholsteryExtraType ||
+                                'none'
+                            )
+                });
+            }
 
             // -------------------------------------------------
-            // حساب المبالغ
+            // حساب الشحن والخصم والإجمالي
             // -------------------------------------------------
-
-            const subtotal =
-                toNonNegativeNumber(order.subtotal, 0);
 
             const shippingCost =
                 toNonNegativeNumber(order.shippingCost, 0);
 
-            const discount =
+            const requestedDiscount =
                 toNonNegativeNumber(order.discount, 0);
+
+            const beforeDiscount =
+                subtotal +
+                submittedSunBadgeFee +
+                shippingCost;
+
+            const discount = Math.min(
+                requestedDiscount,
+                beforeDiscount
+            );
 
             const total = Math.max(
                 0,
-                subtotal +
-                submittedSunBadgeFee +
-                shippingCost -
-                discount
+                beforeDiscount - discount
             );
 
             const rawDepositPercent = Number(
@@ -445,109 +482,143 @@ export default async function handler(req, res) {
             );
 
             // -------------------------------------------------
-            // حفظ الطلب
+            // بيانات العميل
             // -------------------------------------------------
 
-            const response = await fetch(
+            const customer = order.customer || {};
+
+            const customerName =
+                String(customer.name || '').trim();
+
+            const customerPhone =
+                String(customer.phone || '').trim();
+
+            const customerGov =
+                String(customer.gov || '').trim();
+
+            const customerCity =
+                String(customer.city || '').trim();
+
+            const customerAddress =
+                String(customer.address || '').trim();
+
+            if (
+                !customerName ||
+                !customerPhone ||
+                !customerGov ||
+                !customerCity ||
+                !customerAddress
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        'بيانات العميل غير مكتملة. ' +
+                        'راجع الاسم والهاتف والمحافظة والمدينة والعنوان.'
+                });
+            }
+
+            // -------------------------------------------------
+            // حفظ الطلب في Supabase
+            // -------------------------------------------------
+
+            const insertPayload = {
+                id: String(order.id),
+                order_number: String(order.id),
+
+                customer_name: customerName,
+                phone: customerPhone,
+                whatsapp: customerPhone,
+
+                governorate: customerGov,
+                city: customerCity,
+                address: customerAddress,
+
+                location: '',
+
+                items: savedItems,
+
+                subtotal,
+
+                sunbadge_fee:
+                    submittedSunBadgeFee,
+
+                shipping_cost:
+                    shippingCost,
+
+                discount,
+
+                total,
+
+                shipping_method:
+                    order.shippingMethod || '',
+
+                payment_method:
+                    order.paymentMethod ||
+                    'Visa / Mastercard',
+
+                deposit_percent:
+                    depositPercent,
+
+                deposit_amount:
+                    depositAmount,
+
+                remaining_amount:
+                    remainingAmount,
+
+                payment_status:
+                    order.paymentStatus || 'Pending',
+
+                payment_proof_url:
+                    order.paymentProofUrl || '',
+
+                status:
+                    order.status || 'New'
+            };
+
+            const {
+                response: insertResponse,
+                data: insertedData
+            } = await getSupabaseJson(
                 `${SUPABASE_URL}/rest/v1/orders`,
                 {
                     method: 'POST',
                     headers: {
-                        ...supabaseHeaders,
                         Prefer: 'return=representation'
                     },
-                    body: JSON.stringify({
-                        id: order.id,
-
-                        order_number: order.id,
-
-                        customer_name:
-                            order.customer?.name || '',
-
-                        phone:
-                            order.customer?.phone || '',
-
-                        whatsapp:
-                            order.customer?.phone || '',
-
-                        governorate:
-                            order.customer?.gov || '',
-
-                        city:
-                            order.customer?.city || '',
-
-                        address:
-                            order.customer?.address || '',
-
-                        location: '',
-
-                        items: savedItems,
-
-                        subtotal,
-
-                        sunbadge_fee:
-                            submittedSunBadgeFee,
-
-                        shipping_cost:
-                            shippingCost,
-
-                        discount,
-
-                        total,
-
-                        shipping_method:
-                            order.shippingMethod || '',
-
-                        payment_method:
-                            order.paymentMethod ||
-                            'Visa / Mastercard',
-
-                        deposit_percent:
-                            depositPercent,
-
-                        deposit_amount:
-                            depositAmount,
-
-                        remaining_amount:
-                            remainingAmount,
-
-                        payment_status:
-                            order.paymentStatus || 'Pending',
-
-                        payment_proof_url:
-                            order.paymentProofUrl || '',
-
-                        status:
-                            order.status || 'New'
-                    })
+                    body: JSON.stringify(insertPayload)
                 }
             );
 
-            const responseText = await response.text();
-
-            const data = parseJson(responseText);
-
-            if (!response.ok) {
+            if (!insertResponse.ok) {
                 console.error(
                     'SUPABASE CREATE ORDER ERROR:',
-                    data
+                    insertedData
                 );
 
-                return res.status(response.status).json({
+                return res.status(insertResponse.status).json({
                     success: false,
                     error:
-                        data?.message ||
-                        data?.error ||
+                        insertedData?.message ||
+                        insertedData?.error ||
                         'فشل حفظ الطلب'
+                });
+            }
+
+            const savedOrder = Array.isArray(insertedData)
+                ? insertedData[0]
+                : insertedData;
+
+            if (!savedOrder || !savedOrder.id) {
+                return res.status(500).json({
+                    success: false,
+                    error:
+                        'تم إرسال الطلب لكن لم تصل بيانات الطلب المحفوظ.'
                 });
             }
 
             return res.status(201).json({
                 success: true,
-                order:
-                    Array.isArray(data)
-                        ? data[0]
-                        : data
+                order: savedOrder
             });
         }
 
@@ -567,17 +638,11 @@ export default async function handler(req, res) {
         // =====================================================
 
         if (req.method === 'GET') {
-            const response = await fetch(
-                `${SUPABASE_URL}/rest/v1/orders?select=*&order=created_at.desc`,
-                {
-                    method: 'GET',
-                    headers: supabaseHeaders,
-                    cache: 'no-store'
-                }
-            );
-
-            const data = parseJson(
-                await response.text()
+            const {
+                response,
+                data
+            } = await getSupabaseJson(
+                `${SUPABASE_URL}/rest/v1/orders?select=*&order=created_at.desc`
             );
 
             if (!response.ok) {
@@ -617,19 +682,17 @@ export default async function handler(req, res) {
                 });
             }
 
-            const response = await fetch(
+            const {
+                response,
+                data
+            } = await getSupabaseJson(
                 `${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`,
                 {
                     method: 'DELETE',
                     headers: {
-                        ...supabaseHeaders,
                         Prefer: 'return=representation'
                     }
                 }
-            );
-
-            const data = parseJson(
-                await response.text()
             );
 
             if (!response.ok) {
@@ -678,8 +741,7 @@ export default async function handler(req, res) {
             }
 
             const body = req.body || {};
-
-            let updateData = {};
+            const updateData = {};
 
             if (body.status !== undefined) {
                 const allowedStatuses = [
@@ -732,20 +794,18 @@ export default async function handler(req, res) {
                 });
             }
 
-            const response = await fetch(
+            const {
+                response,
+                data
+            } = await getSupabaseJson(
                 `${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`,
                 {
                     method: 'PATCH',
                     headers: {
-                        ...supabaseHeaders,
                         Prefer: 'return=representation'
                     },
                     body: JSON.stringify(updateData)
                 }
-            );
-
-            const data = parseJson(
-                await response.text()
             );
 
             if (!response.ok) {
