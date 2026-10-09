@@ -3407,10 +3407,36 @@ function renderCustomizerModalContent() {
         )
         : null;
 
-    // دمج بيانات المنتج الحالي مع النسخة المحملة من المتجر
-    const p = storedProduct
-        ? { ...originalProduct, ...storedProduct }
-        : originalProduct;
+const p = storedProduct
+    ? { ...originalProduct, ...storedProduct }
+    : originalProduct;
+
+// استخدام الرسوم المحفوظة في أحدث بيانات المنتج
+const feeProduct = Array.isArray(appState.products)
+    ? appState.products.find(product =>
+        String(product.id) === String(
+            p.id ?? p.productId ?? p.product_id ?? ''
+        )
+    )
+    : null;
+
+const feeValue =
+    feeProduct?.sunbadge_fee ??
+    feeProduct?.sunbadgeFee ??
+    p.sunbadge_fee ??
+    p.sunbadgeFee ??
+    p.sunbadge_unit_fee ??
+    p.sunbadgeUnitFee ??
+    0;
+
+const parsedProductSunBadgeFee = Number(feeValue);
+
+const productSunBadgeFee =
+    Number.isFinite(parsedProductSunBadgeFee) &&
+    parsedProductSunBadgeFee >= 0
+        ? parsedProductSunBadgeFee
+        : 0;
+
 
     // =====================================================
     // نوع التنجيد المحدد
@@ -3430,54 +3456,6 @@ function renderCustomizerModalContent() {
     const isSunBadge =
         !isJaguar &&
         /صن\s*بيدج|sun\s*badge|sunbedge/i.test(upholsteryName);
-
-// =====================================================
-// رسوم صن بيدج الخاصة بالمنتج الحالي
-// الأولوية لبيانات المنتج المحفوظة في المتجر
-// =====================================================
-
-const productId = String(
-    p.id ??
-    p.productId ??
-    p.product_id ??
-    originalProduct.id ??
-    originalProduct.productId ??
-    originalProduct.product_id ??
-    ''
-).trim();
-
-const latestProduct = Array.isArray(appState.products)
-    ? appState.products.find(product =>
-        String(
-            product.id ??
-            product.productId ??
-            product.product_id ??
-            ''
-        ).trim() === productId
-    )
-    : null;
-
-const feeSource = latestProduct
-    ? { ...p, ...latestProduct }
-    : p;
-
-const rawFee =
-    feeSource.sunbadge_fee ??
-    feeSource.sunbadgeFee ??
-    feeSource.sunbadge_unit_fee ??
-    feeSource.sunbadgeUnitFee ??
-    null;
-
-const parsedFee =
-    rawFee !== null && rawFee !== ''
-        ? Number(rawFee)
-        : NaN;
-
-const productSunBadgeFee =
-    Number.isFinite(parsedFee) && parsedFee >= 0
-        ? parsedFee
-        : 0;
-
 
 
 // =====================================================
