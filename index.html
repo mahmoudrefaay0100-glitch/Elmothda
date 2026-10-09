@@ -3332,6 +3332,7 @@ showToast('تم إضافة القسم بنجاح ✅');
 
 
 
+
 function renderCustomizerModalContent() {
     const p = activeCustomizerProduct;
     const container = document.getElementById('modal-product-content');
@@ -3355,30 +3356,25 @@ function renderCustomizerModalContent() {
     const productSunBadgeFee =
         Number.isFinite(rawFee) && rawFee >= 0 ? rawFee : 0;
 
-    const unitTotalPrice = Number(p.price ?? 0) || 0;
-    const grandTotal = unitTotalPrice * customizerQty;
+    const qty = Math.max(
+        1,
+        Math.floor(Number(customizerQty) || 1)
+    );
 
-    // الرسوم تكون مرة واحدة فقط لكل معرف منتج مختلف.
-    const sameProductAlreadyInCart = currentCart.some(item => {
-        const sameId =
-            String(item.productId ?? item.product_id ?? '') === String(p.id);
+    // سعر المنتج الأساسي بدون رسوم صن بيدج
+    const unitPrice = Math.max(0, Number(p.price ?? 0) || 0);
 
-        const itemType = String(item.upholsteryExtraType || '').toLowerCase();
-        const itemName = String(item.upholsteryName || '');
+    // إجمالي المنتجات حسب الكمية
+    const productsTotal = unitPrice * qty;
 
-        const itemIsSunBadge =
-            itemType === 'sunbadge' ||
-            /صن\s*بيدج|sun\s*badge|sunbedge/i.test(itemName);
+    // رسوم صن بيدج لكل قطعة × الكمية
+    // جاكوار مستثنى من الرسوم
+    const sunBadgeTotal = isSunBadge
+        ? productSunBadgeFee * qty
+        : 0;
 
-        const itemIsJaguar = /جاكوار|jaguar/i.test(itemName);
-
-        return sameId && itemIsSunBadge && !itemIsJaguar;
-    });
-
-    const feeToAdd =
-        isSunBadge && !sameProductAlreadyInCart
-            ? productSunBadgeFee
-            : 0;
+    // الإجمالي النهائي في نافذة التخصيص
+    const grandTotal = productsTotal + sunBadgeTotal;
 
     container.innerHTML = `
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -3415,7 +3411,10 @@ function renderCustomizerModalContent() {
                     <div class="space-y-1.5">
                         ${appState.upholsteryTypes.map(uph => {
                             const name = String(uph.name || '');
-                            const optionIsJaguar = /جاكوار|jaguar/i.test(name);
+
+                            const optionIsJaguar =
+                                /جاكوار|jaguar/i.test(name);
+
                             const optionIsBadge =
                                 !optionIsJaguar &&
                                 /صن\s*بيدج|sun\s*badge|sunbedge/i.test(name);
@@ -3427,8 +3426,8 @@ function renderCustomizerModalContent() {
 
                             if (optionIsBadge) {
                                 priceLabel = productSunBadgeFee > 0
-                                    ? `رسوم إضافية ${productSunBadgeFee.toLocaleString('ar-EG')} ج.م`
-                                    : 'بدون رسوم إضافية';
+                                    ? `${productSunBadgeFee.toLocaleString('ar-EG')} ج.م / قطعة`
+                                    : 'لا توجد رسوم مسجلة';
                             } else if (optionIsJaguar) {
                                 priceLabel = 'بدون رسوم إضافية';
                             }
@@ -3443,6 +3442,7 @@ function renderCustomizerModalContent() {
                                     }"
                                 >
                                     <span>${name}</span>
+
                                     <span class="text-brand-amber font-bold text-left">
                                         ${priceLabel}
                                     </span>
@@ -3455,10 +3455,25 @@ function renderCustomizerModalContent() {
                 ${isSunBadge ? `
                     <div class="border border-brand-amber/40 bg-neutral-950 p-3 rounded-xl">
                         <p class="text-xs text-brand-amber font-bold">
-                            رسوم صن بيدج لهذا المنتج:
-                            ${productSunBadgeFee.toLocaleString('ar-EG')} ج.م.
-                            تُحسب مرة واحدة فقط لكل منتج مختلف في الطلب.
+                            رسوم صن بيدج للقطعة الواحدة:
+                            ${productSunBadgeFee.toLocaleString('ar-EG')} ج.م
                         </p>
+
+                        <p class="text-xs text-gray-300 mt-2">
+                            الكمية: ${qty}
+                        </p>
+
+                        <p class="text-sm text-white font-bold mt-2">
+                            إجمالي رسوم صن بيدج:
+                            ${sunBadgeTotal.toLocaleString('ar-EG')} ج.م
+                        </p>
+
+                        ${productSunBadgeFee === 0 ? `
+                            <p class="text-xs text-red-400 mt-2">
+                                تنبيه: لا توجد رسوم مسجلة لهذا المنتج. راجع قيمة
+                                sunbadge_fee في قاعدة البيانات.
+                            </p>
+                        ` : ''}
                     </div>
                 ` : ''}
 
@@ -3518,7 +3533,7 @@ function renderCustomizerModalContent() {
                         >-</button>
 
                         <span class="text-white font-bold text-sm px-2">
-                            ${customizerQty}
+                            ${qty}
                         </span>
 
                         <button
@@ -3528,25 +3543,35 @@ function renderCustomizerModalContent() {
                     </div>
                 </div>
 
-                <div class="bg-black p-4 rounded-2xl border border-neutral-800 space-y-2">
-                    <div class="flex justify-between text-sm font-black text-white">
-                        <span>إجمالي المنتجات:</span>
+                <div class="bg-black p-4 rounded-2xl border border-neutral-800 space-y-3">
+                    <div class="flex justify-between text-xs text-gray-300">
+                        <span>سعر القطعة الأساسي:</span>
+                        <span>${unitPrice.toLocaleString('ar-EG')} ج.م</span>
+                    </div>
+
+                    <div class="flex justify-between text-xs text-gray-300">
+                        <span>إجمالي المنتجات (${qty}):</span>
+                        <span>${productsTotal.toLocaleString('ar-EG')} ج.م</span>
+                    </div>
+
+                    ${isSunBadge ? `
+                        <div class="flex justify-between text-xs text-gray-300">
+                            <span>رسوم صن بيدج (${qty} × ${productSunBadgeFee.toLocaleString('ar-EG')}):</span>
+                            <span class="text-brand-amber font-bold">
+                                ${sunBadgeTotal.toLocaleString('ar-EG')} ج.م
+                            </span>
+                        </div>
+                    ` : ''}
+
+                    <div class="flex justify-between text-sm font-black text-white border-t border-neutral-800 pt-3">
+                        <span>الإجمالي:</span>
                         <span class="gold-gradient-text font-extrabold text-base">
                             ${grandTotal.toLocaleString('ar-EG')} ج.م
                         </span>
                     </div>
 
-                    ${isSunBadge ? `
-                        <div class="flex justify-between text-xs text-gray-300">
-                            <span>رسوم صن بيدج المضافة الآن:</span>
-                            <span class="text-brand-amber font-bold">
-                                ${feeToAdd.toLocaleString('ar-EG')} ج.م
-                            </span>
-                        </div>
-                    ` : ''}
-
                     <p class="text-[10px] text-gray-400">
-                        رسوم الصن بيدج تُحسب مرة واحدة فقط لكل منتج مختلف، مهما كانت الكمية.
+                        تُحسب رسوم صن بيدج لكل قطعة من الكمية المطلوبة، وفق الرسوم المسجلة لهذا المنتج. قماش جاكوار بدون رسوم صن بيدج.
                     </p>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
@@ -3612,7 +3637,6 @@ function confirmAddToCart(goToCheckout = false) {
         return;
     }
 
-    // قراءة الرسوم الأصلية المحفوظة مع المنتج من قاعدة البيانات
     const rawFee = Number(
         p.sunbadge_fee ?? p.sunbadgeFee ?? 0
     );
@@ -3634,9 +3658,13 @@ function confirmAddToCart(goToCheckout = false) {
         return;
     }
 
-    // لا نخصم الرسوم هنا ولا نضربها في الكمية.
-    // نخزن الرسوم الأصلية، وتُحسب مرة واحدة في renderCartDrawer.
-    currentCart.push({
+    // رسوم القطعة الواحدة، وتكون صفرًا لجاكوار أو أي قماش آخر.
+    const sunbadgeUnitFee = isSunBadge ? rawFee : 0;
+
+    // إجمالي رسوم هذا السطر وفق الكمية المطلوبة.
+    const sunbadgeLineFee = sunbadgeUnitFee * qty;
+
+    const cartItem = {
         cartItemId:
             'item-' + Date.now() + '-' +
             Math.random().toString(36).slice(2, 7),
@@ -3652,23 +3680,31 @@ function confirmAddToCart(goToCheckout = false) {
         qty,
         quantity: qty,
 
+        // السعر الأساسي للقطعة فقط، دون إضافة رسوم صن بيدج.
         unitPrice: rawPrice,
         price: rawPrice,
 
         upholsteryName,
 
-        // يظل الاختيار محفوظًا حتى لو كانت الرسوم صفرًا
         upholsteryExtraType: isSunBadge ? 'sunbadge' : 'none',
 
-        // الرسوم الأصلية لكل سطر؛ لا تُجمع إلا مرة واحدة لكل منتج
-        sunbadgeFee: isSunBadge ? rawFee : 0,
-        sunbadge_fee: isSunBadge ? rawFee : 0,
+        // الرسوم الأصلية للقطعة الواحدة.
+        sunbadgeUnitFee,
+        sunbadge_unit_fee: sunbadgeUnitFee,
+        sunbadgeFee: sunbadgeUnitFee,
+        sunbadge_fee: sunbadgeUnitFee,
+
+        // إجمالي الرسوم لهذا السطر حسب الكمية.
+        sunbadgeLineFee,
+        sunbadge_line_fee: sunbadgeLineFee,
 
         cushionColor: selectedCushionColor,
         wickerColor: selectedWickerColor,
 
         sunbrellaAdded: false
-    });
+    };
+
+    currentCart.push(cartItem);
 
     closeProductModal();
 
@@ -3718,6 +3754,7 @@ window.toggleCartDrawer = toggleCartDrawer;
 
 
 
+
 function renderCartDrawer() {
     const container = document.getElementById('cart-drawer-items');
     if (!container) return;
@@ -3725,6 +3762,58 @@ function renderCartDrawer() {
     const subtotalEl = document.getElementById('cart-subtotal-text');
     const discountEl = document.getElementById('cart-discount-text');
     const totalEl = document.getElementById('cart-total-text');
+
+    const escapeHTML = (value) =>
+        String(value ?? '').replace(/[&<>"']/g, char => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        })[char]);
+
+    const getQty = item =>
+        Math.max(1, Math.floor(Number(item.qty ?? item.quantity) || 1));
+
+    const getUnitPrice = item => {
+        const value = Number(item.unitPrice ?? item.price ?? 0);
+        return Number.isFinite(value) && value >= 0 ? value : 0;
+    };
+
+    const getUpholsteryName = item =>
+        String(item.upholsteryName || '').trim();
+
+    const isJaguarItem = item =>
+        /جاكوار|jaguar/i.test(getUpholsteryName(item));
+
+    const isSunBadgeItem = item => {
+        if (isJaguarItem(item)) return false;
+
+        const type = String(
+            item.upholsteryExtraType ??
+            item.upholsteryExtraType ??
+            ''
+        ).toLowerCase().trim();
+
+        return (
+            type === 'sunbadge' ||
+            /صن\s*بيدج|sun\s*badge|sunbedge/i.test(
+                getUpholsteryName(item)
+            )
+        );
+    };
+
+    const getConfiguredFee = item => {
+        const value = Number(
+            item.sunbadgeUnitFee ??
+            item.sunbadge_unit_fee ??
+            item.sunbadgeFee ??
+            item.sunbadge_fee ??
+            0
+        );
+
+        return Number.isFinite(value) && value >= 0 ? value : 0;
+    };
 
     if (!Array.isArray(currentCart) || currentCart.length === 0) {
         container.innerHTML = `
@@ -3755,59 +3844,9 @@ function renderCartDrawer() {
     let subtotal = 0;
     let totalSunBadgeFee = 0;
 
-    const getUpholsteryName = (item) =>
-        String(item.upholsteryName || '');
-
-    const isJaguarItem = (item) =>
-        /جاكوار|jaguar/i.test(getUpholsteryName(item));
-
-    const isSunBadgeItem = (item) => {
-        const type = String(
-            item.upholsteryExtraType || ''
-        ).toLowerCase().trim();
-
-        const name = getUpholsteryName(item);
-
-        return (
-            !isJaguarItem(item) &&
-            (
-                type === 'sunbadge' ||
-                /صن\s*بيدج|sun\s*badge|sunbedge/i.test(name)
-            )
-        );
-    };
-
-    const getConfiguredFee = (item) => {
-        const rawFee = Number(
-            item.sunbadgeFee ??
-            item.sunbadge_fee ??
-            0
-        );
-
-        return Number.isFinite(rawFee) && rawFee >= 0
-            ? rawFee
-            : 0;
-    };
-
-    const escapeHTML = (value) =>
-        String(value ?? '').replace(/[&<>"']/g, char => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#39;'
-        })[char]);
-
     const itemsHTML = currentCart.map((item, index) => {
-        const qty = Math.max(
-            1,
-            Math.floor(Number(item.qty ?? item.quantity) || 1)
-        );
-
-        const unitPrice = Math.max(
-            0,
-            Number(item.unitPrice ?? item.price) || 0
-        );
+        const qty = getQty(item);
+        const unitPrice = getUnitPrice(item);
 
         const itemSubtotal = unitPrice * qty;
         subtotal += itemSubtotal;
@@ -3815,10 +3854,10 @@ function renderCartDrawer() {
         const upholsteryName =
             getUpholsteryName(item) || 'جاكوار (Jaguar)';
 
-        const configuredFee = getConfiguredFee(item);
         const hasSunBadge = isSunBadgeItem(item);
+        const configuredFee = getConfiguredFee(item);
 
-        // رسوم القطعة الواحدة × عدد القطع في هذا السطر
+        // رسوم القطعة الواحدة × كمية هذا السطر.
         const itemSunBadgeFee = hasSunBadge
             ? configuredFee * qty
             : 0;
@@ -3834,6 +3873,7 @@ function renderCartDrawer() {
         const safeImage = escapeHTML(item.image || '');
         const safeUpholstery = escapeHTML(upholsteryName);
         const safeCushionColor = escapeHTML(item.cushionColor || '');
+        const safeWickerColor = escapeHTML(item.wickerColor || '');
 
         return `
             <div class="bg-black p-3 rounded-2xl border border-neutral-800 flex gap-3 text-xs relative">
@@ -3850,11 +3890,12 @@ function renderCartDrawer() {
 
                     <p class="text-[10px] text-gray-400">
                         التنجيد: ${safeUpholstery}
-                        | اللون: ${safeCushionColor}
+                        | لون التنجيد: ${safeCushionColor}
+                        | لون الرتان: ${safeWickerColor}
                     </p>
 
                     <p class="text-[10px] text-gray-400">
-                        سعر الوحدة:
+                        سعر الوحدة الأساسي:
                         ${unitPrice.toLocaleString('en-US')} ج.م
                         × ${qty}
                     </p>
@@ -3863,7 +3904,7 @@ function renderCartDrawer() {
                         hasSunBadge
                             ? `
                                 <p class="text-[10px] text-brand-amber">
-                                    رسوم صن بيدج للقطعة:
+                                    رسوم القطعة الواحدة:
                                     ${configuredFee.toLocaleString('en-US')} ج.م
                                 </p>
 
@@ -3915,6 +3956,8 @@ function renderCartDrawer() {
         `;
     }).join('');
 
+    // الإجمالي النهائي = المنتجات + رسوم صن بيدج.
+    // لا نضيف رسوم صن بيدج إلى سعر الوحدة الأساسي.
     const total = subtotal + totalSunBadgeFee;
 
     container.innerHTML = itemsHTML + (
@@ -3963,13 +4006,71 @@ function renderCartDrawer() {
 window.renderCartDrawer = renderCartDrawer;
 
 
+       
+function updateCartQty(index, delta) {
+    if (
+        !Array.isArray(currentCart) ||
+        !currentCart[index] ||
+        !Number.isFinite(Number(delta))
+    ) {
+        return;
+    }
 
-        function updateCartQty(index, delta) {
-            currentCart[index].qty += delta;
-            if (currentCart[index].qty <= 0) currentCart.splice(index, 1);
-            updateCartBadge();
-            renderCartDrawer();
-        }
+    const item = currentCart[index];
+
+    const currentQty = Math.max(
+        1,
+        Math.floor(Number(item.qty ?? item.quantity) || 1)
+    );
+
+    const newQty = currentQty + Math.trunc(Number(delta));
+
+    if (newQty <= 0) {
+        currentCart.splice(index, 1);
+    } else {
+        // توحيد الكمية في جميع الحقول المستخدمة بالموقع.
+        item.qty = newQty;
+        item.quantity = newQty;
+
+        const upholsteryName = String(item.upholsteryName || '');
+        const isJaguar = /جاكوار|jaguar/i.test(upholsteryName);
+
+        const type = String(
+            item.upholsteryExtraType || ''
+        ).toLowerCase();
+
+        const isSunBadge =
+            !isJaguar &&
+            (
+                type === 'sunbadge' ||
+                /صن\s*بيدج|sun\s*badge|sunbedge/i.test(upholsteryName)
+            );
+
+        const rawFee = Number(
+            item.sunbadgeUnitFee ??
+            item.sunbadge_unit_fee ??
+            item.sunbadgeFee ??
+            item.sunbadge_fee ??
+            0
+        );
+
+        const unitFee =
+            isSunBadge && Number.isFinite(rawFee) && rawFee >= 0
+                ? rawFee
+                : 0;
+
+        // تحديث إجمالي رسوم السطر فقط؛ السعر الأساسي لا يتغير.
+        item.sunbadgeUnitFee = unitFee;
+        item.sunbadge_unit_fee = unitFee;
+        item.sunbadgeLineFee = unitFee * newQty;
+        item.sunbadge_line_fee = unitFee * newQty;
+    }
+
+    updateCartBadge();
+    renderCartDrawer();
+}
+
+window.updateCartQty = updateCartQty;
 
         function updateCartBadge() {
             document.getElementById('cart-badge-count').innerText = currentCart.reduce((sum, i) => sum + i.qty, 0);
