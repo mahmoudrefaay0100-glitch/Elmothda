@@ -54,19 +54,16 @@ export default async function handler(req, res) {
                 `?id=eq.${encodeURIComponent(trackId)}` +
                 '&select=*';
 
-            const orderResponse = await fetch(
-                supabaseUrl,
-                {
-                    method: 'GET',
-                    headers: {
-                        apikey: SUPABASE_SERVICE_ROLE_KEY,
-                        Authorization:
-                            `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    cache: 'no-store'
-                }
-            );
+            const orderResponse = await fetch(supabaseUrl, {
+                method: 'GET',
+                headers: {
+                    apikey: SUPABASE_SERVICE_ROLE_KEY,
+                    Authorization:
+                        `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                cache: 'no-store'
+            });
 
             const orders = await orderResponse.json();
 
@@ -141,9 +138,20 @@ export default async function handler(req, res) {
                 subtotal:
                     Number(order.subtotal || 0),
 
-                // رسوم صن بيدج مرة واحدة للطلب
+                // إجمالي رسوم الصن بيدج المحفوظة
                 sunBadgeFee:
-                    Number(order.sunbadge_fee ?? 0),
+                    Number(
+                        order.sunbadge_fee ??
+                        order.sunBadgeFee ??
+                        0
+                    ),
+
+                sunbadge_fee:
+                    Number(
+                        order.sunbadge_fee ??
+                        order.sunBadgeFee ??
+                        0
+                    ),
 
                 total:
                     Number(order.total || 0),
@@ -181,6 +189,23 @@ export default async function handler(req, res) {
                 return res.status(400).json({
                     success: false,
                     error: 'رقم الطلب غير موجود'
+                });
+            }
+
+            // دعم الاسمين المستخدمين في الواجهة
+            const submittedSunBadgeFee = Number(
+                order.sunBadgeFee ??
+                order.sunbadge_fee ??
+                0
+            );
+
+            if (
+                !Number.isFinite(submittedSunBadgeFee) ||
+                submittedSunBadgeFee < 0
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'قيمة رسوم الصن بيدج غير صحيحة'
                 });
             }
 
@@ -227,9 +252,8 @@ export default async function handler(req, res) {
                         subtotal:
                             Number(order.subtotal ?? 0),
 
-                        // حفظ رسوم صن بيدج في عمود مستقل
-                        sunbadge_fee:
-                            Number(order.sunBadgeFee ?? 0),
+                        // إجمالي الرسوم لكل المنتجات والكميات
+                        sunbadge_fee: submittedSunBadgeFee,
 
                         shipping_cost:
                             Number(order.shippingCost ?? 0),
@@ -268,12 +292,14 @@ export default async function handler(req, res) {
                 }
             );
 
-            const text = await response.text();
+            const responseText = await response.text();
 
             let data = [];
 
             try {
-                data = text ? JSON.parse(text) : [];
+                data = responseText
+                    ? JSON.parse(responseText)
+                    : [];
             } catch {
                 data = [];
             }
@@ -332,12 +358,14 @@ export default async function handler(req, res) {
                 }
             );
 
-            const text = await response.text();
+            const responseText = await response.text();
 
             let data = [];
 
             try {
-                data = text ? JSON.parse(text) : [];
+                data = responseText
+                    ? JSON.parse(responseText)
+                    : [];
             } catch {
                 data = [];
             }
@@ -394,12 +422,14 @@ export default async function handler(req, res) {
                 }
             );
 
-            const text = await response.text();
+            const responseText = await response.text();
 
             let data = [];
 
             try {
-                data = text ? JSON.parse(text) : [];
+                data = responseText
+                    ? JSON.parse(responseText)
+                    : [];
             } catch {
                 data = [];
             }
@@ -484,12 +514,14 @@ export default async function handler(req, res) {
                     }
                 );
 
-                const text = await response.text();
+                const responseText = await response.text();
 
                 let data = [];
 
                 try {
-                    data = text ? JSON.parse(text) : [];
+                    data = responseText
+                        ? JSON.parse(responseText)
+                        : [];
                 } catch {
                     data = [];
                 }
@@ -560,12 +592,14 @@ export default async function handler(req, res) {
                     }
                 );
 
-                const text = await response.text();
+                const responseText = await response.text();
 
                 let data = [];
 
                 try {
-                    data = text ? JSON.parse(text) : [];
+                    data = responseText
+                        ? JSON.parse(responseText)
+                        : [];
                 } catch {
                     data = [];
                 }
