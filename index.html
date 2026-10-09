@@ -408,7 +408,7 @@
             </div>
         </section>
 
-        html
+        
 <!-- ADMIN LOGIN VIEW -->
 <section id="view-admin-login" class="hidden max-w-md mx-auto px-4 py-20">
     <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 space-y-6 shadow-2xl relative overflow-hidden">
@@ -535,13 +535,18 @@
                             <input id="product-editor-old-price" type="number" min="0" step="0.01" class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white text-sm">
                         </div>
             
-                             
+
 <div>
-    <label class="block text-xs text-gray-300 font-bold mb-2">
+    <label
+        for="product-editor-sunbadge-fee"
+        class="block text-xs text-gray-300 font-bold mb-2"
+    >
         رسوم الصن بيدج لهذا المنتج بالجنيه
     </label>
+
     <input
         id="product-editor-sunbadge-fee"
+        name="sunbadge_fee"
         type="number"
         min="0"
         step="1"
@@ -549,13 +554,17 @@
         placeholder="مثال: 1000 أو 2000"
         class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white text-sm"
     >
+
     <p class="text-xs text-gray-400 mt-2">
         الرسوم تُحسب حسب كمية المنتج المطلوبة، والجاكوار بدون رسوم إضافية.
     </p>
 </div>
+
+<div>
     <label class="block text-xs text-gray-300 font-bold mb-2">
         عدد الكراسي في المنتج
     </label>
+
     <input
         id="product-editor-chair-count"
         type="number"
@@ -569,6 +578,7 @@
     <label class="block text-xs text-gray-300 font-bold mb-2">
         عدد كنبة 2 مقعد
     </label>
+
     <input
         id="product-editor-sofa-2-count"
         type="number"
@@ -582,6 +592,7 @@
     <label class="block text-xs text-gray-300 font-bold mb-2">
         عدد كنبة 3 مقعد
     </label>
+
     <input
         id="product-editor-sofa-3-count"
         type="number"
@@ -590,6 +601,7 @@
         class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white text-sm"
     >
 </div>
+          
                         <div>
                             <label class="block text-xs text-gray-300 font-bold mb-2">عدد الترابيزات في المنتج</label>
                             <input id="product-editor-table-count" type="number" min="0" value="0" class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white text-sm">
@@ -3530,66 +3542,94 @@ container.innerHTML = `
         function changeCustomizerQty(delta) { customizerQty = Math.max(1, customizerQty + delta); renderCustomizerModalContent(); }
         function closeProductModal() { document.getElementById('product-detail-modal').classList.add('hidden'); }
 
-    function confirmAddToCart(goToCheckout = false) {
-const p = activeCustomizerProduct;
+  
+function confirmAddToCart(goToCheckout = false) {
+    const p = activeCustomizerProduct;
 
+    if (!p) {
+        alert('من فضلك اختر المنتج أولاً.');
+        return;
+    }
 
-if (!p) {
-    alert('من فضلك اختر المنتج أولاً.');
-    return;
-}
+    const selectedUph = appState.upholsteryTypes.find(
+        u => String(u.id) === String(selectedUpholsteryId)
+    );
 
-const selectedUph = appState.upholsteryTypes.find(
-    u => String(u.id) === String(selectedUpholsteryId)
-);
+    const upholsteryName = String(
+        selectedUph?.name || 'جاكوار (Jaguar)'
+    );
 
-const upholsteryName = String(selectedUph?.name || 'جاكوار (Jaguar)');
+    // السعر الأساسي للمنتج
+    const unitPrice = Number(p.price) || 0;
 
-// السعر الأساسي للمنتج بدون رسوم لكل كرسي
-const unitPrice = Number(p.price) || 0;
+    // تحديد نوع التنجيد المختار
+    const isSunBadge =
+        /صن\s*بيدج|sun\s*badge|sunbedge/i.test(upholsteryName);
 
-// تحديد نوع التنجيد المختار
-const isSunBadge = /صن\s*بيدج|sun\s*badge|sunbedge/i.test(upholsteryName);
+    // الجاكوار بدون رسوم إضافية
+    const isJaguar =
+        /جاكوار|jaguar/i.test(upholsteryName);
 
-currentCart.push({
-    cartItemId: 'item-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+    // رسوم الصن بيدج الخاصة بهذا المنتج
+    const rawSunbadgeFee = Number(
+        p.sunbadge_fee ?? p.sunbadgeFee ?? 1000
+    );
 
-    productId: p.id,
-    productTitle: p.title,
-    image: p.images?.[0] || '',
+    const sunbadgeFee =
+        Number.isFinite(rawSunbadgeFee) && rawSunbadgeFee >= 0
+            ? rawSunbadgeFee
+            : 1000;
 
-    qty: Math.max(1, Number(customizerQty) || 1),
-    unitPrice,
+    // لا تُحسب الرسوم إلا عند اختيار الصن بيدج،
+    // ولا تُحسب للجاكوار
+    const appliedSunbadgeFee =
+        isSunBadge && !isJaguar ? sunbadgeFee : 0;
 
-    upholsteryName,
+    const qty = Math.max(1, Number(customizerQty) || 1);
 
-    // تستخدمها السلة وحساب إجمالي الطلب
-    upholsteryExtraType: isSunBadge ? 'sunbadge' : 'none',
+    currentCart.push({
+        cartItemId:
+            'item-' + Date.now() + '-' +
+            Math.random().toString(36).slice(2, 7),
 
-    cushionColor: selectedCushionColor,
-    wickerColor: selectedWickerColor,
+        productId: p.id,
+        productTitle: p.title,
+        image: p.images?.[0] || '',
 
-    // إيقاف خيار Sunbrella القديم
-    sunbrellaAdded: false
-});
+        qty,
+        unitPrice,
 
-closeProductModal();
+        upholsteryName,
 
-updateCartBadge();
-renderCartDrawer();
+        // رسوم الصن بيدج للوحدة الواحدة
+        sunbadgeFee: appliedSunbadgeFee,
+        sunbadge_fee: appliedSunbadgeFee,
 
-if (goToCheckout) {
-    openCheckoutModal();
-    return;
-}
+        // نوع التنجيد
+        upholsteryExtraType:
+            appliedSunbadgeFee > 0 ? 'sunbadge' : 'none',
 
-toggleCartDrawer(true);
+        cushionColor: selectedCushionColor,
+        wickerColor: selectedWickerColor,
 
+        // إيقاف خيار Sunbrella القديم
+        sunbrellaAdded: false
+    });
 
+    closeProductModal();
+
+    updateCartBadge();
+    renderCartDrawer();
+
+    if (goToCheckout) {
+        openCheckoutModal();
+        return;
+    }
+
+    toggleCartDrawer(true);
 }
 
 window.confirmAddToCart = confirmAddToCart;
-
         
 function toggleCartDrawer(forceOpen) {
 const drawer = document.getElementById('cart-drawer');
@@ -3621,135 +3661,198 @@ document.body.classList.toggle('overflow-hidden', shouldOpen);
 window.toggleCartDrawer = toggleCartDrawer;
 
 
-       function renderCartDrawer() {
-const container = document.getElementById('cart-drawer-items');
-if (!container) return;
 
-const subtotalEl = document.getElementById('cart-subtotal-text');
-const discountEl = document.getElementById('cart-discount-text');
-const totalEl = document.getElementById('cart-total-text');
+function renderCartDrawer() {
+    const container = document.getElementById('cart-drawer-items');
+    if (!container) return;
 
-if (!Array.isArray(currentCart) || currentCart.length === 0) {
-    container.innerHTML = `
-        <div class="py-12 text-center text-gray-500 text-xs">
-            سلة الشراء فارغة حالياً
-        </div>
-    `;
+    const subtotalEl = document.getElementById('cart-subtotal-text');
+    const discountEl = document.getElementById('cart-discount-text');
+    const totalEl = document.getElementById('cart-total-text');
 
-    if (subtotalEl) subtotalEl.innerText = '0 ج.م';
-    if (discountEl) discountEl.innerText = '0 ج.م';
-    if (totalEl) totalEl.innerText = '0 ج.م';
+    if (!Array.isArray(currentCart) || currentCart.length === 0) {
+        container.innerHTML = `
+            <div class="py-12 text-center text-gray-500 text-xs">
+                سلة الشراء فارغة حالياً
+            </div>
+        `;
 
-    return;
-}
+        if (subtotalEl) subtotalEl.innerText = '0 ج.م';
+        if (discountEl) discountEl.innerText = '0 ج.م';
+        if (totalEl) totalEl.innerText = '0 ج.م';
 
-let subtotal = 0;
+        window.currentCartSubtotal = 0;
+        window.currentSunBadgeFee = 0;
+        window.currentCartTotal = 0;
 
-const itemsHTML = currentCart.map((item, index) => {
-    const itemTotal =
-        (Number(item.unitPrice ?? item.price) || 0) *
-        (Number(item.qty) || 1);
+        if (typeof updateTransferAmount === 'function') {
+            updateTransferAmount();
+        }
 
-    subtotal += itemTotal;
+        if (typeof updateDepositAmount === 'function') {
+            updateDepositAmount();
+        }
 
-    const upholsteryName = item.upholsteryName || 'جاكوار (Jaguar)';
+        return;
+    }
 
-    return `
-        <div class="bg-black p-3 rounded-2xl border border-neutral-800 flex gap-3 text-xs relative">
-            <img
-                src="${item.image || ''}"
-                class="w-16 h-16 rounded-xl object-cover"
-                alt=""
-            >
+    let subtotal = 0;
+    let totalSunBadgeFee = 0;
 
-            <div class="flex-grow space-y-1">
-                <h5 class="font-bold text-white line-clamp-1">
-                    ${item.productTitle || ''}
-                </h5>
+    const itemsHTML = currentCart.map((item, index) => {
+        const qty = Math.max(1, Number(item.qty) || 1);
+        const unitPrice = Number(item.unitPrice ?? item.price) || 0;
+        const itemTotal = unitPrice * qty;
 
-                <p class="text-[10px] text-gray-400">
-                    التنجيد: ${upholsteryName}
-                    | اللون: ${item.cushionColor || ''}
-                </p>
+        subtotal += itemTotal;
 
-                <div class="flex justify-between items-center pt-1">
-                    <span class="font-bold text-brand-amber">
-                        ${itemTotal.toLocaleString('en-US')} ج.م
-                    </span>
+        const upholsteryName = String(
+            item.upholsteryName || 'جاكوار (Jaguar)'
+        );
 
-                    <div class="flex items-center space-x-2 space-x-reverse">
-                        <button
-                            onclick="updateCartQty(${index}, -1)"
-                            class="w-5 h-5 bg-neutral-800 rounded text-gray-300"
-                        >-</button>
+        const isSunBadge =
+            String(item.upholsteryExtraType || '').toLowerCase() === 'sunbadge' ||
+            /صن\s*بيدج|sun\s*badge|sunbedge/i.test(upholsteryName);
 
-                        <span class="text-white font-bold">
-                            ${Number(item.qty) || 1}
-                        </span>
+        const isJaguar = /جاكوار|jaguar/i.test(upholsteryName);
 
-                        <button
-                            onclick="updateCartQty(${index}, 1)"
-                            class="w-5 h-5 bg-neutral-800 rounded text-gray-300"
-                        >+</button>
+        // رسوم الصن بيدج للوحدة الواحدة لهذا المنتج
+        const rawFee = Number(
+            item.sunbadgeFee ??
+            item.sunbadge_fee ??
+            0
+        );
+
+        const unitSunBadgeFee =
+            isSunBadge && !isJaguar &&
+            Number.isFinite(rawFee) && rawFee > 0
+                ? rawFee
+                : 0;
+
+        // رسوم المنتج = رسوم الوحدة × الكمية
+        const itemSunBadgeFee = unitSunBadgeFee * qty;
+        totalSunBadgeFee += itemSunBadgeFee;
+
+        const itemGrandTotal = itemTotal + itemSunBadgeFee;
+
+        return `
+            <div class="bg-black p-3 rounded-2xl border border-neutral-800 flex gap-3 text-xs relative">
+                <img
+                    src="${item.image || ''}"
+                    class="w-16 h-16 rounded-xl object-cover"
+                    alt=""
+                >
+
+                <div class="flex-grow space-y-1">
+                    <h5 class="font-bold text-white line-clamp-1">
+                        ${item.productTitle || ''}
+                    </h5>
+
+                    <p class="text-[10px] text-gray-400">
+                        التنجيد: ${upholsteryName}
+                        | اللون: ${item.cushionColor || ''}
+                    </p>
+
+                    <p class="text-[10px] text-gray-400">
+                        سعر المنتج: ${unitPrice.toLocaleString('en-US')} ج.م
+                    </p>
+
+                    ${
+                        itemSunBadgeFee > 0
+                            ? `
+                                <p class="text-[10px] text-brand-amber">
+                                    رسوم الصن بيدج:
+                                    ${unitSunBadgeFee.toLocaleString('en-US')}
+                                    × ${qty}
+                                    =
+                                    ${itemSunBadgeFee.toLocaleString('en-US')} ج.م
+                                </p>
+                            `
+                            : ''
+                    }
+
+                    <div class="flex justify-between items-center pt-1 gap-2">
+                        <div>
+                            <span class="font-bold text-brand-amber">
+                                ${itemGrandTotal.toLocaleString('en-US')} ج.م
+                            </span>
+                            <p class="text-[9px] text-gray-500">
+                                إجمالي المنتج والرسوم
+                            </p>
+                        </div>
+
+                        <div class="flex items-center space-x-2 space-x-reverse">
+                            <button
+                                onclick="updateCartQty(${index}, -1)"
+                                class="w-5 h-5 bg-neutral-800 rounded text-gray-300"
+                            >-</button>
+
+                            <span class="text-white font-bold">
+                                ${qty}
+                            </span>
+
+                            <button
+                                onclick="updateCartQty(${index}, 1)"
+                                class="w-5 h-5 bg-neutral-800 rounded text-gray-300"
+                            >+</button>
+                        </div>
                     </div>
                 </div>
+
+                <button
+                    onclick="currentCart.splice(${index}, 1); updateCartBadge(); renderCartDrawer();"
+                    class="text-red-500 hover:text-red-400 text-xs p-1"
+                    aria-label="حذف المنتج"
+                >
+                    <i class="fas fa-trash"></i>
+                </button>
             </div>
+        `;
+    }).join('');
 
-            <button
-                onclick="currentCart.splice(${index}, 1); updateCartBadge(); renderCartDrawer(); if (typeof updateTransferAmount === 'function') updateTransferAmount(); if (typeof updateDepositAmount === 'function') updateDepositAmount();"
-                class="text-red-500 hover:text-red-400 text-xs p-1"
-                aria-label="حذف المنتج"
-            >
-                <i class="fas fa-trash"></i>
-            </button>
-        </div>
-    `;
-}).join('');
+    const total = subtotal + totalSunBadgeFee;
 
-// رسوم صن بيدج مرة واحدة على الطلب كله
-const sunBadgeSelected = currentCart.some(item => {
-    const type = String(item.upholsteryExtraType || '').toLowerCase();
-    const name = String(item.upholsteryName || '');
+    container.innerHTML = itemsHTML + (
+        totalSunBadgeFee > 0
+            ? `
+                <div class="flex justify-between items-center p-3 rounded-xl border border-brand-amber/40 bg-neutral-900 text-xs">
+                    <span class="text-gray-300">
+                        إجمالي رسوم الصن بيدج لجميع المنتجات
+                    </span>
+                    <span class="text-brand-amber font-bold">
+                        +${totalSunBadgeFee.toLocaleString('en-US')} ج.م
+                    </span>
+                </div>
+            `
+            : ''
+    );
 
-    return type === 'sunbadge' ||
-        /صن\s*بيدج|sun\s*badge|sunbedge/i.test(name);
-});
+    if (subtotalEl) {
+        subtotalEl.innerText =
+            `${subtotal.toLocaleString('en-US')} ج.م`;
+    }
 
-const sunBadgeFee = sunBadgeSelected ? 1000 : 0;
-const total = subtotal + sunBadgeFee;
+    if (discountEl) {
+        discountEl.innerText = '0 ج.م';
+    }
 
-container.innerHTML = itemsHTML + (
-    sunBadgeFee > 0
-        ? `
-            <div class="flex justify-between items-center p-3 rounded-xl border border-brand-amber/40 bg-neutral-900 text-xs">
-                <span class="text-gray-300">
-                    رسوم تنجيد صن بيدج (مرة واحدة للطلب)
-                </span>
-                <span class="text-brand-amber font-bold">
-                    +${sunBadgeFee.toLocaleString('en-US')} ج.م
-                </span>
-            </div>
-        `
-        : ''
-);
+    if (totalEl) {
+        totalEl.innerText =
+            `${total.toLocaleString('en-US')} ج.م`;
+    }
 
-if (subtotalEl) {
-    subtotalEl.innerText = `${subtotal.toLocaleString('en-US')} ج.م`;
-}
+    // الإجماليات التي تستخدمها بقية أجزاء الموقع
+    window.currentCartSubtotal = subtotal;
+    window.currentSunBadgeFee = totalSunBadgeFee;
+    window.currentCartTotal = total;
 
-if (discountEl) {
-    discountEl.innerText = '0 ج.م';
-}
+    if (typeof updateTransferAmount === 'function') {
+        updateTransferAmount();
+    }
 
-if (totalEl) {
-    totalEl.innerText = `${total.toLocaleString('en-US')} ج.م`;
-}
-
-// إتاحة الإجمالي والرسوم لباقي حسابات الدفع
-window.currentCartSubtotal = subtotal;
-window.currentSunBadgeFee = sunBadgeFee;
-window.currentCartTotal = total;
-
+    if (typeof updateDepositAmount === 'function') {
+        updateDepositAmount();
+    }
 }
 
 
@@ -4014,164 +4117,70 @@ window.updateTransferAmount = updateTransferAmount;
 }
 
 
+
 function updateDepositAmount() {
-const configuredPercent = Number(appState.depositPercent ?? 30);
-const depositPercent = Number.isFinite(configuredPercent)
-&& configuredPercent >= 0
-&& configuredPercent <= 100
-? configuredPercent
-: 30;
+    const configuredPercent = Number(appState.depositPercent ?? 30);
 
-// إجمالي المنتجات
-const subtotal = currentCart.reduce((sum, item) => {
-    const price = Number(item.unitPrice ?? item.price ?? 0);
-    const qty = Number(item.qty ?? 1);
-    return sum + price * qty;
-}, 0);
+    const depositPercent =
+        Number.isFinite(configuredPercent) &&
+        configuredPercent >= 0 &&
+        configuredPercent <= 100
+            ? configuredPercent
+            : 30;
 
-// رسوم صن بيدج مرة واحدة على الطلب كله
-const sunBadgeSelected = currentCart.some(item => {
-    const type = String(item.upholsteryExtraType || '').toLowerCase();
-    const name = String(item.upholsteryName || '');
+    let subtotal = 0;
+    let sunBadgeFee = 0;
 
-    return type === 'sunbadge' ||
-        /صن\s*بيدج|sun\s*badge|sunbedge/i.test(name);
-});
+    // حساب المنتجات ورسوم الصن بيدج لكل منتج حسب الكمية
+    (Array.isArray(currentCart) ? currentCart : []).forEach(item => {
+        const qty = Math.max(1, Number(item.qty) || 1);
+        const price = Number(item.unitPrice ?? item.price ?? 0) || 0;
 
-const sunBadgeFee = sunBadgeSelected ? 1000 : 0;
+        subtotal += price * qty;
 
-// تكلفة الشحن
-const selectedShipping = document.querySelector(
-    'input[name="ship_option"]:checked'
-);
+        const upholsteryName = String(item.upholsteryName || '');
+        const upholsteryType = String(
+            item.upholsteryExtraType || ''
+        ).toLowerCase();
 
-const shippingOptions = Array.isArray(appState.shippingOptions)
-    ? appState.shippingOptions
-    : [];
+        const isSunBadge =
+            upholsteryType === 'sunbadge' ||
+            /صن\s*بيدج|sun\s*badge|sunbedge/i.test(upholsteryName);
 
-const shippingOption = selectedShipping
-    ? shippingOptions.find(
-        option => String(option.id) === String(selectedShipping.value)
-    )
-    : null;
+        const isJaguar = /جاكوار|jaguar/i.test(upholsteryName);
 
-const shippingCost = Number(shippingOption?.price || 0);
+        if (isSunBadge && !isJaguar) {
+            const rawFee = Number(
+                item.sunbadgeFee ?? item.sunbadge_fee ?? 0
+            );
 
-// الإجمالي شامل المنتجات ورسوم صن بيدج والشحن
-const total = subtotal + sunBadgeFee + shippingCost;
+            if (Number.isFinite(rawFee) && rawFee > 0) {
+                sunBadgeFee += rawFee * qty;
+            }
+        }
+    });
 
-// العربون والمتبقي
-const depositAmount = Math.round(total * depositPercent / 100);
-const remainingAmount = Math.max(total - depositAmount, 0);
-
-const totalElement = document.getElementById('deposit-total-amount');
-const percentElement = document.getElementById('deposit-percent-value');
-const amountElement = document.getElementById('deposit-amount');
-const remainingElement = document.getElementById('deposit-remaining-amount');
-const percentLabel = document.getElementById('deposit-percent-label');
-
-if (totalElement) {
-    totalElement.textContent = `${total.toLocaleString('ar-EG')} ج.م`;
-}
-
-if (percentElement) {
-    percentElement.textContent = `${depositPercent}%`;
-}
-
-if (amountElement) {
-    amountElement.textContent = `${depositAmount.toLocaleString('ar-EG')} ج.م`;
-}
-
-if (remainingElement) {
-    remainingElement.textContent = `${remainingAmount.toLocaleString('ar-EG')} ج.م`;
-}
-
-if (percentLabel) {
-    percentLabel.textContent = `${depositPercent}%`;
-}
-
-// توحيد القيم مع بقية دوال الدفع والطلب
-window.currentCartSubtotal = subtotal;
-window.currentSunBadgeFee = sunBadgeFee;
-window.currentShippingCost = shippingCost;
-window.currentCheckoutTotal = total;
-window.currentDepositAmount = depositAmount;
-window.currentRemainingAmount = remainingAmount;
-
-}
-
-window.handlePaymentMethodChange = handlePaymentMethodChange;
-window.updateDepositAmount = updateDepositAmount;
-
-        
-      async function submitDepositOrder() {
-try {
-const name = document.getElementById('chk-name')?.value?.trim() || '';
-const phone = document.getElementById('chk-phone')?.value?.trim() || '';
-const gov = document.getElementById('chk-gov')?.value?.trim() || '';
-const city = document.getElementById('chk-city')?.value?.trim() || '';
-const address = document.getElementById('chk-address')?.value?.trim() || '';
-
-
-    if (!name || !phone || !gov || !city || !address) {
-        alert('من فضلك أكمل بيانات العميل والعنوان أولاً.');
-        return;
-    }
-
-    const shipVal = document.querySelector(
+    // حساب الشحن
+    const selectedShipping = document.querySelector(
         'input[name="ship_option"]:checked'
-    )?.value;
+    );
 
     const shippingOptions = Array.isArray(appState.shippingOptions)
         ? appState.shippingOptions
         : [];
 
-    const selectedShip = shippingOptions.find(
-        s => String(s.id) === String(shipVal)
-    );
+    const shippingOption = selectedShipping
+        ? shippingOptions.find(
+            option => String(option.id) === String(selectedShipping.value)
+        )
+        : null;
 
-    if (!selectedShip) {
-        alert('من فضلك اختر طريقة الشحن.');
-        return;
-    }
+    const shippingCost = Number(shippingOption?.price || 0);
 
-    // إجمالي أسعار المنتجات قبل رسوم صن بيدج والشحن
-    const subtotal = currentCart.reduce((sum, item) => {
-        return sum + (
-            Number(item.unitPrice ?? item.price ?? 0) *
-            Number(item.qty ?? 0)
-        );
-    }, 0);
-
-    // رسوم صن بيدج تُحسب مرة واحدة للطلب كله
-    const sunBadgeSelected = currentCart.some(item => {
-        const upholsteryType = String(
-            item.upholsteryExtraType || ''
-        ).toLowerCase();
-
-        const upholsteryName = String(
-            item.upholsteryName || ''
-        );
-
-        return upholsteryType === 'sunbadge' ||
-            /صن\s*بيدج|sun\s*badge|sunbedge/i.test(upholsteryName);
-    });
-
-    const sunBadgeFee = sunBadgeSelected ? 1000 : 0;
-
-    // الشحن
-    const shippingCost = Number(selectedShip.price || 0);
-
-    // الإجمالي النهائي
+    // الإجمالي شامل المنتجات ورسوم الصن بيدج والشحن
     const total = subtotal + sunBadgeFee + shippingCost;
 
-    // حساب الدفعة المقدمة والمتبقي
-    const configuredPercent = Number(appState.depositPercent);
-    const depositPercent = Number.isFinite(configuredPercent)
-        && configuredPercent > 0
-        ? configuredPercent
-        : 30;
-
+    // حساب العربون والمتبقي
     const depositAmount = Math.round(
         total * depositPercent / 100
     );
@@ -4181,105 +4190,262 @@ const address = document.getElementById('chk-address')?.value?.trim() || '';
         0
     );
 
-    // بيانات الطلب
-    const newOrder = {
-        id: 'ORD-' + Math.floor(10000 + Math.random() * 90000),
-        date: new Date().toISOString().split('T')[0],
+    const totalElement = document.getElementById('deposit-total-amount');
+    const percentElement = document.getElementById('deposit-percent-value');
+    const amountElement = document.getElementById('deposit-amount');
+    const remainingElement = document.getElementById('deposit-remaining-amount');
+    const percentLabel = document.getElementById('deposit-percent-label');
 
-        customer: {
-            name,
-            phone,
-            gov,
-            city,
-            address
-        },
-
-        items: currentCart,
-        subtotal,
-        sunBadgeFee,
-        shippingCost,
-        total,
-
-        shippingMethod: selectedShip.name || '',
-        paymentMethod: 'Deposit',
-        depositPercent,
-        depositAmount,
-        remainingAmount,
-        paymentStatus: 'Pending',
-        paymentProofUrl: '',
-        status: 'New'
-    };
-
-    // تسجيل الطلب في قاعدة البيانات
-    const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(newOrder)
-    });
-
-    const result = await response.json();
-
-    if (!response.ok || !result.success) {
-        throw new Error(result.error || 'فشل تسجيل الطلب');
+    if (totalElement) {
+        totalElement.textContent =
+            `${total.toLocaleString('ar-EG')} ج.م`;
     }
 
-    // إرسال إشعار WhatsApp
-    try {
-        const whatsappResponse = await fetch(
-            '/api/send-whatsapp-order',
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(newOrder)
-            }
-        );
-
-        const whatsappResult = await whatsappResponse.json();
-
-        if (!whatsappResponse.ok || !whatsappResult.success) {
-            console.error(
-                'WHATSAPP NOTIFICATION ERROR:',
-                whatsappResult
-            );
-        }
-    } catch (whatsappError) {
-        console.error(
-            'WHATSAPP NOTIFICATION FAILED:',
-            whatsappError
-        );
+    if (percentElement) {
+        percentElement.textContent = `${depositPercent}%`;
     }
 
-    // حفظ الطلب لصفحة الشكر
-    sessionStorage.setItem(
-        'lastOrder',
-        JSON.stringify(newOrder)
-    );
+    if (amountElement) {
+        amountElement.textContent =
+            `${depositAmount.toLocaleString('ar-EG')} ج.م`;
+    }
 
-    // تفريغ السلة
-    currentCart = [];
-    localStorage.removeItem('cart');
+    if (remainingElement) {
+        remainingElement.textContent =
+            `${remainingAmount.toLocaleString('ar-EG')} ج.م`;
+    }
 
-    // الانتقال إلى صفحة الشكر
-    window.location.href = '/thank-you.html';
+    if (percentLabel) {
+        percentLabel.textContent = `${depositPercent}%`;
+    }
 
-} catch (error) {
-    console.error('SUBMIT DEPOSIT ORDER ERROR:', error);
-
-    alert(
-        'حدث خطأ أثناء تسجيل الطلب:\n' +
-        error.message
-    );
+    // توحيد الإجماليات لباقي أجزاء الموقع
+    window.currentCartSubtotal = subtotal;
+    window.currentSunBadgeFee = sunBadgeFee;
+    window.currentShippingCost = shippingCost;
+    window.currentCheckoutTotal = total;
+    window.currentCartTotal = subtotal + sunBadgeFee;
+    window.currentDepositAmount = depositAmount;
+    window.currentRemainingAmount = remainingAmount;
 }
 
+window.updateDepositAmount = updateDepositAmount;
+
+
+        
+async function submitDepositOrder() {
+    try {
+        if (!Array.isArray(currentCart) || currentCart.length === 0) {
+            alert('سلة الشراء فارغة.');
+            return;
+        }
+
+        const name = document.getElementById('chk-name')?.value?.trim() || '';
+        const phone = document.getElementById('chk-phone')?.value?.trim() || '';
+        const gov = document.getElementById('chk-gov')?.value?.trim() || '';
+        const city = document.getElementById('chk-city')?.value?.trim() || '';
+        const address = document.getElementById('chk-address')?.value?.trim() || '';
+
+        if (!name || !phone || !gov || !city || !address) {
+            alert('من فضلك أكمل بيانات العميل والعنوان أولاً.');
+            return;
+        }
+
+        const shipVal = document.querySelector(
+            'input[name="ship_option"]:checked'
+        )?.value;
+
+        const shippingOptions = Array.isArray(appState.shippingOptions)
+            ? appState.shippingOptions
+            : [];
+
+        const selectedShip = shippingOptions.find(
+            s => String(s.id) === String(shipVal)
+        );
+
+        if (!selectedShip) {
+            alert('من فضلك اختر طريقة الشحن.');
+            return;
+        }
+
+        let subtotal = 0;
+        let sunBadgeFee = 0;
+
+        // تجهيز عناصر الطلب وحساب الرسوم لكل وحدة
+        const orderItems = currentCart.map(item => {
+            const qty = Math.max(1, Number(item.qty) || 1);
+            const unitPrice = Number(
+                item.unitPrice ?? item.price ?? 0
+            ) || 0;
+
+            subtotal += unitPrice * qty;
+
+            const upholsteryName = String(item.upholsteryName || '');
+            const upholsteryType = String(
+                item.upholsteryExtraType || ''
+            ).toLowerCase();
+
+            const isSunBadge =
+                upholsteryType === 'sunbadge' ||
+                /صن\s*بيدج|sun\s*badge|sunbedge/i.test(upholsteryName);
+
+            const isJaguar = /جاكوار|jaguar/i.test(upholsteryName);
+
+            let unitSunBadgeFee = 0;
+
+            if (isSunBadge && !isJaguar) {
+                const rawFee = Number(
+                    item.sunbadgeFee ?? item.sunbadge_fee ?? 0
+                );
+
+                if (Number.isFinite(rawFee) && rawFee > 0) {
+                    unitSunBadgeFee = rawFee;
+                }
+            }
+
+            const itemSunBadgeFee = unitSunBadgeFee * qty;
+            sunBadgeFee += itemSunBadgeFee;
+
+            return {
+                ...item,
+                qty,
+                unitPrice,
+                sunbadgeFee: unitSunBadgeFee,
+                sunbadge_fee: unitSunBadgeFee,
+                sunBadgeTotalFee: itemSunBadgeFee,
+                lineTotal: unitPrice * qty + itemSunBadgeFee
+            };
+        });
+
+        const shippingCost = Number(selectedShip.price || 0);
+
+        // الإجمالي النهائي
+        const total = subtotal + sunBadgeFee + shippingCost;
+
+        // نسبة العربون، مع السماح بنسبة 0 إلى 100
+        const configuredPercent = Number(appState.depositPercent ?? 30);
+
+        const depositPercent =
+            Number.isFinite(configuredPercent) &&
+            configuredPercent >= 0 &&
+            configuredPercent <= 100
+                ? configuredPercent
+                : 30;
+
+        const depositAmount = Math.round(
+            total * depositPercent / 100
+        );
+
+        const remainingAmount = Math.max(
+            total - depositAmount,
+            0
+        );
+
+        const newOrder = {
+            id: 'ORD-' + Math.floor(10000 + Math.random() * 90000),
+            date: new Date().toISOString().split('T')[0],
+
+            customer: {
+                name,
+                phone,
+                gov,
+                city,
+                address
+            },
+
+            items: orderItems,
+            subtotal,
+            sunBadgeFee,
+            sunbadge_fee: sunBadgeFee,
+            shippingCost,
+            total,
+
+            shippingMethod: selectedShip.name || '',
+            paymentMethod: 'Deposit',
+            depositPercent,
+            depositAmount,
+            remainingAmount,
+            paymentStatus: 'Pending',
+            paymentProofUrl: '',
+            status: 'New'
+        };
+
+        // تحديث القيم المعروضة قبل إرسال الطلب
+        window.currentCartSubtotal = subtotal;
+        window.currentSunBadgeFee = sunBadgeFee;
+        window.currentShippingCost = shippingCost;
+        window.currentCheckoutTotal = total;
+        window.currentCartTotal = subtotal + sunBadgeFee;
+        window.currentDepositAmount = depositAmount;
+        window.currentRemainingAmount = remainingAmount;
+
+        // تسجيل الطلب في قاعدة البيانات
+        const response = await fetch('/api/orders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(newOrder)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'فشل تسجيل الطلب');
+        }
+
+        // إرسال إشعار واتساب
+        try {
+            const whatsappResponse = await fetch(
+                '/api/send-whatsapp-order',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(newOrder)
+                }
+            );
+
+            const whatsappResult = await whatsappResponse.json();
+
+            if (!whatsappResponse.ok || !whatsappResult.success) {
+                console.error(
+                    'WHATSAPP NOTIFICATION ERROR:',
+                    whatsappResult
+                );
+            }
+        } catch (whatsappError) {
+            console.error(
+                'WHATSAPP NOTIFICATION FAILED:',
+                whatsappError
+            );
+        }
+
+        // حفظ الطلب لصفحة الشكر
+        sessionStorage.setItem(
+            'lastOrder',
+            JSON.stringify(newOrder)
+        );
+
+        // تفريغ السلة
+        currentCart = [];
+        localStorage.removeItem('cart');
+
+        window.location.href = '/thank-you.html';
+
+    } catch (error) {
+        console.error('SUBMIT DEPOSIT ORDER ERROR:', error);
+
+        alert(
+            'حدث خطأ أثناء تسجيل الطلب:\n' +
+            error.message
+        );
+    }
 }
 
 window.submitDepositOrder = submitDepositOrder;
-
-
+     
 function closeCheckoutModal() {
     document
         .getElementById('checkout-modal')
@@ -7721,49 +7887,9 @@ async function changeCategoryImage(categoryId, input) {
     }
 }
 
-        function openProductModal() {
-
-    // مهم: فتح إضافة منتج جديد يلغي وضع التعديل
+function openProductModal() {
+    // فتح إضافة منتج جديد
     editingProductId = null;
-
-    switchView('admin-product-editor');
-
-    document.getElementById('product-editor-form').reset();
-
-    const select =
-        document.getElementById('product-editor-category');
-
-    select.innerHTML =
-        appState.categories
-            .map(c => `
-                <option value="${c.name}">
-                    ${c.name}
-                </option>
-            `)
-            .join('');
-
-    const saveButton =
-        document.querySelector(
-            '#product-editor-form button[type="submit"]'
-        );
-
-    if (saveButton) {
-        saveButton.innerHTML = 'حفظ المنتج';
-    }
-}
-let editingProductId = null;
-
-function openEditProduct(productId) {
-    const product = appState.products.find(
-        p => p.id === productId
-    );
-
-    if (!product) {
-        alert('لم يتم العثور على المنتج.');
-        return;
-    }
-
-    editingProductId = productId;
 
     switchView('admin-product-editor');
 
@@ -7772,31 +7898,134 @@ function openEditProduct(productId) {
 
     const select = document.getElementById('product-editor-category');
 
-    select.innerHTML = appState.categories
-        .map(c => `
-            <option value="${c.name}">
-                ${c.name}
-            </option>
-        `)
-        .join('');
+    if (select) {
+        select.innerHTML = appState.categories
+            .map(c => `
+                <option value="${c.name}">
+                    ${c.name}
+                </option>
+            `)
+            .join('');
+    }
 
-    document.getElementById('product-editor-title').value =
-        product.title || '';
+    // السعر الافتراضي لرسوم الصن بيدج
+    const feeInput = document.getElementById('product-editor-sunbadge-fee');
+    if (feeInput) {
+        feeInput.value = 1000;
+    }
 
-    document.getElementById('product-editor-category').value =
-        product.category || '';
+    const saveButton = document.querySelector(
+        '#product-editor-form button[type="submit"]'
+    );
 
-    document.getElementById('product-editor-price').value =
-        product.price || '';
+    if (saveButton) {
+        saveButton.innerHTML = 'حفظ المنتج';
+    }
+}
 
-    document.getElementById('product-editor-description').value =
-        product.description || '';
+let editingProductId = null;
 
-    document.getElementById('product-editor-dimensions').value =
-        product.dimensions || '';
+function openEditProduct(productId) {
+    const product = appState.products.find(
+        p => String(p.id) === String(productId)
+    );
 
-    document.getElementById('product-editor-chair-count').value =
-        product.chairCount || 1;
+    if (!product) {
+        alert('لم يتم العثور على المنتج.');
+        return;
+    }
+
+    editingProductId = product.id;
+
+    switchView('admin-product-editor');
+
+    const form = document.getElementById('product-editor-form');
+    if (form) form.reset();
+
+    const select = document.getElementById('product-editor-category');
+
+    if (select) {
+        select.innerHTML = appState.categories
+            .map(c => `
+                <option value="${c.name}">
+                    ${c.name}
+                </option>
+            `)
+            .join('');
+
+        select.value = product.category || '';
+    }
+
+    // البيانات الأساسية
+    const titleInput = document.getElementById('product-editor-title');
+    if (titleInput) {
+        titleInput.value = product.title || product.name || '';
+    }
+
+    const priceInput = document.getElementById('product-editor-price');
+    if (priceInput) {
+        priceInput.value = product.price ?? '';
+    }
+
+    const oldPriceInput = document.getElementById('product-editor-old-price');
+    if (oldPriceInput) {
+        oldPriceInput.value = product.old_price ?? product.oldPrice ?? '';
+    }
+
+    const descriptionInput = document.getElementById('product-editor-description');
+    if (descriptionInput) {
+        descriptionInput.value = product.description || '';
+    }
+
+    const dimensionsInput = document.getElementById('product-editor-dimensions');
+    if (dimensionsInput) {
+        dimensionsInput.value = product.dimensions || '';
+    }
+
+    const skuInput = document.getElementById('product-editor-sku');
+    if (skuInput) {
+        skuInput.value = product.sku || '';
+    }
+
+    // أعداد القطع
+    const chairInput = document.getElementById('product-editor-chair-count');
+    if (chairInput) {
+        chairInput.value = product.chair_count ?? product.chairCount ?? 1;
+    }
+
+    const sofa2Input = document.getElementById('product-editor-sofa-2-count');
+    if (sofa2Input) {
+        sofa2Input.value = product.sofa_2_count ?? product.sofa2Count ?? 0;
+    }
+
+    const sofa3Input = document.getElementById('product-editor-sofa-3-count');
+    if (sofa3Input) {
+        sofa3Input.value = product.sofa_3_count ?? product.sofa3Count ?? 0;
+    }
+
+    const tableInput = document.getElementById('product-editor-table-count');
+    if (tableInput) {
+        tableInput.value = product.table_count ?? product.tableCount ?? 0;
+    }
+
+    // رسوم الصن بيدج المحفوظة لهذا المنتج
+    const feeInput = document.getElementById('product-editor-sunbadge-fee');
+    if (feeInput) {
+        feeInput.value = Number(
+            product.sunbadge_fee ?? product.sunbadgeFee ?? 1000
+        );
+    }
+
+    // حالة ظهور المنتج وتمييزه
+    const visibleInput = document.getElementById('product-editor-visible');
+    if (visibleInput) {
+        visibleInput.checked = product.visible !== false;
+    }
+
+    const featuredInput = document.getElementById('product-editor-featured');
+    if (featuredInput) {
+        featuredInput.checked = product.featured === true;
+    }
 
     const saveButton = document.querySelector(
         '#product-editor-form button[type="submit"]'
@@ -7806,9 +8035,11 @@ function openEditProduct(productId) {
         saveButton.innerHTML = 'تحديث المنتج';
     }
 }
-        function closeProductEditor() {
-            switchView('admin-dashboard');
-        }
+
+function closeProductEditor() {
+    switchView('admin-dashboard');
+}
+
 
         // =====================================================
 // إدارة العروض
