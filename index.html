@@ -3396,11 +3396,11 @@ container.innerHTML = `
 
                         let priceLabel = 'أساسي';
 
-                        if (isBadge) {
-                            priceLabel = 'رسوم الطلب 1000 ج.م';
-                        } else if (isJaguar) {
-                            priceLabel = 'أساسي بدون زيادة';
-                        }
+if (isBadge) {
+    priceLabel = 'بدون رسوم إضافية';
+} else if (isJaguar) {
+    priceLabel = 'أساسي بدون زيادة';
+}
 
                         return `
                             <label
