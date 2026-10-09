@@ -3317,21 +3317,66 @@ showToast('تم إضافة القسم بنجاح ✅');
     }
 }
         
-        function openCustomizerModal(productId) {
-            const product = appState.products.find(p => p.id === productId);
-            if (!product) return;
-            activeCustomizerProduct = product;
-            selectedUpholsteryId = appState.upholsteryTypes[0]?.id || null;
-            selectedCushionColor = appState.cushionColors[0]?.name || '';
-            selectedWickerColor = appState.wickerColors[0]?.name || '';
-            sunbrellaChecked = false;
-            customizerQty = 1;
-            renderCustomizerModalContent();
-            document.getElementById('product-detail-modal').classList.remove('hidden');
-        }
+     
+function openCustomizerModal(productId) {
+    // البحث عن المنتج داخل بيانات المتجر الحالية
+    const product = appState.products.find(
+        p => String(p.id) === String(productId)
+    );
 
+    if (!product) {
+        console.error('CUSTOMIZER: Product not found:', productId);
+        alert('تعذر العثور على المنتج. حدّث الصفحة وحاول مرة أخرى.');
+        return;
+    }
 
+    // قراءة الرسوم من بيانات المنتج نفسه
+    const rawFee =
+        product.sunbadge_fee ??
+        product.sunbadgeFee ??
+        0;
 
+    const sunbadgeFee = Number(rawFee);
+
+    // الاحتفاظ ببيانات المنتج كاملة مع توحيد أسماء الرسوم
+    activeCustomizerProduct = {
+        ...product,
+        sunbadge_fee:
+            Number.isFinite(sunbadgeFee) && sunbadgeFee >= 0
+                ? sunbadgeFee
+                : 0,
+        sunbadgeFee:
+            Number.isFinite(sunbadgeFee) && sunbadgeFee >= 0
+                ? sunbadgeFee
+                : 0
+    };
+
+    console.log('CUSTOMIZER PRODUCT:', {
+        id: activeCustomizerProduct.id,
+        name: activeCustomizerProduct.name,
+        sunbadge_fee: activeCustomizerProduct.sunbadge_fee
+    });
+
+    selectedUpholsteryId =
+        appState.upholsteryTypes[0]?.id ?? null;
+
+    selectedCushionColor =
+        appState.cushionColors[0]?.name || '';
+
+    selectedWickerColor =
+        appState.wickerColors[0]?.name || '';
+
+    sunbrellaChecked = false;
+    customizerQty = 1;
+
+    renderCustomizerModalContent();
+
+    const modal = document.getElementById('product-detail-modal');
+
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
 
 
 function renderCustomizerModalContent() {
