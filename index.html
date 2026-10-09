@@ -7921,14 +7921,24 @@ function openProductModal() {
             .join('');
     }
 
-   // رسوم صن بيدج الافتراضية للمنتج الجديد: صفر جنيه
+
+    // رسوم صن بيدج للمنتج الجديد أو القديم
 const feeInput = document.getElementById(
     'product-editor-sunbadge-fee'
 );
 
 if (feeInput) {
-    feeInput.value = '0';
+    if (isEditing && oldProduct) {
+        feeInput.value = String(
+            oldProduct.sunbadge_fee ??
+            oldProduct.sunbadgeFee ??
+            0
+        );
+    } else {
+        feeInput.value = '0';
+    }
 }
+
     const saveButton = document.querySelector(
         '#product-editor-form button[type="submit"]'
     );
