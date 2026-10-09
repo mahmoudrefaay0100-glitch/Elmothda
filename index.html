@@ -7898,8 +7898,8 @@ async function changeCategoryImage(categoryId, input) {
     }
 }
 
+
 function openProductModal() {
-    // فتح إضافة منتج جديد
     editingProductId = null;
 
     switchView('admin-product-editor');
@@ -7919,10 +7919,13 @@ function openProductModal() {
             .join('');
     }
 
-    // السعر الافتراضي لرسوم الصن بيدج
-    const feeInput = document.getElementById('product-editor-sunbadge-fee');
+    // رسوم صن بيدج الافتراضية للمنتج الجديد
+    const feeInput = document.getElementById(
+        'product-editor-sunbadge-fee'
+    );
+
     if (feeInput) {
-        feeInput.value = 1000;
+        feeInput.value = '1000';
     }
 
     const saveButton = document.querySelector(
@@ -7967,7 +7970,6 @@ function openEditProduct(productId) {
         select.value = product.category || '';
     }
 
-    // البيانات الأساسية
     const titleInput = document.getElementById('product-editor-title');
     if (titleInput) {
         titleInput.value = product.title || product.name || '';
@@ -7998,7 +8000,6 @@ function openEditProduct(productId) {
         skuInput.value = product.sku || '';
     }
 
-    // أعداد القطع
     const chairInput = document.getElementById('product-editor-chair-count');
     if (chairInput) {
         chairInput.value = product.chair_count ?? product.chairCount ?? 1;
@@ -8019,15 +8020,23 @@ function openEditProduct(productId) {
         tableInput.value = product.table_count ?? product.tableCount ?? 0;
     }
 
-    // رسوم الصن بيدج المحفوظة لهذا المنتج
-    const feeInput = document.getElementById('product-editor-sunbadge-fee');
+    // الحفاظ على الرسوم المحفوظة، وعدم استبدال الصفر الصحيح
+    const feeInput = document.getElementById(
+        'product-editor-sunbadge-fee'
+    );
+
     if (feeInput) {
-        feeInput.value = Number(
-            product.sunbadge_fee ?? product.sunbadgeFee ?? 1000
-        );
+        const savedFee =
+            product.sunbadge_fee ?? product.sunbadgeFee;
+
+        feeInput.value =
+            savedFee !== undefined &&
+            savedFee !== null &&
+            savedFee !== ''
+                ? String(savedFee)
+                : '1000';
     }
 
-    // حالة ظهور المنتج وتمييزه
     const visibleInput = document.getElementById('product-editor-visible');
     if (visibleInput) {
         visibleInput.checked = product.visible !== false;
@@ -8046,7 +8055,7 @@ function openEditProduct(productId) {
         saveButton.innerHTML = 'تحديث المنتج';
     }
 }
-
+        
 function closeProductEditor() {
     switchView('admin-dashboard');
 }
