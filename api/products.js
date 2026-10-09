@@ -153,7 +153,33 @@ export default async function handler(req, res) {
                 existingProduct = null
             } = options;
 
-            const sunbadgeFee = readSunbadgeFee(product);
+const rawSunbadgeFee =
+    product.sunbadge_fee ??
+    product.sunbadgeFee ??
+    product.sunbadge_unit_fee ??
+    product.sunbadgeUnitFee;
+
+const sunbadgeFee =
+    rawSunbadgeFee === undefined ||
+    rawSunbadgeFee === null ||
+    rawSunbadgeFee === ""
+        ? (
+            existingProduct?.sunbadge_fee ??
+            existingProduct?.sunbadgeFee ??
+            0
+        )
+        : Number(rawSunbadgeFee);
+
+if (
+    !Number.isFinite(Number(sunbadgeFee)) ||
+    Number(sunbadgeFee) < 0
+) {
+    throw new Error(
+        "رسوم الصن بيدج يجب أن تكون رقمًا صحيحًا أو صفرًا."
+    );
+}
+
+
 
             if (sunbadgeFee === null) {
                 throw new Error(
