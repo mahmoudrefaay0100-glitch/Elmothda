@@ -9685,7 +9685,8 @@ if (feeInput) {
     feeInput.value = 0;
 }
 
-     let sunbadgeFee;
+// حساب رسوم صن بيدج
+let sunbadgeFee;
 
 if (feeInput && feeInput.value.trim() !== '') {
     sunbadgeFee = Number(feeInput.value);
@@ -9706,7 +9707,7 @@ if (!Number.isFinite(sunbadgeFee) || sunbadgeFee < 0) {
     );
 }
 
-// تجهيز بيانات المنتج
+// تجهيز بيانات المنتج مرة واحدة فقط
 const productData = {
     name: document
         .getElementById('product-editor-title')
@@ -9724,51 +9725,9 @@ const productData = {
         document.getElementById('product-editor-old-price').value
     ) || 0,
 
-        // تجهيز بيانات المنتج
-        const productData = {
-            name: document
-                .getElementById('product-editor-title')
-                .value.trim(),
+    sunbadge_fee: sunbadgeFee,
 
-            category: document
-                .getElementById('product-editor-category')
-                .value,
 
-            price: Number(
-                document.getElementById('product-editor-price').value
-            ) || 0,
-
-            old_price: Number(
-                document.getElementById('product-editor-old-price').value
-            ) || 0,
-
-            description: document
-                .getElementById('product-editor-description')
-                .value.trim(),
-
-            dimensions: document
-                .getElementById('product-editor-dimensions')
-                .value.trim(),
-
-            sku: document
-                .getElementById('product-editor-sku')
-                .value.trim(),
-
-            chair_count: Number(
-                document.getElementById('product-editor-chair-count').value
-            ) || 0,
-
-            sofa_2_count: Number(
-                document.getElementById('product-editor-sofa-2-count').value
-            ) || 0,
-
-            sofa_3_count: Number(
-                document.getElementById('product-editor-sofa-3-count').value
-            ) || 0,
-
-            table_count: Number(
-                document.getElementById('product-editor-table-count').value
-            ) || 0,
 
             // حفظ الرسوم باسم العمود المستخدم في قاعدة البيانات
             sunbadge_fee: sunbadgeFee,
