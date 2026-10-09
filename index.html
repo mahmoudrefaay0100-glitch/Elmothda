@@ -10716,23 +10716,48 @@ async function loadStoreDataFromDatabase() {
         // المنتجات
         // =====================================================
 
-        appState.products = (data.products || []).map(p => ({
-            id: p.id,
-            title: p.name || '',
-            category: p.category || '',
-            price: Number(p.price) || 0,
-            oldPrice: Number(p.old_price) || 0,
-            sku: p.sku || '',
-            images: p.image_url ? [p.image_url] : [],
-            description: p.description || '',
-            dimensions: p.dimensions || '',
-            specifications: p.specifications || '',
-            chairCount: Number(p.chair_count) || 1,
-            isChairProduct: Number(p.chair_count) > 0,
-            visible: p.visible !== false,
-            featured: p.featured === true
-        }));
+       
+appState.products = (data.products || []).map(p => {
+    const rawSunbadgeFee =
+        p.sunbadge_fee ??
+        p.sunbadgeFee ??
+        0;
 
+    const sunbadgeFee = Number(rawSunbadgeFee);
+
+    const safeSunbadgeFee =
+        Number.isFinite(sunbadgeFee) && sunbadgeFee >= 0
+            ? sunbadgeFee
+            : 0;
+
+    return {
+        id: p.id,
+        title: p.name || p.title || '',
+        category: p.category || '',
+        price: Number(p.price) || 0,
+        oldPrice: Number(p.old_price ?? p.oldPrice) || 0,
+        sku: p.sku || '',
+        images: p.image_url
+            ? [p.image_url]
+            : (Array.isArray(p.images) ? p.images : []),
+        description: p.description || '',
+        dimensions: p.dimensions || '',
+        specifications: p.specifications || '',
+        chairCount: Number(p.chair_count ?? p.chairCount) || 1,
+        isChairProduct:
+            Number(p.chair_count ?? p.chairCount) > 0,
+        sofa2Count: Number(p.sofa_2_count ?? p.sofa2Count) || 0,
+        sofa3Count: Number(p.sofa_3_count ?? p.sofa3Count) || 0,
+        tableCount: Number(p.table_count ?? p.tableCount) || 0,
+
+        // رسوم صن بيدج الخاصة بالمنتج
+        sunbadge_fee: safeSunbadgeFee,
+        sunbadgeFee: safeSunbadgeFee,
+
+        visible: p.visible !== false,
+        featured: p.featured === true
+    };
+});
 
         // =====================================================
         // 🔥 العروض
