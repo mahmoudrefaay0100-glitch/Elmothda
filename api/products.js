@@ -29,16 +29,14 @@ export default async function handler(req, res) {
             const authHeader =
                 req.headers.authorization || "";
 
-            const token =
-                authHeader
-                    .replace(/^Bearer\s+/i, "")
-                    .trim();
+            const token = authHeader
+                .replace(/^Bearer\s+/i, "")
+                .trim();
 
             if (!token) {
                 console.error(
                     "ADMIN VERIFY: No token received"
                 );
-
                 return false;
             }
 
@@ -47,13 +45,9 @@ export default async function handler(req, res) {
                     `${SUPABASE_URL}/auth/v1/user`,
                     {
                         method: "GET",
-
                         headers: {
-                            apikey:
-                                SUPABASE_ANON_KEY,
-
-                            Authorization:
-                                `Bearer ${token}`
+                            apikey: SUPABASE_ANON_KEY,
+                            Authorization: `Bearer ${token}`
                         }
                     }
                 );
@@ -71,14 +65,12 @@ export default async function handler(req, res) {
                     return false;
                 }
 
-                const user =
-                    await response.json();
+                const user = await response.json();
 
                 if (!user?.id) {
                     console.error(
                         "ADMIN VERIFY: User ID missing"
                     );
-
                     return false;
                 }
 
@@ -94,7 +86,6 @@ export default async function handler(req, res) {
                     "ADMIN VERIFY EXCEPTION:",
                     error
                 );
-
                 return false;
             }
         }
@@ -104,37 +95,76 @@ export default async function handler(req, res) {
         // =========================
 
         const dbHeaders = {
-            apikey:
-                SUPABASE_SERVICE_ROLE_KEY,
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
 
             Authorization:
                 `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
 
-            "Content-Type":
-                "application/json",
+            "Content-Type": "application/json",
 
-            Prefer:
-                "return=representation"
+            Prefer: "return=representation"
         };
+
+        // =========================
+        // دالة قراءة رسوم الصن بيدج
+        // كل منتج له رسوم مستقلة
+        // =========================
+
+        function getSunbadgeFee(product, defaultValue = 1000) {
+            const rawFee =
+                product.sunbadge_fee ??
+                product.sunbadgeFee;
+
+            if (
+                rawFee === undefined ||
+                rawFee === null ||
+                rawFee === ""
+            ) {
+                return defaultValue;
+            }
+
+            const fee = Number(rawFee);
+
+            if (
+                !Number.isFinite(fee) ||
+                fee < 0
+            ) {
+                return null;
+            }
+
+            return fee;
+        }
 
         // =========================
         // GET - جلب المنتجات
         // =========================
 
         if (req.method === "GET") {
-
             const response = await fetch(
                 `${SUPABASE_URL}/rest/v1/products?select=*&order=created_at.desc`,
                 {
                     method: "GET",
-                    headers: dbHeaders
+                    headers: dbHeaders,
+                    cache: "no-store"
                 }
             );
 
-            const data =
-                await response.json();
+            const text = await response.text();
+
+            let data;
+
+            try {
+                data = text ? JSON.parse(text) : [];
+            } catch {
+                data = [];
+            }
 
             if (!response.ok) {
+                console.error(
+                    "LOAD PRODUCTS ERROR:",
+                    data
+                );
+
                 return res.status(
                     response.status
                 ).json({
@@ -148,7 +178,15 @@ export default async function handler(req, res) {
 
             return res.status(200).json({
                 success: true,
-                products: data || []
+
+                products: Array.isArray(data)
+                    ? data.map(product => ({
+                        ...product,
+                        sunbadge_fee: Number(
+                            product.sunbadge_fee ?? 1000
+                        )
+                    }))
+                    : []
             });
         }
 
@@ -157,9 +195,7 @@ export default async function handler(req, res) {
         // =========================
 
         if (req.method === "POST") {
-
-            const isAdmin =
-                await verifyAdmin();
+            const isAdmin = await verifyAdmin();
 
             if (!isAdmin) {
                 return res.status(401).json({
@@ -169,12 +205,7 @@ export default async function handler(req, res) {
                 });
             }
 
-            const product =
-                req.body || {};
-
-            // =========================
-            // إنشاء ID تلقائي
-            // =========================
+            const product = req.body || {};
 
             if (!product.id) {
                 product.id =
@@ -186,14 +217,23 @@ export default async function handler(req, res) {
                         .substring(2, 8);
             }
 
+            const sunbadgeFee =
+                getSunbadgeFee(product, 1000);
+
+            if (sunbadgeFee === null) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        "رسوم الصن بيدج يجب أن تكون رقمًا صحيحًا أو صفرًا."
+                });
+            }
+
             // =========================
             // بيانات المنتج
             // =========================
 
             const payload = {
-
-                id:
-                    String(product.id),
+                id: String(product.id),
 
                 name:
                     product.name ||
@@ -203,17 +243,18 @@ export default async function handler(req, res) {
                 category:
                     product.category || "",
 
-                price:
-                    Number(
-                        product.price || 0
-                    ),
+                price: Number(
+                    product.price ?? 0
+                ),
 
-                old_price:
-                    Number(
-                        product.old_price ||
-                        product.oldPrice ||
-                        0
-                    ),
+                old_price: Number(
+                    product.old_price ??
+                    product.oldPrice ??
+                    0
+                ),
+
+                // ⭐ رسوم الصن بيدج الخاصة بهذا المنتج
+                sunbadge_fee: sunbadgeFee,
 
                 sku:
                     product.sku || "",
@@ -227,47 +268,23 @@ export default async function handler(req, res) {
                 dimensions:
                     product.dimensions || "",
 
-                // =========================
-                // عدد الكراسي
-                // =========================
+                chair_count: Number(
+                    product.chair_count ??
+                    product.chairCount ??
+                    0
+                ),
 
-                chair_count:
-                    Number(
-                        product.chair_count ||
-                        product.chairCount ||
-                        0
-                    ),
+                sofa_2_count: Number(
+                    product.sofa_2_count ?? 0
+                ),
 
-                // =========================
-                // عدد كنبة 2 مقعد
-                // =========================
+                sofa_3_count: Number(
+                    product.sofa_3_count ?? 0
+                ),
 
-                sofa_2_count:
-                    Number(
-                        product.sofa_2_count || 0
-                    ),
-
-                // =========================
-                // عدد كنبة 3 مقعد
-                // =========================
-
-                sofa_3_count:
-                    Number(
-                        product.sofa_3_count || 0
-                    ),
-
-                // =========================
-                // عدد الترابيزات
-                // =========================
-
-                table_count:
-                    Number(
-                        product.table_count || 0
-                    ),
-
-                // =========================
-                // صورة المنتج
-                // =========================
+                table_count: Number(
+                    product.table_count ?? 0
+                ),
 
                 image_url:
                     product.image_url ||
@@ -284,27 +301,28 @@ export default async function handler(req, res) {
                     new Date().toISOString()
             };
 
-            // =========================
-            // حفظ المنتج
-            // =========================
-
             const response = await fetch(
                 `${SUPABASE_URL}/rest/v1/products?on_conflict=id`,
                 {
                     method: "POST",
-
-                    headers:
-                        dbHeaders,
-
-                    body:
-                        JSON.stringify(
-                            payload
-                        )
+                    headers: {
+                        ...dbHeaders,
+                        Prefer:
+                            "return=representation,resolution=merge-duplicates"
+                    },
+                    body: JSON.stringify(payload)
                 }
             );
 
-            const data =
-                await response.json();
+            const text = await response.text();
+
+            let data;
+
+            try {
+                data = text ? JSON.parse(text) : [];
+            } catch {
+                data = [];
+            }
 
             if (!response.ok) {
                 console.error(
@@ -328,8 +346,7 @@ export default async function handler(req, res) {
                 success: true,
 
                 product:
-                    data?.[0] ||
-                    payload
+                    data?.[0] || payload
             });
         }
 
@@ -338,9 +355,7 @@ export default async function handler(req, res) {
         // =========================
 
         if (req.method === "PUT") {
-
-            const isAdmin =
-                await verifyAdmin();
+            const isAdmin = await verifyAdmin();
 
             if (!isAdmin) {
                 return res.status(401).json({
@@ -350,17 +365,24 @@ export default async function handler(req, res) {
                 });
             }
 
-            const product =
-                req.body || {};
-
-            const productId =
-                product.id;
+            const product = req.body || {};
+            const productId = product.id;
 
             if (!productId) {
                 return res.status(400).json({
                     success: false,
+                    error: "Product ID is required"
+                });
+            }
+
+            const sunbadgeFee =
+                getSunbadgeFee(product, 1000);
+
+            if (sunbadgeFee === null) {
+                return res.status(400).json({
+                    success: false,
                     error:
-                        "Product ID is required"
+                        "رسوم الصن بيدج يجب أن تكون رقمًا صحيحًا أو صفرًا."
                 });
             }
 
@@ -369,23 +391,26 @@ export default async function handler(req, res) {
             // =========================
 
             const payload = {
-
                 name:
                     product.name ||
+                    product.title ||
                     "منتج",
 
                 category:
                     product.category || "",
 
-                price:
-                    Number(
-                        product.price || 0
-                    ),
+                price: Number(
+                    product.price ?? 0
+                ),
 
-                old_price:
-                    Number(
-                        product.old_price || 0
-                    ),
+                old_price: Number(
+                    product.old_price ??
+                    product.oldPrice ??
+                    0
+                ),
+
+                // ⭐ حفظ رسوم الصن بيدج لهذا المنتج
+                sunbadge_fee: sunbadgeFee,
 
                 sku:
                     product.sku || "",
@@ -399,33 +424,28 @@ export default async function handler(req, res) {
                 dimensions:
                     product.dimensions || "",
 
-                // عدد الكراسي
-                chair_count:
-                    Number(
-                        product.chair_count || 0
-                    ),
+                chair_count: Number(
+                    product.chair_count ??
+                    product.chairCount ??
+                    0
+                ),
 
-                // عدد كنبة 2 مقعد
-                sofa_2_count:
-                    Number(
-                        product.sofa_2_count || 0
-                    ),
+                sofa_2_count: Number(
+                    product.sofa_2_count ?? 0
+                ),
 
-                // عدد كنبة 3 مقعد
-                sofa_3_count:
-                    Number(
-                        product.sofa_3_count || 0
-                    ),
+                sofa_3_count: Number(
+                    product.sofa_3_count ?? 0
+                ),
 
-                // عدد الترابيزات
-                table_count:
-                    Number(
-                        product.table_count || 0
-                    ),
+                table_count: Number(
+                    product.table_count ?? 0
+                ),
 
-                // صورة المنتج
                 image_url:
-                    product.image_url || "",
+                    product.image_url ||
+                    product.imageUrl ||
+                    "",
 
                 visible:
                     product.visible !== false,
@@ -437,27 +457,24 @@ export default async function handler(req, res) {
                     new Date().toISOString()
             };
 
-            // =========================
-            // تحديث المنتج
-            // =========================
-
             const response = await fetch(
                 `${SUPABASE_URL}/rest/v1/products?id=eq.${encodeURIComponent(productId)}`,
                 {
                     method: "PATCH",
-
-                    headers:
-                        dbHeaders,
-
-                    body:
-                        JSON.stringify(
-                            payload
-                        )
+                    headers: dbHeaders,
+                    body: JSON.stringify(payload)
                 }
             );
 
-            const data =
-                await response.json();
+            const text = await response.text();
+
+            let data;
+
+            try {
+                data = text ? JSON.parse(text) : [];
+            } catch {
+                data = [];
+            }
 
             if (!response.ok) {
                 console.error(
@@ -477,16 +494,20 @@ export default async function handler(req, res) {
                 });
             }
 
+            if (
+                !Array.isArray(data) ||
+                data.length === 0
+            ) {
+                return res.status(404).json({
+                    success: false,
+                    error:
+                        "المنتج غير موجود في قاعدة البيانات."
+                });
+            }
+
             return res.status(200).json({
                 success: true,
-
-                product:
-                    data?.[0] || {
-                        id:
-                            productId,
-
-                        ...payload
-                    }
+                product: data[0]
             });
         }
 
@@ -495,9 +516,7 @@ export default async function handler(req, res) {
         // =========================
 
         if (req.method === "DELETE") {
-
-            const isAdmin =
-                await verifyAdmin();
+            const isAdmin = await verifyAdmin();
 
             if (!isAdmin) {
                 return res.status(401).json({
@@ -514,8 +533,7 @@ export default async function handler(req, res) {
             if (!id) {
                 return res.status(400).json({
                     success: false,
-                    error:
-                        "Product ID is required"
+                    error: "Product ID is required"
                 });
             }
 
@@ -523,16 +541,20 @@ export default async function handler(req, res) {
                 `${SUPABASE_URL}/rest/v1/products?id=eq.${encodeURIComponent(id)}`,
                 {
                     method: "DELETE",
-
-                    headers:
-                        dbHeaders
+                    headers: dbHeaders
                 }
             );
 
             if (!response.ok) {
+                const text = await response.text();
 
-                const data =
-                    await response.json();
+                let data;
+
+                try {
+                    data = text ? JSON.parse(text) : {};
+                } catch {
+                    data = {};
+                }
 
                 console.error(
                     "DELETE PRODUCT ERROR:",
@@ -566,7 +588,6 @@ export default async function handler(req, res) {
         });
 
     } catch (error) {
-
         console.error(
             "PRODUCTS API ERROR:",
             error
