@@ -1,5 +1,5 @@
-export default async function handler(req, res) {
 
+export default async function handler(req, res) {
     res.setHeader(
         'Cache-Control',
         'no-store, no-cache, must-revalidate, proxy-revalidate'
@@ -8,10 +8,7 @@ export default async function handler(req, res) {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
 
-    if (
-        req.method !== 'GET' &&
-        req.method !== 'PUT'
-    ) {
+    if (req.method !== 'GET' && req.method !== 'PUT') {
         return res.status(405).json({
             success: false,
             error: 'Method not allowed'
@@ -19,7 +16,6 @@ export default async function handler(req, res) {
     }
 
     try {
-
         const SUPABASE_SERVICE_ROLE_KEY =
             process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -30,72 +26,55 @@ export default async function handler(req, res) {
             });
         }
 
-        // =========================
         // رابط Supabase
-        // =========================
-
         const SUPABASE_BASE_URL =
             'https://kxtiqtcxkcwdvljiadfn.supabase.co';
 
-        // =========================
-        // دالة الاتصال بـ Supabase
-        // =========================
-
+        // الاتصال بقاعدة البيانات
         async function supabaseRequest(
             table,
             method = 'GET',
             query = '',
             body = null
         ) {
-
             const url =
                 `${SUPABASE_BASE_URL}/rest/v1/${table}` +
                 (query ? `?${query}` : '');
 
             const headers = {
-                apikey:
-                    SUPABASE_SERVICE_ROLE_KEY,
-
+                apikey: SUPABASE_SERVICE_ROLE_KEY,
                 Authorization:
                     `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-
-                Accept:
-                    'application/json',
-
-                'Content-Type':
-                    'application/json',
-
-                Prefer:
-                    'return=representation'
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                Prefer: 'return=representation'
             };
 
-            const response =
-                await fetch(url, {
-                    method,
-                    headers,
-                    body:
-                        body !== null
-                            ? JSON.stringify(body)
-                            : undefined
-                });
+            const response = await fetch(url, {
+                method,
+                headers,
+                body:
+                    body !== null
+                        ? JSON.stringify(body)
+                        : undefined,
+                cache: 'no-store'
+            });
 
-            const text =
-                await response.text();
+            const responseText = await response.text();
 
             let data = [];
 
             try {
-                data = text
-                    ? JSON.parse(text)
+                data = responseText
+                    ? JSON.parse(responseText)
                     : [];
             } catch {
                 throw new Error(
-                    `Supabase returned non-JSON response: ${text.substring(0, 300)}`
+                    `Supabase returned non-JSON response: ${responseText.substring(0, 300)}`
                 );
             }
 
             if (!response.ok) {
-
                 throw new Error(
                     data?.message ||
                     data?.error_description ||
@@ -108,48 +87,98 @@ export default async function handler(req, res) {
         }
 
         // =====================================================
-        // حفظ إعدادات المتجر
+        // PUT: حفظ إعدادات المتجر
         // =====================================================
 
         if (req.method === 'PUT') {
+            const body = req.body || {};
 
-            const depositPercent =
-                Number(
-                    req.body?.depositPercent
-                );
+            const hasDepositPercent =
+                body.depositPercent !== undefined;
+
+            const hasSunbadgeOrderFee =
+                body.sunbadgeOrderFee !== undefined;
+
+            const hasSunbrellaRate =
+                body.sunbrellaRate !== undefined;
 
             if (
-                !Number.isFinite(
-                    depositPercent
-                )
+                !hasDepositPercent &&
+                !hasSunbadgeOrderFee &&
+                !hasSunbrellaRate
             ) {
                 return res.status(400).json({
                     success: false,
-                    error:
-                        'نسبة الديبوزت غير صحيحة'
+                    error: 'لم يتم إرسال أي إعداد للحفظ'
                 });
             }
 
-            if (
-                depositPercent < 0 ||
-                depositPercent > 100
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        'نسبة الديبوزت يجب أن تكون بين 0% و100%'
-                });
+            const updateData = {};
+
+            // نسبة الديبوزت
+            if (hasDepositPercent) {
+                const depositPercent =
+                    Number(body.depositPercent);
+
+                if (
+                    !Number.isFinite(depositPercent) ||
+                    depositPercent < 0 ||
+                    depositPercent > 100
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        error:
+                            'نسبة الديبوزت يجب أن تكون بين 0% و100%'
+                    });
+                }
+
+                updateData.deposit_percent =
+                    Math.round(depositPercent);
             }
 
-            const percent =
-                Math.round(
-                    depositPercent
-                );
+            // رسوم صن بيدج العامة للطلب
+            if (hasSunbadgeOrderFee) {
+                const sunbadgeOrderFee =
+                    Number(body.sunbadgeOrderFee);
 
-            // =========================
-            // جلب أول إعدادات موجودة
-            // =========================
+                if (
+                    !Number.isFinite(sunbadgeOrderFee) ||
+                    sunbadgeOrderFee < 0 ||
+                    sunbadgeOrderFee > 100000
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        error:
+                            'رسوم صن بيدج يجب أن تكون بين 0 و100000 جنيه'
+                    });
+                }
 
+                updateData.sunbadge_order_fee =
+                    sunbadgeOrderFee;
+            }
+
+            // سعر صن بريلا
+            if (hasSunbrellaRate) {
+                const sunbrellaRate =
+                    Number(body.sunbrellaRate);
+
+                if (
+                    !Number.isFinite(sunbrellaRate) ||
+                    sunbrellaRate < 0 ||
+                    sunbrellaRate > 100000
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        error:
+                            'سعر صن بريلا يجب أن يكون بين 0 و100000 جنيه'
+                    });
+                }
+
+                updateData.sunbrella_rate =
+                    sunbrellaRate;
+            }
+
+            // جلب إعدادات المتجر الحالية
             const existingSettings =
                 await supabaseRequest(
                     'site_settings',
@@ -159,17 +188,10 @@ export default async function handler(req, res) {
 
             let savedSettings;
 
-            // =========================
-            // لو يوجد سجل إعدادات
-            // =========================
-
             if (
-                Array.isArray(
-                    existingSettings
-                ) &&
+                Array.isArray(existingSettings) &&
                 existingSettings.length > 0
             ) {
-
                 const existingId =
                     existingSettings[0].id;
 
@@ -178,62 +200,48 @@ export default async function handler(req, res) {
                         'site_settings',
                         'PATCH',
                         `id=eq.${encodeURIComponent(existingId)}`,
-                        {
-                            deposit_percent:
-                                percent
-                        }
+                        updateData
                     );
-
-            }
-
-            // =========================
-            // لو لا يوجد سجل
-            // =========================
-
-            else {
-
+            } else {
+                // القيم الافتراضية عند إنشاء أول سجل
                 savedSettings =
                     await supabaseRequest(
                         'site_settings',
                         'POST',
                         '',
                         {
-                            deposit_percent:
-                                percent
+                            deposit_percent: 30,
+                            sunbadge_order_fee: 0,
+                            ...updateData
                         }
                     );
-
             }
 
+            const saved =
+                Array.isArray(savedSettings)
+                    ? (savedSettings[0] || {})
+                    : {};
+
             return res.status(200).json({
-
                 success: true,
-
-                message:
-                    'تم حفظ نسبة الديبوزت بنجاح',
+                message: 'تم حفظ إعدادات المتجر بنجاح',
 
                 depositPercent:
-                    percent,
+                    Number(saved.deposit_percent ?? 30),
 
-                siteSettings:
-                    Array.isArray(
-                        savedSettings
-                    )
-                        ? (
-                            savedSettings[0] ||
-                            {}
-                        )
-                        : {}
+                sunbadgeOrderFee:
+                    Number(saved.sunbadge_order_fee ?? 0),
+
+                sunbrellaRate:
+                    Number(saved.sunbrella_rate ?? 200),
+
+                siteSettings: saved
             });
         }
 
         // =====================================================
-        // GET
+        // GET: تحميل بيانات المتجر
         // =====================================================
-
-        // =========================
-        // المنتجات
-        // =========================
 
         const products =
             await supabaseRequest(
@@ -242,20 +250,12 @@ export default async function handler(req, res) {
                 'select=*'
             );
 
-        // =========================
-        // العروض
-        // =========================
-
         const offers =
             await supabaseRequest(
                 'offers',
                 'GET',
                 'select=*&order=sort_order.asc,created_at.desc'
             );
-
-        // =========================
-        // الأقسام
-        // =========================
 
         const categories =
             await supabaseRequest(
@@ -264,20 +264,12 @@ export default async function handler(req, res) {
                 'select=*'
             );
 
-        // =========================
-        // إعدادات الموقع
-        // =========================
-
         const siteSettings =
             await supabaseRequest(
                 'site_settings',
                 'GET',
                 'select=*'
             );
-
-        // =========================
-        // الشحن
-        // =========================
 
         const shippingOptions =
             await supabaseRequest(
@@ -286,20 +278,12 @@ export default async function handler(req, res) {
                 'select=*'
             );
 
-        // =========================
-        // أنواع التنجيد
-        // =========================
-
         const upholsteryTypes =
             await supabaseRequest(
                 'upholstery_types',
                 'GET',
                 'select=*'
             );
-
-        // =========================
-        // الألوان
-        // =========================
 
         const storeColors =
             await supabaseRequest(
@@ -308,130 +292,62 @@ export default async function handler(req, res) {
                 'select=*'
             );
 
-        // =========================
         // تقسيم الألوان
-        // =========================
-
         const cushionColors =
             (storeColors || []).filter(
-                color =>
-                    color.type === 'cushion'
+                color => color.type === 'cushion'
             );
 
         const wickerColors =
             (storeColors || []).filter(
-                color =>
-                    color.type === 'wicker'
+                color => color.type === 'wicker'
             );
 
         const woodColors =
             (storeColors || []).filter(
-                color =>
-                    color.type === 'wood'
+                color => color.type === 'wood'
             );
 
-        // =========================
-        // إعدادات الموقع
-        // =========================
-
+        // إعدادات المتجر
         const settings =
             siteSettings?.[0] || {};
 
-        // =========================
-        // نسبة الديبوزت
-        // =========================
-
         const depositPercent =
-            Number(
-                settings.deposit_percent ?? 30
-            );
+            Number(settings.deposit_percent ?? 30);
 
-        // =========================
-        // النتيجة
-        // =========================
+        const sunbadgeOrderFee =
+            Number(settings.sunbadge_order_fee ?? 0);
 
+        const sunbrellaRate =
+            Number(settings.sunbrella_rate ?? 200);
+
+        // الاستجابة النهائية
         return res.status(200).json({
-
             success: true,
 
-            // =========================
-            // المنتجات
-            // =========================
+            products: products || [],
+            offers: offers || [],
+            categories: categories || [],
 
-            products:
-                products || [],
-
-            // =========================
-            // العروض
-            // =========================
-
-            offers:
-                offers || [],
-
-            // =========================
-            // الأقسام
-            // =========================
-
-            categories:
-                categories || [],
-
-            // =========================
-            // إعدادات الموقع
-            // =========================
-
-            siteSettings:
-                settings,
-
-            // =========================
-            // نسبة الديبوزت
-            // =========================
+            siteSettings: settings,
 
             depositPercent,
+            sunbadgeOrderFee,
+            sunbrellaRate,
 
-            // =========================
-            // خيارات الشحن
-            // =========================
-
-            shippingOptions:
-                shippingOptions || [],
-
-            // =========================
-            // أنواع التنجيد
-            // =========================
-
-            upholsteryTypes:
-                upholsteryTypes || [],
-
-            // =========================
-            // ألوان التنجيد
-            // =========================
+            shippingOptions: shippingOptions || [],
+            upholsteryTypes: upholsteryTypes || [],
 
             cushionColors,
-
-            // =========================
-            // ألوان الوتَر
-            // =========================
-
             wickerColors,
-
-            // =========================
-            // ألوان الخشب
-            // =========================
-
             woodColors
         });
 
     } catch (error) {
-
-        console.error(
-            'STORE API ERROR:',
-            error
-        );
+        console.error('STORE API ERROR:', error);
 
         return res.status(500).json({
-
             success: false,
-
             error:
                 error?.message ||
                 'Failed to load store data'
