@@ -1,145 +1,16 @@
 
-export default async function handler(req, res) {
-    try {
-        const SUPABASE_URL =
-            'https://kxtiqtcxkcwdvljiadfn.supabase.co';
-
-        const SUPABASE_SERVICE_ROLE_KEY =
-            process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-        if (!SUPABASE_SERVICE_ROLE_KEY) {
-            return res.status(500).json({
-                success: false,
-                error: 'SUPABASE_SERVICE_ROLE_KEY is missing'
-            });
-        }
-
-        res.setHeader('Cache-Control', 'no-store, max-age=0');
-
-        const supabaseHeaders = {
-            apikey: SUPABASE_SERVICE_ROLE_KEY,
-            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-            'Content-Type': 'application/json'
-        };
-
-        const authHeader =
-            req.headers.authorization ||
-            req.headers.Authorization ||
-            '';
-
-        const adminToken =
-            req.headers['x-admin-token'] || '';
-
-        const token =
-            adminToken ||
-            String(authHeader).replace(/^Bearer\s+/i, '').trim();
-
-        function toNonNegativeNumber(value, fallback = 0) {
-            if (
-                value === null ||
-                value === undefined ||
-                value === ''
-            ) {
-                return fallback;
-            }
-
-            const number = Number(value);
-
-            return Number.isFinite(number) && number >= 0
-                ? number
-                : fallback;
-        }
-
-        function parseJson(text, fallback = null) {
-            try {
-                return text ? JSON.parse(text) : fallback;
-            } catch {
-                return fallback;
-            }
-        }
-
-        async function getSupabaseJson(url, options = {}) {
-            const response = await fetch(url, {
-                ...options,
-                headers: {
-                    ...supabaseHeaders,
-                    ...(options.headers || {})
-                },
-                cache: 'no-store'
-            });
-
-            const text = await response.text();
-
-            return {
-                response,
-                data: parseJson(text, null),
-                text
-            };
-        }
-
-        function getProductId(item) {
-            return String(
-                item?.productId ??
-                item?.product_id ??
-                ''
-            ).trim();
-        }
-
-        function getItemQuantity(item) {
-            const qty = Number(
-                item?.qty ?? item?.quantity ?? 1
-            );
-
-            if (
-                !Number.isFinite(qty) ||
-                !Number.isInteger(qty) ||
-                qty < 1
-            ) {
-                return null;
-            }
-
-            return qty;
-        }
-
-        function getUpholsteryName(item) {
-            return String(item?.upholsteryName || '').trim();
-        }
-
-        function isJaguarItem(item) {
-            return /جاكوار|jaguar/i.test(
-                getUpholsteryName(item)
-            );
-        }
-
-        function isSunBadgeItem(item) {
-            if (isJaguarItem(item)) {
-                return false;
-            }
-
-            const type = String(
-                item?.upholsteryExtraType || ''
-            ).toLowerCase().trim();
-
-            const name = getUpholsteryName(item);
-
-            return (
-                type === 'sunbadge' ||
-                /صن\s*بيدج|sun\s*badge|sunbedge/i.test(name)
-            );
-        }
-
-
         // =====================================================
-        // PUBLIC ORDER TRACKING
+        // PUBLIC ORDER TRACKING - CASE INSENSITIVE
         // GET /api/orders?track=ORDER_ID
-        // البحث باستخدام id أو order_number
         // =====================================================
 
         if (
             req.method === 'GET' &&
             req.query?.track
         ) {
-            const trackId = String(req.query.track).trim();
+            const trackId = String(req.query.track)
+                .trim()
+                .toLowerCase();
 
             if (!trackId) {
                 return res.status(400).json({
@@ -148,13 +19,23 @@ export default async function handler(req, res) {
                 });
             }
 
+            // جلب الطلبات المطابقة من العمودين،
+            // مع تجاهل الفرق بين الأحرف الكبيرة والصغيرة.
+            const escapedTrackId = trackId.replace(
+                /[%_,().]/g,
+                char => '\\' + char
+            );
+
             const encodedTrackId =
-                encodeURIComponent(trackId);
+                encodeURIComponent(escapedTrackId);
 
             const url =
                 `${SUPABASE_URL}/rest/v1/orders` +
                 `?select=*` +
-                `&or=(id.eq.${encodedTrackId},order_number.eq.${encodedTrackId})` +
+                `&or=(` +
+                `id.ilike.${encodedTrackId},` +
+                `order_number.ilike.${encodedTrackId}` +
+                `)` +
                 `&limit=1`;
 
             const {
