@@ -114,23 +114,29 @@
             });
         }
 
-        // =====================================================
-        // CREATE NEW ORDER
-        // POST /api/orders
-        //
-        // الأسعار والرسوم يؤخذان من قاعدة البيانات.
-        // رسوم صن بيدج = رسوم القطعة الواحدة × كمية السطر.
-        // =====================================================
+      
+            // =============================================
+            // ORDER NUMBER — أرقام فقط للطلبات الجديدة
+            // =============================================
 
-        if (req.method === 'POST') {
-            const order = req.body || {};
+                        const incomingOrderId = String(order.id || '').trim();
 
-            if (!order.id) {
+            if (!incomingOrderId) {
                 return res.status(400).json({
                     success: false,
-                    error: 'رقم الطلب غير موجود'
+                    error: 'رقم الطلب غير موجود. أعد إنشاء الطلب.'
                 });
             }
+
+            // الاحتفاظ بمعرّف الطلب الأصلي كما هو.
+            // لا نحذف الحروف من الطلبات القديمة أو الحالية.
+            order.id = incomingOrderId;
+
+            // الاحتفاظ برقم الطلب المرسل إن كان موجودًا.
+            order.order_number = String(
+                order.order_number || incomingOrderId
+            ).trim();
+
 
             const items = Array.isArray(order.items)
                 ? order.items
