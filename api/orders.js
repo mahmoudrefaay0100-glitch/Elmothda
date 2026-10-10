@@ -1,8 +1,138 @@
 
-        
+export default async function handler(req, res) {
+    try {
+        const SUPABASE_URL =
+            'https://kxtiqtcxkcwdvljiadfn.supabase.co';
+
+        const SUPABASE_SERVICE_ROLE_KEY =
+            process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+        if (!SUPABASE_SERVICE_ROLE_KEY) {
+            return res.status(500).json({
+                success: false,
+                error: 'SUPABASE_SERVICE_ROLE_KEY is missing'
+            });
+        }
+
+        res.setHeader('Cache-Control', 'no-store, max-age=0');
+
+        const supabaseHeaders = {
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json'
+        };
+
+        const authHeader =
+            req.headers.authorization ||
+            req.headers.Authorization ||
+            '';
+
+        const adminToken =
+            req.headers['x-admin-token'] || '';
+
+        const token =
+            adminToken ||
+            String(authHeader).replace(/^Bearer\s+/i, '').trim();
+
+        function toNonNegativeNumber(value, fallback = 0) {
+            if (
+                value === null ||
+                value === undefined ||
+                value === ''
+            ) {
+                return fallback;
+            }
+
+            const number = Number(value);
+
+            return Number.isFinite(number) && number >= 0
+                ? number
+                : fallback;
+        }
+
+        function parseJson(text, fallback = null) {
+            try {
+                return text ? JSON.parse(text) : fallback;
+            } catch {
+                return fallback;
+            }
+        }
+
+        async function getSupabaseJson(url, options = {}) {
+            const response = await fetch(url, {
+                ...options,
+                headers: {
+                    ...supabaseHeaders,
+                    ...(options.headers || {})
+                },
+                cache: 'no-store'
+            });
+
+            const text = await response.text();
+
+            return {
+                response,
+                data: parseJson(text, null),
+                text
+            };
+        }
+
+        function getProductId(item) {
+            return String(
+                item?.productId ??
+                item?.product_id ??
+                ''
+            ).trim();
+        }
+
+        function getItemQuantity(item) {
+            const qty = Number(
+                item?.qty ?? item?.quantity ?? 1
+            );
+
+            if (
+                !Number.isFinite(qty) ||
+                !Number.isInteger(qty) ||
+                qty < 1
+            ) {
+                return null;
+            }
+
+            return qty;
+        }
+
+        function getUpholsteryName(item) {
+            return String(item?.upholsteryName || '').trim();
+        }
+
+        function isJaguarItem(item) {
+            return /جاكوار|jaguar/i.test(
+                getUpholsteryName(item)
+            );
+        }
+
+        function isSunBadgeItem(item) {
+            if (isJaguarItem(item)) {
+                return false;
+            }
+
+            const type = String(
+                item?.upholsteryExtraType || ''
+            ).toLowerCase().trim();
+
+            const name = getUpholsteryName(item);
+
+            return (
+                type === 'sunbadge' ||
+                /صن\s*بيدج|sun\s*badge|sunbedge/i.test(name)
+            );
+        }
+
+
         // =====================================================
         // PUBLIC ORDER TRACKING
         // GET /api/orders?track=ORDER_ID
+        // البحث باستخدام id أو order_number
         // =====================================================
 
         if (
@@ -18,94 +148,114 @@
                 });
             }
 
-            const candidates = [
-                trackId,
-                trackId.toLowerCase()
-            ].filter((value, index, array) =>
-                array.indexOf(value) === index
-            );
+            const encodedTrackId =
+                encodeURIComponent(trackId);
 
-            let order = null;
+            const url =
+                `${SUPABASE_URL}/rest/v1/orders` +
+                `?select=*` +
+                `&or=(id.eq.${encodedTrackId},order_number.eq.${encodedTrackId})` +
+                `&limit=1`;
 
-            for (const candidate of candidates) {
-                const encodedId =
-                    encodeURIComponent(candidate);
+            const {
+                response,
+                data: orders,
+                text
+            } = await getSupabaseJson(url);
 
-                for (const column of ['id', 'order_number']) {
-                    const url =
-                        `${SUPABASE_URL}/rest/v1/orders` +
-                        `?select=*` +
-                        `&${column}=eq.${encodedId}` +
-                        `&limit=1`;
+            if (!response.ok) {
+                console.error(
+                    'ORDER TRACKING DATABASE ERROR:',
+                    response.status,
+                    orders || text
+                );
 
-                    const {
-                        response,
-                        data,
-                        text
-                    } = await getSupabaseJson(url);
-
-                    if (!response.ok) {
-                        console.error(
-                            'ORDER TRACKING DATABASE ERROR:',
-                            response.status,
-                            data || text
-                        );
-
-                        return res.status(500).json({
-                            success: false,
-                            error:
-                                'حدث خطأ أثناء البحث عن الطلب.'
-                        });
-                    }
-
-                    if (Array.isArray(data) && data.length > 0) {
-                        order = data[0];
-                        break;
-                    }
-                }
-
-                if (order) break;
-            }
-
-            if (!order) {
-                return res.status(404).json({
+                return res.status(500).json({
                     success: false,
-                    error:
-                        'لم يتم العثور على طلب بهذا الرقم.'
+                    error: 'حدث خطأ أثناء البحث عن الطلب.'
                 });
             }
 
+            if (
+                !Array.isArray(orders) ||
+                orders.length === 0
+            ) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'لم يتم العثور على طلب بهذا الرقم.'
+                });
+            }
+
+            const order = orders[0];
+
             const publicOrder = {
                 id: order.id,
-                order_number: order.order_number || order.id,
+                order_number:
+                    order.order_number || order.id,
+
                 status: order.status || 'New',
                 created_at: order.created_at || null,
                 updated_at: order.updated_at || null,
+
                 customer_name:
-                    order.customer_name || order.name || '',
+                    order.customer_name ||
+                    order.name ||
+                    '',
+
                 shipping_method:
                     order.shipping_method ||
-                    order.delivery_method || '',
-                shipping_cost: Number(order.shipping_cost || 0),
-                payment_method: order.payment_method || '',
-                payment_status: order.payment_status || 'Pending',
-                deposit_percent: Number(order.deposit_percent || 0),
-                deposit_amount: Number(
-                    order.deposit_amount ?? order.deposit ?? 0
-                ),
-                remaining_amount: Number(order.remaining_amount || 0),
-                subtotal: Number(order.subtotal || 0),
-                sunBadgeFee: Number(order.sunbadge_fee || 0),
-                sunbadge_fee: Number(order.sunbadge_fee || 0),
-                discount: Number(order.discount || 0),
-                total: Number(order.total || 0),
+                    order.delivery_method ||
+                    '',
+
+                shipping_cost:
+                    Number(order.shipping_cost || 0),
+
+                payment_method:
+                    order.payment_method || '',
+
+                payment_status:
+                    order.payment_status || 'Pending',
+
+                deposit_percent:
+                    Number(order.deposit_percent || 0),
+
+                deposit_amount:
+                    Number(
+                        order.deposit_amount ??
+                        order.deposit ??
+                        0
+                    ),
+
+                remaining_amount:
+                    Number(order.remaining_amount || 0),
+
+                subtotal:
+                    Number(order.subtotal || 0),
+
+                sunBadgeFee:
+                    Number(order.sunbadge_fee || 0),
+
+                sunbadge_fee:
+                    Number(order.sunbadge_fee || 0),
+
+                discount:
+                    Number(order.discount || 0),
+
+                total:
+                    Number(order.total || 0),
+
                 items: Array.isArray(order.items)
                     ? order.items
-                    : Array.isArray(order.products)
-                        ? order.products
-                        : [],
+                    : (
+                        Array.isArray(order.products)
+                            ? order.products
+                            : []
+                    ),
+
                 notes:
-                    order.notes || order.customer_notes || ''
+                    order.notes ||
+                    order.customer_notes ||
+                    ''
             };
 
             return res.status(200).json({
@@ -114,29 +264,24 @@
             });
         }
 
-      
-            // =============================================
-            // ORDER NUMBER — أرقام فقط للطلبات الجديدة
-            // =============================================
 
-                        const incomingOrderId = String(order.id || '').trim();
+        // =====================================================
+        // CREATE NEW ORDER
+        // POST /api/orders
+        //
+        // الأسعار والرسوم يؤخذان من قاعدة البيانات.
+        // رسوم صن بيدج = رسوم القطعة الواحدة × كمية السطر.
+        // =====================================================
 
-            if (!incomingOrderId) {
+        if (req.method === 'POST') {
+            const order = req.body || {};
+
+            if (!order.id) {
                 return res.status(400).json({
                     success: false,
-                    error: 'رقم الطلب غير موجود. أعد إنشاء الطلب.'
+                    error: 'رقم الطلب غير موجود'
                 });
             }
-
-            // الاحتفاظ بمعرّف الطلب الأصلي كما هو.
-            // لا نحذف الحروف من الطلبات القديمة أو الحالية.
-            order.id = incomingOrderId;
-
-            // الاحتفاظ برقم الطلب المرسل إن كان موجودًا.
-            order.order_number = String(
-                order.order_number || incomingOrderId
-            ).trim();
-
 
             const items = Array.isArray(order.items)
                 ? order.items
