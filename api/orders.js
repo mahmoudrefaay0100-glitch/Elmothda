@@ -128,9 +128,11 @@ export default async function handler(req, res) {
             );
         }
 
+
         // =====================================================
         // PUBLIC ORDER TRACKING
         // GET /api/orders?track=ORDER_ID
+        // البحث باستخدام id أو order_number
         // =====================================================
 
         if (
@@ -146,18 +148,35 @@ export default async function handler(req, res) {
                 });
             }
 
+            const encodedTrackId =
+                encodeURIComponent(trackId);
+
             const url =
                 `${SUPABASE_URL}/rest/v1/orders` +
-                `?id=eq.${encodeURIComponent(trackId)}` +
-                '&select=*';
+                `?select=*` +
+                `&or=(id.eq.${encodedTrackId},order_number.eq.${encodedTrackId})` +
+                `&limit=1`;
 
             const {
                 response,
-                data: orders
+                data: orders,
+                text
             } = await getSupabaseJson(url);
 
+            if (!response.ok) {
+                console.error(
+                    'ORDER TRACKING DATABASE ERROR:',
+                    response.status,
+                    orders || text
+                );
+
+                return res.status(500).json({
+                    success: false,
+                    error: 'حدث خطأ أثناء البحث عن الطلب.'
+                });
+            }
+
             if (
-                !response.ok ||
                 !Array.isArray(orders) ||
                 orders.length === 0
             ) {
@@ -169,13 +188,10 @@ export default async function handler(req, res) {
 
             const order = orders[0];
 
-            // تنبيه: رقم الطلب وحده ليس وسيلة تحقق من هوية صاحبه.
-            // لا تعرض بيانات الهاتف والعنوان في التتبع العام
-            // قبل إضافة تحقق خاص بملكية الطلب.
-
             const publicOrder = {
                 id: order.id,
-                order_number: order.order_number || order.id,
+                order_number:
+                    order.order_number || order.id,
 
                 status: order.status || 'New',
                 created_at: order.created_at || null,
@@ -191,28 +207,42 @@ export default async function handler(req, res) {
                     order.delivery_method ||
                     '',
 
-                shipping_cost: Number(order.shipping_cost || 0),
+                shipping_cost:
+                    Number(order.shipping_cost || 0),
 
-                payment_method: order.payment_method || '',
-                payment_status: order.payment_status || 'Pending',
+                payment_method:
+                    order.payment_method || '',
 
-                deposit_percent: Number(order.deposit_percent || 0),
+                payment_status:
+                    order.payment_status || 'Pending',
 
-                deposit_amount: Number(
-                    order.deposit_amount ??
-                    order.deposit ??
-                    0
-                ),
+                deposit_percent:
+                    Number(order.deposit_percent || 0),
 
-                remaining_amount: Number(order.remaining_amount || 0),
+                deposit_amount:
+                    Number(
+                        order.deposit_amount ??
+                        order.deposit ??
+                        0
+                    ),
 
-                subtotal: Number(order.subtotal || 0),
+                remaining_amount:
+                    Number(order.remaining_amount || 0),
 
-                sunBadgeFee: Number(order.sunbadge_fee || 0),
-                sunbadge_fee: Number(order.sunbadge_fee || 0),
+                subtotal:
+                    Number(order.subtotal || 0),
 
-                discount: Number(order.discount || 0),
-                total: Number(order.total || 0),
+                sunBadgeFee:
+                    Number(order.sunbadge_fee || 0),
+
+                sunbadge_fee:
+                    Number(order.sunbadge_fee || 0),
+
+                discount:
+                    Number(order.discount || 0),
+
+                total:
+                    Number(order.total || 0),
 
                 items: Array.isArray(order.items)
                     ? order.items
@@ -233,6 +263,7 @@ export default async function handler(req, res) {
                 order: publicOrder
             });
         }
+
 
         // =====================================================
         // CREATE NEW ORDER
