@@ -148,15 +148,13 @@ export default async function handler(req, res) {
                 });
             }
 
-            const encodedTrackId =
-                encodeURIComponent(trackId);
+          const encodedTrackId = encodeURIComponent(trackId);
 
-            const url =
-                `${SUPABASE_URL}/rest/v1/orders` +
-                `?select=*` +
-                `&or=(id.eq.${encodedTrackId},order_number.eq.${encodedTrackId})` +
-                `&limit=1`;
-
+const url =
+    `${SUPABASE_URL}/rest/v1/orders` +
+    `?select=*` +
+    `&or=(id.eq.${encodedTrackId},order_number.eq.${encodedTrackId})` +
+    `&limit=1`;
             const {
                 response,
                 data: orders,
@@ -600,10 +598,11 @@ export default async function handler(req, res) {
             // ---------------------------------------------
 
             const insertPayload = {
-                id: String(order.id),
-                order_number: String(
-                    order.order_number || order.id
-                ),
+    // الحفاظ على المعرّف الداخلي للطلب
+    id: String(order.id),
+
+    // قاعدة البيانات ستولّد رقم الطلب تلقائيًا
+    order_number: null,
 
                 customer_name: customerName,
                 phone: customerPhone,
