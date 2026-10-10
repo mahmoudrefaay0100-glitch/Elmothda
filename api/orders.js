@@ -1,6 +1,7 @@
 
+        
         // =====================================================
-        // PUBLIC ORDER TRACKING - CASE INSENSITIVE
+        // PUBLIC ORDER TRACKING
         // GET /api/orders?track=ORDER_ID
         // =====================================================
 
@@ -8,9 +9,7 @@
             req.method === 'GET' &&
             req.query?.track
         ) {
-            const trackId = String(req.query.track)
-                .trim()
-                .toLowerCase();
+            const trackId = String(req.query.track).trim();
 
             if (!trackId) {
                 return res.status(400).json({
@@ -19,124 +18,94 @@
                 });
             }
 
-            // جلب الطلبات المطابقة من العمودين،
-            // مع تجاهل الفرق بين الأحرف الكبيرة والصغيرة.
-            const escapedTrackId = trackId.replace(
-                /[%_,().]/g,
-                char => '\\' + char
+            const candidates = [
+                trackId,
+                trackId.toLowerCase()
+            ].filter((value, index, array) =>
+                array.indexOf(value) === index
             );
 
-            const encodedTrackId =
-                encodeURIComponent(escapedTrackId);
+            let order = null;
 
-            const url =
-                `${SUPABASE_URL}/rest/v1/orders` +
-                `?select=*` +
-                `&or=(` +
-                `id.ilike.${encodedTrackId},` +
-                `order_number.ilike.${encodedTrackId}` +
-                `)` +
-                `&limit=1`;
+            for (const candidate of candidates) {
+                const encodedId =
+                    encodeURIComponent(candidate);
 
-            const {
-                response,
-                data: orders,
-                text
-            } = await getSupabaseJson(url);
+                for (const column of ['id', 'order_number']) {
+                    const url =
+                        `${SUPABASE_URL}/rest/v1/orders` +
+                        `?select=*` +
+                        `&${column}=eq.${encodedId}` +
+                        `&limit=1`;
 
-            if (!response.ok) {
-                console.error(
-                    'ORDER TRACKING DATABASE ERROR:',
-                    response.status,
-                    orders || text
-                );
+                    const {
+                        response,
+                        data,
+                        text
+                    } = await getSupabaseJson(url);
 
-                return res.status(500).json({
-                    success: false,
-                    error: 'حدث خطأ أثناء البحث عن الطلب.'
-                });
+                    if (!response.ok) {
+                        console.error(
+                            'ORDER TRACKING DATABASE ERROR:',
+                            response.status,
+                            data || text
+                        );
+
+                        return res.status(500).json({
+                            success: false,
+                            error:
+                                'حدث خطأ أثناء البحث عن الطلب.'
+                        });
+                    }
+
+                    if (Array.isArray(data) && data.length > 0) {
+                        order = data[0];
+                        break;
+                    }
+                }
+
+                if (order) break;
             }
 
-            if (
-                !Array.isArray(orders) ||
-                orders.length === 0
-            ) {
+            if (!order) {
                 return res.status(404).json({
                     success: false,
-                    error: 'لم يتم العثور على طلب بهذا الرقم.'
+                    error:
+                        'لم يتم العثور على طلب بهذا الرقم.'
                 });
             }
-
-            const order = orders[0];
 
             const publicOrder = {
                 id: order.id,
-                order_number:
-                    order.order_number || order.id,
-
+                order_number: order.order_number || order.id,
                 status: order.status || 'New',
                 created_at: order.created_at || null,
                 updated_at: order.updated_at || null,
-
                 customer_name:
-                    order.customer_name ||
-                    order.name ||
-                    '',
-
+                    order.customer_name || order.name || '',
                 shipping_method:
                     order.shipping_method ||
-                    order.delivery_method ||
-                    '',
-
-                shipping_cost:
-                    Number(order.shipping_cost || 0),
-
-                payment_method:
-                    order.payment_method || '',
-
-                payment_status:
-                    order.payment_status || 'Pending',
-
-                deposit_percent:
-                    Number(order.deposit_percent || 0),
-
-                deposit_amount:
-                    Number(
-                        order.deposit_amount ??
-                        order.deposit ??
-                        0
-                    ),
-
-                remaining_amount:
-                    Number(order.remaining_amount || 0),
-
-                subtotal:
-                    Number(order.subtotal || 0),
-
-                sunBadgeFee:
-                    Number(order.sunbadge_fee || 0),
-
-                sunbadge_fee:
-                    Number(order.sunbadge_fee || 0),
-
-                discount:
-                    Number(order.discount || 0),
-
-                total:
-                    Number(order.total || 0),
-
+                    order.delivery_method || '',
+                shipping_cost: Number(order.shipping_cost || 0),
+                payment_method: order.payment_method || '',
+                payment_status: order.payment_status || 'Pending',
+                deposit_percent: Number(order.deposit_percent || 0),
+                deposit_amount: Number(
+                    order.deposit_amount ?? order.deposit ?? 0
+                ),
+                remaining_amount: Number(order.remaining_amount || 0),
+                subtotal: Number(order.subtotal || 0),
+                sunBadgeFee: Number(order.sunbadge_fee || 0),
+                sunbadge_fee: Number(order.sunbadge_fee || 0),
+                discount: Number(order.discount || 0),
+                total: Number(order.total || 0),
                 items: Array.isArray(order.items)
                     ? order.items
-                    : (
-                        Array.isArray(order.products)
-                            ? order.products
-                            : []
-                    ),
-
+                    : Array.isArray(order.products)
+                        ? order.products
+                        : [],
                 notes:
-                    order.notes ||
-                    order.customer_notes ||
-                    ''
+                    order.notes || order.customer_notes || ''
             };
 
             return res.status(200).json({
@@ -144,7 +113,6 @@
                 order: publicOrder
             });
         }
-
 
         // =====================================================
         // CREATE NEW ORDER
