@@ -684,23 +684,29 @@ const url =
                 });
             }
 
-            const savedOrder = Array.isArray(insertedData)
-                ? insertedData[0]
-                : insertedData;
+          
+const savedOrder = Array.isArray(insertedData)
+    ? insertedData[0]
+    : insertedData;
 
-            if (!savedOrder?.id) {
-                return res.status(500).json({
-                    success: false,
-                    error:
-                        'لم تصل بيانات الطلب المحفوظ من قاعدة البيانات.'
-                });
-            }
+if (!savedOrder?.id) {
+    return res.status(500).json({
+        success: false,
+        error: 'لم تصل بيانات الطلب المحفوظ من قاعدة البيانات.'
+    });
+}
 
-            return res.status(201).json({
-                success: true,
-                order: savedOrder
-            });
-        }
+const finalOrder = {
+    ...savedOrder,
+    order_number: savedOrder.order_number
+        ? String(savedOrder.order_number).replace(/^ORD-/, '')
+        : null
+};
+
+return res.status(201).json({
+    success: true,
+    order: finalOrder
+});
 
         // =====================================================
         // ADMIN OPERATIONS
