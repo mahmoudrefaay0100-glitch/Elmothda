@@ -5933,7 +5933,11 @@ async function trackOrderSubmit() {
     }
 
    
-const orderId = enteredOrderId.trim();
+const orderId = enteredOrderId
+    .trim()
+    .toUpperCase()
+    .replace(/^MOTA/i, '')
+    .replace(/^ORD-/i, '');
 
     container.innerHTML = `
         <div
@@ -6231,7 +6235,7 @@ const orderId = enteredOrderId.trim();
                             <p
                                 class="text-white font-bold text-lg"
                             >
-                               ${String(order.order_number ?? '').replace(/^ORD-/, '') || order.id}
+                               MOTA${String(order.order_number ?? '').replace(/^ORD-/, '').replace(/^MOTA/i, '') || order.id}
 
                         </div>
 
