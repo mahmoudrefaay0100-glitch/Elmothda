@@ -616,10 +616,7 @@ if (
             // ---------------------------------------------
 
             const insertPayload = {
-    // الحفاظ على المعرّف الداخلي للطلب
-    id: String(order.id),
-
-    // قاعدة البيانات ستولّد رقم الطلب تلقائيًا
+    // قاعدة البيانات ستولّد نفس الرقم في id و order_number
     order_number: null,
 
                 customer_name: customerName,
