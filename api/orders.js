@@ -1,6 +1,5 @@
 
-export default async function handler(req, res) {
-    try {
+module.exports = async function handler(req, res) {    try {
         const SUPABASE_URL =
             'https://kxtiqtcxkcwdvljiadfn.supabase.co';
 
