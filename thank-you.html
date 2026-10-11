@@ -376,14 +376,43 @@
 
             `;
 
-        } else {
+       
+} else {
 
-            try {
+    try {
 
+        // قراءة بيانات الطلب المحفوظة
+        const order = JSON.parse(rawOrder);
 
-const shortOrderNumber = String(
-    order.order_number ?? ''
-)
+        if (!order || typeof order !== 'object') {
+            throw new Error('بيانات الطلب غير صالحة');
+        }
+
+        // تجهيز رقم الطلب المختصر
+        const shortOrderNumber = String(
+            order.order_number ?? ''
+        )
+            .replace(/^(ORD-|MOTA)/i, '')
+            .trim();
+
+        // عرض رقم الطلب بصيغة MOTA1001
+        document.getElementById('order-id').textContent =
+            shortOrderNumber
+                ? `MOTA${shortOrderNumber}`
+                : (order.id || '-');
+
+        // =====================================
+        // رقم الطلب والحالة
+        // =====================================
+
+        const statusMap = {
+            New: 'جديد',
+            Confirmed: 'مؤكد',
+            Shipped: 'تم الشحن',
+            Delivered: 'تم التسليم',
+            Cancelled: 'ملغي'
+        };
+        
     .replace(/^(ORD-|MOTA)/i, '')
     .trim();
 
