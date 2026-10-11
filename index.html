@@ -5932,12 +5932,8 @@ async function trackOrderSubmit() {
         return;
     }
 
-    let orderId =
-        enteredOrderId.toUpperCase();
-
-    if (!orderId.startsWith('ORD-')) {
-        orderId = `ORD-${orderId}`;
-    }
+   
+const orderId = enteredOrderId.trim();
 
     container.innerHTML = `
         <div
