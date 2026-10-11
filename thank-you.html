@@ -412,38 +412,6 @@
             Delivered: 'تم التسليم',
             Cancelled: 'ملغي'
         };
-        
-    .replace(/^(ORD-|MOTA)/i, '')
-    .trim();
-
-// رقم الطلب الظاهر للعميل: MOTA1001
-document.getElementById('order-id').textContent =
-    shortOrderNumber
-        ? `MOTA${shortOrderNumber}`
-        : (order.id || '-');
-
-// =====================================
-// رقم الطلب والحالة
-// =====================================
-
-
-                const statusMap = {
-
-                    New:
-                        'جديد',
-
-                    Confirmed:
-                        'مؤكد',
-
-                    Shipped:
-                        'تم الشحن',
-
-                    Delivered:
-                        'تم التسليم',
-
-                    Cancelled:
-                        'ملغي'
-                };
 
 
                 document.getElementById(
