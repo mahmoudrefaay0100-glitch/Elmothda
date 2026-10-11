@@ -6235,8 +6235,7 @@ async function trackOrderSubmit() {
                             <p
                                 class="text-white font-bold text-lg"
                             >
-                                ${order.order_number || order.id}
-                            </p>
+                               ${String(order.order_number ?? '').replace(/^ORD-/, '') || order.id}
 
                         </div>
 
