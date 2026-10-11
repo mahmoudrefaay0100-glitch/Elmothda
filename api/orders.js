@@ -147,18 +147,37 @@ module.exports = async function handler(req, res) {    try {
                 });
             }
 
-          const encodedTrackId = encodeURIComponent(trackId);
+         
+const encodedTrackId = encodeURIComponent(trackId);
 
-const url =
+let {
+    response,
+    data: orders,
+    text
+} = await getSupabaseJson(
     `${SUPABASE_URL}/rest/v1/orders` +
     `?select=*` +
-    `&or=(id.eq.${encodedTrackId},order_number.eq.${encodedTrackId})` +
-    `&limit=1`;
-            const {
-                response,
-                data: orders,
-                text
-            } = await getSupabaseJson(url);
+    `&order_number=eq.${encodedTrackId}` +
+    `&limit=1`
+);
+
+// لو لم نجد الرقم المختصر، نبحث بالمعرّف الداخلي
+if (
+    response.ok &&
+    Array.isArray(orders) &&
+    orders.length === 0
+) {
+    const fallback = await getSupabaseJson(
+        `${SUPABASE_URL}/rest/v1/orders` +
+        `?select=*` +
+        `&id=eq.${encodedTrackId}` +
+        `&limit=1`
+    );
+
+    response = fallback.response;
+    orders = fallback.data;
+    text = fallback.text;
+}
 
             if (!response.ok) {
                 console.error(
