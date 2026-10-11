@@ -4928,82 +4928,138 @@ async function submitDepositOrder() {
 
         // تحويل أسماء الحقول من قاعدة البيانات إلى الصيغة
         // التي تتوقعها صفحة الشكر وإشعار واتساب.
-        const confirmedOrder = {
-            ...newOrder,
-            ...savedOrder,
+       
+const confirmedOrder = {
+    ...newOrder,
+    ...savedOrder,
 
-            id: savedOrder.id || newOrder.id,
+    id: savedOrder.id || newOrder.id,
 
-            customer: {
-                ...newOrder.customer,
-                name:
-                    savedOrder.customer_name ??
-                    newOrder.customer.name,
+    order_number:
+        savedOrder.order_number ??
+        newOrder.order_number ??
+        '',
 
-                phone:
-                    savedOrder.phone ??
-                    newOrder.customer.phone,
+    customer: {
+        ...newOrder.customer,
+        name:
+            savedOrder.customer_name ??
+            savedOrder.customer?.name ??
+            newOrder.customer?.name ??
+            '-',
 
-                gov:
-                    savedOrder.governorate ??
-                    newOrder.customer.gov,
+        phone:
+            savedOrder.phone ??
+            savedOrder.customer?.phone ??
+            newOrder.customer?.phone ??
+            '-',
 
-                city:
-                    savedOrder.city ??
-                    newOrder.customer.city,
+        gov:
+            savedOrder.governorate ??
+            savedOrder.customer?.gov ??
+            newOrder.customer?.gov ??
+            '-',
 
-                address:
-                    savedOrder.address ??
-                    newOrder.customer.address
-            },
+        city:
+            savedOrder.city ??
+            savedOrder.customer?.city ??
+            newOrder.customer?.city ??
+            '-',
 
-            items: Array.isArray(savedOrder.items)
-                ? savedOrder.items
-                : orderItems,
+        address:
+            savedOrder.address ??
+            savedOrder.customer?.address ??
+            newOrder.customer?.address ??
+            '-'
+    },
 
-            subtotal: Number(savedOrder.subtotal ?? 0),
+    items: Array.isArray(savedOrder.items)
+        ? savedOrder.items
+        : (
+            Array.isArray(newOrder.items)
+                ? newOrder.items
+                : orderItems
+        ),
 
-            sunBadgeFee: Number(
-                savedOrder.sunbadge_fee ?? 0
-            ),
+    subtotal: Number(
+        savedOrder.subtotal ??
+        newOrder.subtotal ??
+        0
+    ),
 
-            sunbadge_fee: Number(
-                savedOrder.sunbadge_fee ?? 0
-            ),
+    sunBadgeFee: Number(
+        savedOrder.sunbadge_fee ??
+        savedOrder.sunBadgeFee ??
+        newOrder.sunBadgeFee ??
+        0
+    ),
 
-            shippingCost: Number(
-                savedOrder.shipping_cost ?? shippingCost
-            ),
+    sunbadge_fee: Number(
+        savedOrder.sunbadge_fee ??
+        savedOrder.sunBadgeFee ??
+        newOrder.sunBadgeFee ??
+        0
+    ),
 
-            total: Number(savedOrder.total ?? 0),
+    shippingCost: Number(
+        savedOrder.shipping_cost ??
+        savedOrder.shippingCost ??
+        newOrder.shippingCost ??
+        shippingCost ??
+        0
+    ),
 
-            shippingMethod:
-                savedOrder.shipping_method ??
-                newOrder.shippingMethod,
+    total: Number(
+        savedOrder.total ??
+        newOrder.total ??
+        0
+    ),
 
-            paymentMethod:
-                savedOrder.payment_method ??
-                newOrder.paymentMethod,
+    shippingMethod:
+        savedOrder.shipping_method ??
+        savedOrder.shippingMethod ??
+        newOrder.shippingMethod ??
+        '-',
 
-            depositPercent: Number(
-                savedOrder.deposit_percent ??
-                depositPercent
-            ),
+    paymentMethod:
+        savedOrder.payment_method ??
+        savedOrder.paymentMethod ??
+        newOrder.paymentMethod ??
+        '-',
 
-            depositAmount: Number(
-                savedOrder.deposit_amount ?? 0
-            ),
+    depositPercent: Number(
+        savedOrder.deposit_percent ??
+        savedOrder.depositPercent ??
+        newOrder.depositPercent ??
+        depositPercent ??
+        0
+    ),
 
-            remainingAmount: Number(
-                savedOrder.remaining_amount ?? 0
-            ),
+    depositAmount: Number(
+        savedOrder.deposit_amount ??
+        savedOrder.depositAmount ??
+        newOrder.depositAmount ??
+        0
+    ),
 
-            paymentStatus:
-                savedOrder.payment_status ?? 'Pending',
+    remainingAmount: Number(
+        savedOrder.remaining_amount ??
+        savedOrder.remainingAmount ??
+        newOrder.remainingAmount ??
+        0
+    ),
 
-            status:
-                savedOrder.status ?? 'New'
-        };
+    paymentStatus:
+        savedOrder.payment_status ??
+        savedOrder.paymentStatus ??
+        newOrder.paymentStatus ??
+        'Pending',
+
+    status:
+        savedOrder.status ??
+        newOrder.status ??
+        'New'
+};
 
         // تحديث القيم المشتركة في واجهة الموقع
         window.currentCartSubtotal =
