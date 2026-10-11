@@ -388,10 +388,10 @@
                 // رقم الطلب والحالة
                 // =====================================
 
-                document.getElementById(
-                    'order-id'
-                ).textContent =
-                    order.id || '-';
+               
+document.getElementById('order-id').textContent =
+    String(order.order_number ?? '')
+        .replace(/^ORD-/, '') || order.id || '-';
 
 
                 const statusMap = {
