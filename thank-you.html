@@ -380,18 +380,22 @@
 
             try {
 
-                const order =
-                    JSON.parse(rawOrder);
 
+const shortOrderNumber = String(
+    order.order_number ?? ''
+)
+    .replace(/^(ORD-|MOTA)/i, '')
+    .trim();
 
-                // =====================================
-                // رقم الطلب والحالة
-                // =====================================
-
-               
+// رقم الطلب الظاهر للعميل: MOTA1001
 document.getElementById('order-id').textContent =
-    String(order.order_number ?? '')
-        .replace(/^ORD-/, '') || order.id || '-';
+    shortOrderNumber
+        ? `MOTA${shortOrderNumber}`
+        : (order.id || '-');
+
+// =====================================
+// رقم الطلب والحالة
+// =====================================
 
 
                 const statusMap = {
