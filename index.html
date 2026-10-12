@@ -1347,90 +1347,256 @@
         </p>
     </div>
 
-    <!-- فواتير البيع -->
-    <div id="acc-panel-sales"
-         class="accounting-panel hidden bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-5">
+  
+<!-- فواتير البيع -->
+<div id="acc-panel-sales"
+     class="accounting-panel hidden bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-5">
 
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <h4 class="text-lg font-bold text-white">فواتير البيع</h4>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <h4 class="text-lg font-bold text-white">فواتير البيع</h4>
+        <div class="flex gap-2">
+            <button type="button" onclick="showAccountingInvoiceForm('sales')"
+                    class="bg-red-800 hover:bg-red-700 text-white px-4 py-2 rounded-xl">
+                <i class="fas fa-plus ml-1"></i> إنشاء فاتورة بيع
+            </button>
             <button type="button" onclick="loadAccountingInvoices('sales')"
                     class="bg-neutral-800 text-white px-4 py-2 rounded-xl">
                 <i class="fas fa-sync ml-1"></i> عرض الفواتير
             </button>
         </div>
-
-        <form id="acc-sales-search-form"
-              onsubmit="searchAccountingInvoices(event, 'sales')"
-              class="flex flex-wrap gap-2">
-            <input id="acc-sales-search"
-                   type="search"
-                   placeholder="ابحث برقم الفاتورة أو اسم العميل"
-                   class="flex-1 min-w-48 bg-black border border-neutral-700 rounded-xl p-3 text-white">
-            <button class="bg-neutral-800 text-white px-5 py-3 rounded-xl" type="submit">
-                بحث
-            </button>
-        </form>
-
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm text-right">
-                <thead class="text-gray-400 border-b border-neutral-700">
-                    <tr>
-                        <th class="p-3">رقم الفاتورة</th>
-                        <th class="p-3">العميل</th>
-                        <th class="p-3">التاريخ</th>
-                        <th class="p-3">الإجمالي</th>
-                        <th class="p-3">التفاصيل</th>
-                    </tr>
-                </thead>
-                <tbody id="acc-sales-list">
-                    <tr><td colspan="5" class="p-4 text-gray-400">اضغط عرض الفواتير.</td></tr>
-                </tbody>
-            </table>
-        </div>
     </div>
 
-    <!-- فواتير الشراء -->
-    <div id="acc-panel-purchases"
-         class="accounting-panel hidden bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-5">
+    <form id="acc-sales-search-form"
+          onsubmit="searchAccountingInvoices(event, 'sales')"
+          class="flex flex-wrap gap-2">
+        <input id="acc-sales-search" type="search"
+               placeholder="ابحث برقم الفاتورة أو اسم العميل"
+               class="flex-1 min-w-48 bg-black border border-neutral-700 rounded-xl p-3 text-white">
+        <button class="bg-neutral-800 text-white px-5 py-3 rounded-xl" type="submit">بحث</button>
+    </form>
 
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <h4 class="text-lg font-bold text-white">فواتير الشراء</h4>
+    <div id="acc-sales-create-form" class="hidden bg-black/40 border border-neutral-700 rounded-xl p-4 space-y-4">
+        <h5 class="font-bold text-white">فاتورة بيع جديدة</h5>
+
+        <form id="acc-sales-invoice-form" onsubmit="saveAccountingInvoice(event, 'sales')" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input name="invoice_number" placeholder="رقم الفاتورة (تلقائي إذا تركته فارغًا)"
+                       class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white">
+                <input name="invoice_date" type="date" required
+                       class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white">
+                <input name="customer_name" placeholder="اسم العميل" required
+                       class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white">
+                <input name="customer_phone" placeholder="رقم هاتف العميل"
+                       class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white">
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <h6 class="font-bold text-white">الأصناف</h6>
+                    <button type="button" onclick="addAccountingInvoiceItem('sales')"
+                            class="bg-neutral-800 text-white px-3 py-2 rounded-lg">
+                        <i class="fas fa-plus ml-1"></i> إضافة صنف
+                    </button>
+                </div>
+                <div id="acc-sales-items" class="space-y-3"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input name="discount" type="number" min="0" step="0.01" value="0"
+                       placeholder="الخصم بالجنيه"
+                       class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white"
+                       oninput="calculateAccountingInvoice('sales')">
+                <input name="shipping_cost" type="number" min="0" step="0.01" value="0"
+                       placeholder="الشحن والمصاريف الإضافية"
+                       class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white"
+                       oninput="calculateAccountingInvoice('sales')">
+                <input name="initial_paid" type="number" min="0" step="0.01" value="0"
+                       placeholder="المبلغ المدفوع"
+                       class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white"
+                       oninput="calculateAccountingInvoice('sales')">
+                <select name="payment_method"
+                        class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white">
+                    <option value="كاش">كاش</option>
+                    <option value="نقدي">نقدي</option>
+                    <option value="إنستا باي">إنستا باي</option>
+                    <option value="آجل">آجل</option>
+                </select>
+                <input name="reference_number" placeholder="رقم مرجعي للدفع (اختياري)"
+                       class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white">
+                <input name="payment_date" type="date"
+                       class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white">
+            </div>
+
+            <textarea name="notes" rows="2" placeholder="ملاحظات الفاتورة"
+                      class="w-full bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white"></textarea>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
+                <div class="bg-neutral-900 rounded-xl p-3">
+                    <div class="text-gray-400 text-sm">الإجمالي قبل الخصم</div>
+                    <strong id="acc-sales-subtotal" class="text-white">0.00 ج.م</strong>
+                </div>
+                <div class="bg-neutral-900 rounded-xl p-3">
+                    <div class="text-gray-400 text-sm">الإجمالي النهائي</div>
+                    <strong id="acc-sales-total" class="text-white">0.00 ج.م</strong>
+                </div>
+                <div class="bg-neutral-900 rounded-xl p-3">
+                    <div class="text-gray-400 text-sm">المتبقي</div>
+                    <strong id="acc-sales-remaining" class="text-amber-400">0.00 ج.م</strong>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+                <button type="submit" class="bg-red-800 text-white px-5 py-3 rounded-xl">
+                    <i class="fas fa-save ml-1"></i> حفظ الفاتورة
+                </button>
+                <button type="button" onclick="hideAccountingInvoiceForm('sales')"
+                        class="bg-neutral-800 text-white px-5 py-3 rounded-xl">إلغاء</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-right">
+            <thead class="text-gray-400 border-b border-neutral-700">
+                <tr>
+                    <th class="p-3">رقم الفاتورة</th>
+                    <th class="p-3">العميل</th>
+                    <th class="p-3">التاريخ</th>
+                    <th class="p-3">الإجمالي</th>
+                    <th class="p-3">التفاصيل</th>
+                </tr>
+            </thead>
+            <tbody id="acc-sales-list">
+                <tr><td colspan="5" class="p-4 text-gray-400">اضغط عرض الفواتير.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- فواتير الشراء -->
+<div id="acc-panel-purchases"
+     class="accounting-panel hidden bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-5">
+
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <h4 class="text-lg font-bold text-white">فواتير الشراء</h4>
+        <div class="flex gap-2">
+            <button type="button" onclick="showAccountingInvoiceForm('purchases')"
+                    class="bg-red-800 hover:bg-red-700 text-white px-4 py-2 rounded-xl">
+                <i class="fas fa-plus ml-1"></i> إنشاء فاتورة شراء
+            </button>
             <button type="button" onclick="loadAccountingInvoices('purchases')"
                     class="bg-neutral-800 text-white px-4 py-2 rounded-xl">
                 <i class="fas fa-sync ml-1"></i> عرض الفواتير
             </button>
         </div>
-
-        <form id="acc-purchases-search-form"
-              onsubmit="searchAccountingInvoices(event, 'purchases')"
-              class="flex flex-wrap gap-2">
-            <input id="acc-purchases-search"
-                   type="search"
-                   placeholder="ابحث برقم الفاتورة أو اسم المورد"
-                   class="flex-1 min-w-48 bg-black border border-neutral-700 rounded-xl p-3 text-white">
-            <button class="bg-neutral-800 text-white px-5 py-3 rounded-xl" type="submit">
-                بحث
-            </button>
-        </form>
-
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm text-right">
-                <thead class="text-gray-400 border-b border-neutral-700">
-                    <tr>
-                        <th class="p-3">رقم الفاتورة</th>
-                        <th class="p-3">المورد</th>
-                        <th class="p-3">التاريخ</th>
-                        <th class="p-3">الإجمالي</th>
-                        <th class="p-3">التفاصيل</th>
-                    </tr>
-                </thead>
-                <tbody id="acc-purchases-list">
-                    <tr><td colspan="5" class="p-4 text-gray-400">اضغط عرض الفواتير.</td></tr>
-                </tbody>
-            </table>
-        </div>
     </div>
 
+    <form id="acc-purchases-search-form"
+          onsubmit="searchAccountingInvoices(event, 'purchases')"
+          class="flex flex-wrap gap-2">
+        <input id="acc-purchases-search" type="search"
+               placeholder="ابحث برقم الفاتورة أو اسم المورد"
+               class="flex-1 min-w-48 bg-black border border-neutral-700 rounded-xl p-3 text-white">
+        <button class="bg-neutral-800 text-white px-5 py-3 rounded-xl" type="submit">بحث</button>
+    </form>
+
+    <div id="acc-purchases-create-form" class="hidden bg-black/40 border border-neutral-700 rounded-xl p-4 space-y-4">
+        <h5 class="font-bold text-white">فاتورة شراء جديدة</h5>
+
+        <form id="acc-purchases-invoice-form" onsubmit="saveAccountingInvoice(event, 'purchases')" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input name="invoice_number" placeholder="رقم فاتورة الشراء (تلقائي إذا تركته فارغًا)"
+                       class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white">
+                <input name="supplier_invoice_number" placeholder="رقم فاتورة المورد (اختياري)"
+                       class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white">
+                <input name="invoice_date" type="date" required
+                       class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white">
+                <input name="supplier_name" placeholder="اسم المورد" required
+                       class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white">
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <h6 class="font-bold text-white">الأصناف</h6>
+                    <button type="button" onclick="addAccountingInvoiceItem('purchases')"
+                            class="bg-neutral-800 text-white px-3 py-2 rounded-lg">
+                        <i class="fas fa-plus ml-1"></i> إضافة صنف
+                    </button>
+                </div>
+                <div id="acc-purchases-items" class="space-y-3"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input name="discount" type="number" min="0" step="0.01" value="0"
+                       placeholder="الخصم بالجنيه"
+                       class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white"
+                       oninput="calculateAccountingInvoice('purchases')">
+                <input name="additional_cost" type="number" min="0" step="0.01" value="0"
+                       placeholder="النقل والمصاريف الإضافية"
+                       class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white"
+                       oninput="calculateAccountingInvoice('purchases')">
+                <input name="initial_paid" type="number" min="0" step="0.01" value="0"
+                       placeholder="المبلغ المدفوع للمورد"
+                       class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white"
+                       oninput="calculateAccountingInvoice('purchases')">
+                <select name="payment_method"
+                        class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white">
+                    <option value="كاش">كاش</option>
+                    <option value="نقدي">نقدي</option>
+                    <option value="إنستا باي">إنستا باي</option>
+                    <option value="آجل">آجل</option>
+                </select>
+                <input name="reference_number" placeholder="رقم مرجعي للدفع (اختياري)"
+                       class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white">
+                <input name="payment_date" type="date"
+                       class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white">
+            </div>
+
+            <textarea name="notes" rows="2" placeholder="ملاحظات الفاتورة"
+                      class="w-full bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white"></textarea>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
+                <div class="bg-neutral-900 rounded-xl p-3">
+                    <div class="text-gray-400 text-sm">الإجمالي قبل الخصم</div>
+                    <strong id="acc-purchases-subtotal" class="text-white">0.00 ج.م</strong>
+                </div>
+                <div class="bg-neutral-900 rounded-xl p-3">
+                    <div class="text-gray-400 text-sm">الإجمالي النهائي</div>
+                    <strong id="acc-purchases-total" class="text-white">0.00 ج.م</strong>
+                </div>
+                <div class="bg-neutral-900 rounded-xl p-3">
+                    <div class="text-gray-400 text-sm">المتبقي</div>
+                    <strong id="acc-purchases-remaining" class="text-amber-400">0.00 ج.م</strong>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+                <button type="submit" class="bg-red-800 text-white px-5 py-3 rounded-xl">
+                    <i class="fas fa-save ml-1"></i> حفظ الفاتورة
+                </button>
+                <button type="button" onclick="hideAccountingInvoiceForm('purchases')"
+                        class="bg-neutral-800 text-white px-5 py-3 rounded-xl">إلغاء</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-right">
+            <thead class="text-gray-400 border-b border-neutral-700">
+                <tr>
+                    <th class="p-3">رقم الفاتورة</th>
+                    <th class="p-3">المورد</th>
+                    <th class="p-3">التاريخ</th>
+                    <th class="p-3">الإجمالي</th>
+                    <th class="p-3">التفاصيل</th>
+                </tr>
+            </thead>
+            <tbody id="acc-purchases-list">
+                <tr><td colspan="5" class="p-4 text-gray-400">اضغط عرض الفواتير.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
     <!-- المصروفات -->
     <div id="acc-panel-expenses"
          class="accounting-panel hidden bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-4">
@@ -13172,7 +13338,12 @@ async function accountingRequest(action, options = {}) {
     const token = accountingGetToken();
 
     const method = options.method || 'GET';
-    const url = '/api/accounting?action=' + encodeURIComponent(action);
+
+    const query = String(action).includes('=')
+        ? String(action)
+        : 'action=' + encodeURIComponent(action);
+
+    const url = '/api/accounting?' + query;
 
     const response = await fetch(url, {
         method,
@@ -13200,7 +13371,7 @@ async function accountingRequest(action, options = {}) {
 
     return result;
 }
-
+        
 // إظهار رسائل النجاح والخطأ
 function accountingMessage(message, isError = false) {
     const element = document.getElementById('accounting-message');
@@ -13795,6 +13966,321 @@ async function printAccountingInvoice(invoiceId, type) {
 }
 
 // نهاية نظام الحسابات
+
+
+/* =========================================
+   UNITED ACCOUNTING - INVOICE FORMS
+========================================= */
+
+function showAccountingInvoiceForm(type) {
+    const form = document.getElementById(
+        type === 'sales'
+            ? 'acc-sales-create-form'
+            : 'acc-purchases-create-form'
+    );
+
+    if (!form) {
+        alert('نموذج الفاتورة غير موجود. تأكد من إضافة HTML الخاص بالفواتير أولًا.');
+        return;
+    }
+
+    form.classList.remove('hidden');
+
+    const formElement = document.getElementById(
+        type === 'sales'
+            ? 'acc-sales-invoice-form'
+            : 'acc-purchases-invoice-form'
+    );
+
+    if (formElement && !formElement.dataset.initialized) {
+        const today = new Date();
+        const localDate = new Date(
+            today.getTime() - today.getTimezoneOffset() * 60000
+        ).toISOString().slice(0, 10);
+
+        const dateInput = formElement.querySelector('[name="invoice_date"]');
+        const paymentDate = formElement.querySelector('[name="payment_date"]');
+
+        if (dateInput) dateInput.value = localDate;
+        if (paymentDate) paymentDate.value = localDate;
+
+        formElement.dataset.initialized = 'true';
+        addAccountingInvoiceItem(type);
+    }
+
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function hideAccountingInvoiceForm(type) {
+    const form = document.getElementById(
+        type === 'sales'
+            ? 'acc-sales-create-form'
+            : 'acc-purchases-create-form'
+    );
+
+    if (form) form.classList.add('hidden');
+}
+
+function addAccountingInvoiceItem(type) {
+    const container = document.getElementById(
+        type === 'sales' ? 'acc-sales-items' : 'acc-purchases-items'
+    );
+
+    if (!container) return;
+
+    const row = document.createElement('div');
+    row.className =
+        'accounting-item-row grid grid-cols-1 md:grid-cols-6 gap-2 ' +
+        'bg-neutral-900 border border-neutral-700 rounded-xl p-3';
+
+    row.innerHTML = `
+        <input name="item_name" required placeholder="اسم الصنف"
+            class="md:col-span-2 min-w-0 bg-black border border-neutral-700 rounded-lg p-2 text-white">
+
+        <select name="category"
+            class="min-w-0 bg-black border border-neutral-700 rounded-lg p-2 text-white">
+            <option value="أثاث">أثاث</option>
+            <option value="رتان">رتان</option>
+            <option value="حديد">حديد</option>
+            <option value="خامات">خامات</option>
+            <option value="إكسسوارات">إكسسوارات</option>
+            <option value="نقل">نقل</option>
+            <option value="أخرى" selected>أخرى</option>
+        </select>
+
+        <select name="unit"
+            class="min-w-0 bg-black border border-neutral-700 rounded-lg p-2 text-white">
+            <option value="قطعة">قطعة</option>
+            <option value="كيلو">كيلو</option>
+            <option value="متر">متر</option>
+            <option value="لفة">لفة</option>
+            <option value="لوح">لوح</option>
+            <option value="طقم">طقم</option>
+            <option value="أخرى">أخرى</option>
+        </select>
+
+        <input name="quantity" type="number" min="0.001" step="0.001"
+            value="1" required placeholder="الكمية"
+            class="min-w-0 bg-black border border-neutral-700 rounded-lg p-2 text-white">
+
+        <div class="flex gap-2">
+            <input name="unit_price" type="number" min="0" step="0.01"
+                value="0" required placeholder="سعر الوحدة"
+                class="min-w-0 w-full bg-black border border-neutral-700 rounded-lg p-2 text-white">
+
+            <button type="button" title="حذف الصنف"
+                class="remove-accounting-item bg-red-900 hover:bg-red-800 text-white px-3 rounded-lg">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+
+        <div class="md:col-span-6 text-sm text-gray-400">
+            إجمالي الصنف: <strong class="item-line-total text-white">0.00 ج.م</strong>
+        </div>
+    `;
+
+    container.appendChild(row);
+
+    row.querySelectorAll('[name="quantity"], [name="unit_price"]').forEach(input => {
+        input.addEventListener('input', () => calculateAccountingInvoice(type));
+    });
+
+    row.querySelector('[name="item_name"]').addEventListener('input', () => {
+        calculateAccountingInvoice(type);
+    });
+
+    row.querySelector('.remove-accounting-item').addEventListener('click', () => {
+        row.remove();
+        calculateAccountingInvoice(type);
+    });
+
+    calculateAccountingInvoice(type);
+}
+
+function accountingFormMoney(form, name) {
+    const input = form.querySelector(`[name="${name}"]`);
+    const value = Number(input ? input.value : 0);
+    return Number.isFinite(value) ? value : 0;
+}
+
+function calculateAccountingInvoice(type) {
+    const form = document.getElementById(
+        type === 'sales' ? 'acc-sales-invoice-form' : 'acc-purchases-invoice-form'
+    );
+
+    if (!form) return;
+
+    let subtotal = 0;
+
+    form.querySelectorAll('.accounting-item-row').forEach(row => {
+        const quantity = Number(row.querySelector('[name="quantity"]').value) || 0;
+        const unitPrice = Number(row.querySelector('[name="unit_price"]').value) || 0;
+        const lineTotal = Math.round(quantity * unitPrice * 100) / 100;
+
+        subtotal += lineTotal;
+
+        const output = row.querySelector('.item-line-total');
+        if (output) output.textContent = lineTotal.toLocaleString('ar-EG', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }) + ' ج.م';
+    });
+
+    subtotal = Math.round(subtotal * 100) / 100;
+
+    const discount = accountingFormMoney(form, 'discount');
+    const extra = accountingFormMoney(
+        form,
+        type === 'sales' ? 'shipping_cost' : 'additional_cost'
+    );
+    const paid = accountingFormMoney(form, 'initial_paid');
+    const total = Math.round((subtotal - discount + extra) * 100) / 100;
+    const remaining = Math.round((total - paid) * 100) / 100;
+
+    const format = value => value.toLocaleString('ar-EG', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }) + ' ج.م';
+
+    const subtotalOutput = document.getElementById(`acc-${type}-subtotal`);
+    const totalOutput = document.getElementById(`acc-${type}-total`);
+    const remainingOutput = document.getElementById(`acc-${type}-remaining`);
+
+    if (subtotalOutput) subtotalOutput.textContent = format(subtotal);
+    if (totalOutput) totalOutput.textContent = format(total);
+    if (remainingOutput) remainingOutput.textContent = format(remaining);
+
+    if (remainingOutput) {
+        remainingOutput.classList.toggle('text-red-400', remaining < 0);
+        remainingOutput.classList.toggle('text-amber-400', remaining >= 0);
+    }
+
+    return { subtotal, discount, extra, paid, total, remaining };
+}
+
+async function saveAccountingInvoice(event, type) {
+    event.preventDefault();
+
+    const form = document.getElementById(
+        type === 'sales' ? 'acc-sales-invoice-form' : 'acc-purchases-invoice-form'
+    );
+
+    if (!form) return;
+
+    const submitButton = form.querySelector('button[type="submit"]');
+    const originalButtonText = submitButton ? submitButton.innerHTML : '';
+
+    try {
+        if (typeof accountingRequest !== 'function') {
+            throw new Error('دالة الاتصال بالحسابات غير موجودة.');
+        }
+
+        if (!form.reportValidity()) return;
+
+        const rows = Array.from(form.querySelectorAll('.accounting-item-row'));
+
+        if (!rows.length) {
+            throw new Error('أضف صنفًا واحدًا على الأقل.');
+        }
+
+        const items = rows.map(row => ({
+            name: row.querySelector('[name="item_name"]').value.trim(),
+            category: row.querySelector('[name="category"]').value,
+            unit: row.querySelector('[name="unit"]').value,
+            quantity: Number(row.querySelector('[name="quantity"]').value),
+            unit_price: Number(row.querySelector('[name="unit_price"]').value)
+        }));
+
+        if (items.some(item =>
+            !item.name ||
+            !Number.isFinite(item.quantity) ||
+            item.quantity <= 0 ||
+            !Number.isFinite(item.unit_price) ||
+            item.unit_price < 0
+        )) {
+            throw new Error('راجع أسماء الأصناف والكميات والأسعار.');
+        }
+
+        const totals = calculateAccountingInvoice(type);
+        if (!totals) throw new Error('تعذر حساب إجمالي الفاتورة.');
+
+        if (totals.discount < 0 || totals.extra < 0 ||
+            totals.discount > totals.subtotal) {
+            throw new Error('راجع قيمة الخصم والمصاريف الإضافية.');
+        }
+
+        if (totals.paid < 0 || totals.paid > totals.total) {
+            throw new Error('المبلغ المدفوع يجب أن يكون بين صفر وإجمالي الفاتورة.');
+        }
+
+        const data = new FormData(form);
+        const payload = {
+            invoice_number: String(data.get('invoice_number') || '').trim(),
+            invoice_date: data.get('invoice_date'),
+            items,
+            discount: totals.discount,
+            initial_paid: totals.paid,
+            payment_method: data.get('payment_method') || 'كاش',
+            payment_date: data.get('payment_date') || data.get('invoice_date'),
+            reference_number: String(data.get('reference_number') || '').trim(),
+            notes: String(data.get('notes') || '').trim()
+        };
+
+        if (type === 'sales') {
+            payload.customer_name = String(data.get('customer_name') || '').trim();
+            payload.customer_phone = String(data.get('customer_phone') || '').trim();
+            payload.shipping_cost = totals.extra;
+        } else {
+            payload.supplier_name = String(data.get('supplier_name') || '').trim();
+            payload.supplier_invoice_number =
+                String(data.get('supplier_invoice_number') || '').trim();
+            payload.additional_cost = totals.extra;
+        }
+
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = 'جارٍ حفظ الفاتورة...';
+        }
+
+        const result = await accountingRequest(
+            type === 'sales' ? 'create-sales' : 'create-purchase',
+            {
+                method: 'POST',
+                body: payload
+            }
+        );
+
+        alert(
+            result.message ||
+            'تم حفظ الفاتورة بنجاح.'
+        );
+
+        form.reset();
+        form.dataset.initialized = '';
+        const itemsContainer = document.getElementById(
+            type === 'sales' ? 'acc-sales-items' : 'acc-purchases-items'
+        );
+        if (itemsContainer) itemsContainer.innerHTML = '';
+
+        calculateAccountingInvoice(type);
+        hideAccountingInvoiceForm(type);
+
+        await loadAccountingInvoices(type);
+
+        if (typeof renderAdminAccounting === 'function') {
+            await renderAdminAccounting();
+        }
+
+    } catch (error) {
+        console.error('SAVE ACCOUNTING INVOICE ERROR:', error);
+        alert(error.message || 'تعذر حفظ الفاتورة.');
+    } finally {
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalButtonText;
+        }
+    }
+}
 
         
 </script>
