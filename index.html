@@ -10411,34 +10411,53 @@ if (
 // تجهيز بيانات المنتج
 
 const productData = {
-    // الحفاظ على كل بيانات المنتج القديمة عند التعديل
-    ...(isEditing && oldProduct ? oldProduct : {}),
+// الحفاظ على كل بيانات المنتج القديمة عند التعديل
+...(isEditing && oldProduct ? oldProduct : {}),
 
-    // البيانات التي تم تعديلها من النموذج
-    name: document
-        .getElementById('product-editor-title')
-        .value.trim(),
 
-    category: document
-        .getElementById('product-editor-category')
-        .value,
+// اسم المنتج
+name: document
+    .getElementById('product-editor-title')
+    .value.trim(),
 
-    price: Number(
-        document.getElementById('product-editor-price').value
-    ) || 0,
+// القسم
+category: document
+    .getElementById('product-editor-category')
+    .value,
 
-    old_price: Number(
-        document.getElementById('product-editor-old-price').value
-    ) || 0,
+// السعر
+price: Number(
+    document.getElementById('product-editor-price').value
+) || 0,
 
-    sunbadge_fee: sunbadgeFee,
+// السعر القديم
+old_price: Number(
+    document.getElementById('product-editor-old-price').value
+) || 0,
 
-    visible: document
-        .getElementById('product-editor-visible').checked,
+// مواصفات المنتج
+specifications: document
+    .getElementById('product-editor-description')
+    .value.trim(),
 
-    featured: document
-        .getElementById('product-editor-featured').checked
+// الحفاظ على الوصف القديم إذا كان موجودًا
+description: document
+    .getElementById('product-editor-description')
+    .value.trim(),
+
+// رسوم صن بيدج
+sunbadge_fee: sunbadgeFee,
+
+// ظهور المنتج
+visible: document
+    .getElementById('product-editor-visible').checked,
+
+// المنتج المميز
+featured: document
+    .getElementById('product-editor-featured').checked
+
 };
+
         
 // التحقق من بيانات المنتج
 if (!productData.name) {
