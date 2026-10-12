@@ -974,6 +974,12 @@
                     <button onclick="switchAdminTab('site-settings')" id="tab-btn-site-settings" class="px-4 py-2.5 rounded-xl bg-neutral-900 text-gray-300 hover:text-white">
                         <i class="fas fa-sliders-h ml-1.5"></i> نصوص وهوية الموقع
                     </button>
+                   
+                <!-- الفواتير والحسابات -->
+                <button onclick="switchAdminTab('accounting')" id="tab-btn-accounting" class="px-4 py-2.5 rounded-xl bg-neutral-900 text-gray-300 hover:text-white">
+                    <i class="fas fa-file-invoice-dollar ml-1.5"></i> الفواتير والحسابات
+                </button>
+
                     <button onclick="switchAdminTab('security')" id="tab-btn-security" class="px-4 py-2.5 rounded-xl bg-neutral-900 text-gray-300 hover:text-white">
                         <i class="fas fa-shield-alt ml-1.5"></i> الأمان ودخول Admin
                     </button>
@@ -1233,6 +1239,281 @@
         </section>
     </main>
 
+<!-- ACCOUNTING TAB -->
+<div id="admin-tab-accounting" class="hidden space-y-6">
+
+    <!-- عنوان القسم -->
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <h3 class="text-2xl font-extrabold text-white">
+                <i class="fas fa-file-invoice-dollar text-amber-500 ml-2"></i>
+                الفواتير والحسابات
+            </h3>
+            <p class="text-sm text-gray-400 mt-1">
+                إدارة فواتير البيع والشراء والتحصيلات والمدفوعات والمصروفات.
+            </p>
+        </div>
+
+        <button type="button"
+                onclick="renderAdminAccounting()"
+                class="bg-neutral-800 hover:bg-neutral-700 text-white px-4 py-3 rounded-xl">
+            <i class="fas fa-sync-alt ml-1"></i>
+            تحديث البيانات
+        </button>
+    </div>
+
+    <!-- رسائل النظام -->
+    <div id="accounting-message"
+         class="hidden rounded-xl border p-4 text-sm"
+         role="status"></div>
+
+    <!-- ملخص الحسابات -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+
+        <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5">
+            <p class="text-gray-400 text-sm">إجمالي المبيعات</p>
+            <h4 id="acc-total-sales" class="text-2xl font-extrabold text-white mt-2">—</h4>
+        </div>
+
+        <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5">
+            <p class="text-gray-400 text-sm">المبالغ المستحقة من العملاء</p>
+            <h4 id="acc-customer-receivables" class="text-2xl font-extrabold text-amber-400 mt-2">—</h4>
+        </div>
+
+        <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5">
+            <p class="text-gray-400 text-sm">إجمالي المشتريات</p>
+            <h4 id="acc-total-purchases" class="text-2xl font-extrabold text-white mt-2">—</h4>
+        </div>
+
+        <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5">
+            <p class="text-gray-400 text-sm">المستحق للموردين</p>
+            <h4 id="acc-supplier-payables" class="text-2xl font-extrabold text-amber-400 mt-2">—</h4>
+        </div>
+
+        <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5">
+            <p class="text-gray-400 text-sm">إجمالي التحصيلات</p>
+            <h4 id="acc-total-receipts" class="text-xl font-bold text-white mt-2">—</h4>
+        </div>
+
+        <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5">
+            <p class="text-gray-400 text-sm">مدفوعات الموردين</p>
+            <h4 id="acc-total-supplier-payments" class="text-xl font-bold text-white mt-2">—</h4>
+        </div>
+
+        <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5">
+            <p class="text-gray-400 text-sm">إجمالي المصروفات</p>
+            <h4 id="acc-total-expenses" class="text-xl font-bold text-white mt-2">—</h4>
+        </div>
+
+        <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5">
+            <p class="text-gray-400 text-sm">صافي الربح التقديري</p>
+            <h4 id="acc-net-profit" class="text-xl font-extrabold text-green-400 mt-2">—</h4>
+        </div>
+
+    </div>
+
+    <!-- أزرار التنقل داخل الحسابات -->
+    <div class="flex flex-wrap gap-2 border-b border-neutral-800 pb-4">
+        <button type="button" onclick="showAccountingPanel('dashboard')"
+                class="accounting-subtab bg-amber-600 text-black font-bold px-4 py-3 rounded-xl">
+            الملخص
+        </button>
+
+        <button type="button" onclick="showAccountingPanel('sales')"
+                class="accounting-subtab bg-neutral-800 text-white px-4 py-3 rounded-xl">
+            فواتير البيع
+        </button>
+
+        <button type="button" onclick="showAccountingPanel('purchases')"
+                class="accounting-subtab bg-neutral-800 text-white px-4 py-3 rounded-xl">
+            فواتير الشراء
+        </button>
+
+        <button type="button" onclick="showAccountingPanel('expenses')"
+                class="accounting-subtab bg-neutral-800 text-white px-4 py-3 rounded-xl">
+            المصروفات
+        </button>
+    </div>
+
+    <!-- الملخص -->
+    <div id="acc-panel-dashboard"
+         class="accounting-panel bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+        <h4 class="text-lg font-bold text-white mb-3">ملخص الحسابات</h4>
+        <p class="text-sm text-gray-400">
+            اختر فواتير البيع أو الشراء لإضافة فاتورة والبحث في الفواتير المسجلة.
+        </p>
+        <p id="acc-dashboard-status" class="text-sm text-gray-300 mt-4">
+            اضغط تحديث البيانات لقراءة الحسابات.
+        </p>
+    </div>
+
+    <!-- فواتير البيع -->
+    <div id="acc-panel-sales"
+         class="accounting-panel hidden bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-5">
+
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h4 class="text-lg font-bold text-white">فواتير البيع</h4>
+            <button type="button" onclick="loadAccountingInvoices('sales')"
+                    class="bg-neutral-800 text-white px-4 py-2 rounded-xl">
+                <i class="fas fa-sync ml-1"></i> عرض الفواتير
+            </button>
+        </div>
+
+        <form id="acc-sales-search-form"
+              onsubmit="searchAccountingInvoices(event, 'sales')"
+              class="flex flex-wrap gap-2">
+            <input id="acc-sales-search"
+                   type="search"
+                   placeholder="ابحث برقم الفاتورة أو اسم العميل"
+                   class="flex-1 min-w-48 bg-black border border-neutral-700 rounded-xl p-3 text-white">
+            <button class="bg-neutral-800 text-white px-5 py-3 rounded-xl" type="submit">
+                بحث
+            </button>
+        </form>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-right">
+                <thead class="text-gray-400 border-b border-neutral-700">
+                    <tr>
+                        <th class="p-3">رقم الفاتورة</th>
+                        <th class="p-3">العميل</th>
+                        <th class="p-3">التاريخ</th>
+                        <th class="p-3">الإجمالي</th>
+                        <th class="p-3">التفاصيل</th>
+                    </tr>
+                </thead>
+                <tbody id="acc-sales-list">
+                    <tr><td colspan="5" class="p-4 text-gray-400">اضغط عرض الفواتير.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- فواتير الشراء -->
+    <div id="acc-panel-purchases"
+         class="accounting-panel hidden bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-5">
+
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h4 class="text-lg font-bold text-white">فواتير الشراء</h4>
+            <button type="button" onclick="loadAccountingInvoices('purchases')"
+                    class="bg-neutral-800 text-white px-4 py-2 rounded-xl">
+                <i class="fas fa-sync ml-1"></i> عرض الفواتير
+            </button>
+        </div>
+
+        <form id="acc-purchases-search-form"
+              onsubmit="searchAccountingInvoices(event, 'purchases')"
+              class="flex flex-wrap gap-2">
+            <input id="acc-purchases-search"
+                   type="search"
+                   placeholder="ابحث برقم الفاتورة أو اسم المورد"
+                   class="flex-1 min-w-48 bg-black border border-neutral-700 rounded-xl p-3 text-white">
+            <button class="bg-neutral-800 text-white px-5 py-3 rounded-xl" type="submit">
+                بحث
+            </button>
+        </form>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-right">
+                <thead class="text-gray-400 border-b border-neutral-700">
+                    <tr>
+                        <th class="p-3">رقم الفاتورة</th>
+                        <th class="p-3">المورد</th>
+                        <th class="p-3">التاريخ</th>
+                        <th class="p-3">الإجمالي</th>
+                        <th class="p-3">التفاصيل</th>
+                    </tr>
+                </thead>
+                <tbody id="acc-purchases-list">
+                    <tr><td colspan="5" class="p-4 text-gray-400">اضغط عرض الفواتير.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- المصروفات -->
+    <div id="acc-panel-expenses"
+         class="accounting-panel hidden bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-4">
+
+        <h4 class="text-lg font-bold text-white">تسجيل مصروف جديد</h4>
+
+        <form id="acc-expense-form"
+              onsubmit="saveAccountingExpense(event)"
+              class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            <div>
+                <label class="block text-gray-300 text-sm mb-2">التاريخ</label>
+                <input id="acc-expense-date" type="date" required
+                       class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white">
+            </div>
+
+            <div>
+                <label class="block text-gray-300 text-sm mb-2">التصنيف</label>
+                <select id="acc-expense-category" required
+                        class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white">
+                    <option value="other">أخرى</option>
+                    <option value="rent">إيجار</option>
+                    <option value="salaries">رواتب وأجور</option>
+                    <option value="transport">نقل ومواصلات</option>
+                    <option value="utilities">كهرباء ومياه</option>
+                    <option value="maintenance">صيانة</option>
+                    <option value="materials">خامات</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-gray-300 text-sm mb-2">وصف المصروف</label>
+                <input id="acc-expense-description" type="text" required
+                       class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"
+                       placeholder="مثال: نقل خامات">
+            </div>
+
+            <div>
+                <label class="block text-gray-300 text-sm mb-2">المبلغ بالجنيه</label>
+                <input id="acc-expense-amount" type="number" min="0.01" step="0.01" required
+                       class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white">
+            </div>
+
+            <div>
+                <label class="block text-gray-300 text-sm mb-2">طريقة الدفع</label>
+                <select id="acc-expense-payment-method"
+                        class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white">
+                    <option value="cash">كاش / نقدي</option>
+                    <option value="instapay">إنستا باي</option>
+                    <option value="credit">آجل</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-gray-300 text-sm mb-2">رقم مرجعي (اختياري)</label>
+                <input id="acc-expense-reference" type="text"
+                       class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white">
+            </div>
+
+            <div class="md:col-span-2">
+                <label class="block text-gray-300 text-sm mb-2">ملاحظات</label>
+                <textarea id="acc-expense-notes" rows="3"
+                          class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"></textarea>
+            </div>
+
+            <div class="md:col-span-2">
+                <button type="submit"
+                        class="bg-amber-600 hover:bg-amber-500 text-black font-extrabold px-6 py-3 rounded-xl">
+                    <i class="fas fa-save ml-1"></i> حفظ المصروف
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- مساحة تفاصيل الفاتورة -->
+    <div id="acc-invoice-details"
+         class="hidden bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-4">
+    </div>
+
+</div>
+<!-- END ACCOUNTING TAB -->
+
+        
     <!-- PRODUCT DETAIL & CUSTOMIZER MODAL -->
     <div id="product-detail-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4 overflow-y-auto">
         <div class="bg-neutral-900 border border-neutral-800 rounded-3xl max-w-3xl w-full p-6 space-y-6 max-h-[90vh] overflow-y-auto relative text-right shadow-2xl">
@@ -6883,26 +7164,58 @@ setTimeout(() => {
             alert("تم تحديث بيانات الدخول الإدارية بنجاح!");
         }
 
-      function switchAdminTab(tabName) {
-    ['orders', 'products', 'offers', 'categories', 'customizer', 'shipping', 'site-settings', 'security'].forEach(t => {
-        const el = document.getElementById(`admin-tab-${t}`);
-        if (el) el.classList.add('hidden');
+   
+function switchAdminTab(tabName) {
+    const tabs = [
+        'orders',
+        'products',
+        'offers',
+        'categories',
+        'customizer',
+        'shipping',
+        'site-settings',
+        'security',
+        'accounting'
+    ];
+
+    tabs.forEach(function (tab) {
+        const panel = document.getElementById('admin-tab-' + tab);
+        const button = document.getElementById('tab-btn-' + tab);
+
+        if (panel) {
+            panel.classList.add('hidden');
+        }
+
+        if (button) {
+            button.classList.remove('bg-red-900', 'text-white');
+            button.classList.add('bg-neutral-900', 'text-gray-300');
+        }
     });
 
-    const selectedTab = document.getElementById(`admin-tab-${tabName}`);
+    const selectedPanel = document.getElementById('admin-tab-' + tabName);
+    const selectedButton = document.getElementById('tab-btn-' + tabName);
 
-    if (selectedTab) {
-        selectedTab.classList.remove('hidden');
+    if (selectedPanel) {
+        selectedPanel.classList.remove('hidden');
     }
 
-    // إعادة رسم العروض عند فتح إدارة العروض
-    if (
-        tabName === 'offers' &&
-        typeof renderAdminOffers === 'function'
-    ) {
+    if (selectedButton) {
+        selectedButton.classList.remove('bg-neutral-900', 'text-gray-300');
+        selectedButton.classList.add('bg-red-900', 'text-white');
+    }
+
+    if (tabName === 'offers' &&
+        typeof renderAdminOffers === 'function') {
         renderAdminOffers();
     }
+
+    if (tabName === 'accounting' &&
+        typeof renderAdminAccounting === 'function') {
+        renderAdminAccounting();
+    }
 }
+
+
     function renderAdminDashboard() {
     renderAdminOrders();
     renderAdminProducts();
@@ -12808,6 +13121,680 @@ async function saveProductSunbadgeFee(productId) {
         return false;
     }
 }
+
+// =====================================================
+// UNITED FURNITURE - ACCOUNTING SYSTEM
+// ربط الفواتير والحسابات بقاعدة بيانات Supabase
+// =====================================================
+
+const accountingState = {
+    currentType: 'sales',
+    dashboardLoaded: false
+};
+
+// تنسيق المبالغ بالجنيه المصري
+function accountingMoney(value) {
+    const amount = Number(value || 0);
+
+    return amount.toLocaleString('ar-EG', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }) + ' ج.م';
+}
+
+// حماية النصوص عند عرض بيانات قاعدة البيانات داخل HTML
+function accountingEscape(value) {
+    return String(value ?? '').replace(/[&<>"']/g, function (char) {
+        return {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[char];
+    });
+}
+
+// قراءة رمز جلسة الإدارة
+function accountingGetToken() {
+    const token =
+        sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN') || '';
+
+    if (!token) {
+        throw new Error('جلسة الإدارة انتهت. سجّل الدخول مرة أخرى.');
+    }
+
+    return token;
+}
+
+// الاتصال بواجهة الحسابات الحالية
+async function accountingRequest(action, options = {}) {
+    const token = accountingGetToken();
+
+    const method = options.method || 'GET';
+    const url = '/api/accounting?action=' + encodeURIComponent(action);
+
+    const response = await fetch(url, {
+        method,
+        cache: 'no-store',
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            ...(options.body ? {
+                'Content-Type': 'application/json'
+            } : {})
+        },
+        ...(options.body ? {
+            body: JSON.stringify(options.body)
+        } : {})
+    });
+
+    const result = await response.json().catch(function () {
+        return {};
+    });
+
+    if (!response.ok || result.success === false) {
+        throw new Error(
+            result.error || 'تعذر تنفيذ طلب الحسابات.'
+        );
+    }
+
+    return result;
+}
+
+// إظهار رسائل النجاح والخطأ
+function accountingMessage(message, isError = false) {
+    const element = document.getElementById('accounting-message');
+
+    if (!element) {
+        alert(message);
+        return;
+    }
+
+    element.textContent = message;
+    element.classList.remove('hidden', 'border-red-700',
+        'text-red-300', 'border-green-700', 'text-green-300');
+
+    element.classList.add(
+        isError ? 'border-red-700' : 'border-green-700',
+        isError ? 'text-red-300' : 'text-green-300'
+    );
+
+    element.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest'
+    });
+}
+
+// =====================================================
+// تحميل الملخص المالي
+// =====================================================
+
+async function renderAdminAccounting() {
+    const status = document.getElementById('acc-dashboard-status');
+
+    if (status) {
+        status.textContent = 'جارٍ تحميل الحسابات...';
+    }
+
+    try {
+        const result = await accountingRequest('dashboard');
+
+        const data = result.dashboard || result.data || result;
+
+        const values = {
+            'acc-total-sales': data.totalSales,
+            'acc-customer-receivables': data.customerReceivables,
+            'acc-total-purchases': data.totalPurchases,
+            'acc-supplier-payables': data.supplierPayables,
+            'acc-total-receipts': data.totalReceipts,
+            'acc-total-supplier-payments': data.totalSupplierPayments,
+            'acc-total-expenses': data.totalExpenses,
+            'acc-net-profit': data.netProfit
+        };
+
+        Object.entries(values).forEach(function ([id, value]) {
+            const element = document.getElementById(id);
+
+            if (element) {
+                element.textContent = accountingMoney(value);
+            }
+        });
+
+        if (status) {
+            status.textContent =
+                'تم تحميل الملخص من قاعدة البيانات بنجاح.';
+        }
+
+        accountingState.dashboardLoaded = true;
+
+    } catch (error) {
+        console.error('ACCOUNTING DASHBOARD ERROR:', error);
+
+        if (status) {
+            status.textContent = error.message;
+        }
+
+        accountingMessage(error.message, true);
+    }
+}
+
+// =====================================================
+// التنقل بين أقسام الحسابات
+// =====================================================
+
+function showAccountingPanel(panelName) {
+    const panels = [
+        'dashboard',
+        'sales',
+        'purchases',
+        'expenses'
+    ];
+
+    panels.forEach(function (name) {
+        const panel = document.getElementById('acc-panel-' + name);
+
+        if (panel) {
+            panel.classList.toggle('hidden', name !== panelName);
+        }
+    });
+
+    document.querySelectorAll('.accounting-subtab').forEach(function (button) {
+        button.classList.remove('bg-amber-600', 'text-black', 'font-bold');
+        button.classList.add('bg-neutral-800', 'text-white');
+    });
+
+    const buttons = document.querySelectorAll('.accounting-subtab');
+
+    const index = panels.indexOf(panelName);
+
+    if (index >= 0 && buttons[index]) {
+        buttons[index].classList.remove('bg-neutral-800', 'text-white');
+        buttons[index].classList.add(
+            'bg-amber-600',
+            'text-black',
+            'font-bold'
+        );
+    }
+
+    if (panelName === 'sales') {
+        loadAccountingInvoices('sales');
+    } else if (panelName === 'purchases') {
+        loadAccountingInvoices('purchases');
+    } else if (panelName === 'dashboard') {
+        renderAdminAccounting();
+    } else if (panelName === 'expenses') {
+        const dateInput = document.getElementById('acc-expense-date');
+
+        if (dateInput && !dateInput.value) {
+            dateInput.value = new Date().toISOString().slice(0, 10);
+        }
+    }
+}
+
+// =====================================================
+// عرض فواتير البيع والشراء
+// =====================================================
+
+async function loadAccountingInvoices(type, search = '') {
+    if (!['sales', 'purchases'].includes(type)) {
+        return;
+    }
+
+    accountingState.currentType = type;
+
+    const listId = type === 'sales'
+        ? 'acc-sales-list'
+        : 'acc-purchases-list';
+
+    const list = document.getElementById(listId);
+
+    if (!list) {
+        return;
+    }
+
+    list.innerHTML =
+        '<tr><td colspan="5" class="p-4 text-gray-400">جارٍ تحميل الفواتير...</td></tr>';
+
+    try {
+        const query =
+            '/api/accounting?action=list&type=' +
+            encodeURIComponent(type) +
+            '&search=' +
+            encodeURIComponent(search);
+
+        const token = accountingGetToken();
+
+        const response = await fetch(query, {
+            method: 'GET',
+            cache: 'no-store',
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+
+        const result = await response.json().catch(function () {
+            return {};
+        });
+
+        if (!response.ok || result.success === false) {
+            throw new Error(result.error || 'تعذر تحميل الفواتير.');
+        }
+
+        const invoices =
+            result.invoices ||
+            result.data ||
+            result.rows ||
+            [];
+
+        if (!Array.isArray(invoices) || invoices.length === 0) {
+            list.innerHTML =
+                '<tr><td colspan="5" class="p-4 text-gray-400">لا توجد فواتير مسجلة.</td></tr>';
+            return;
+        }
+
+        list.innerHTML = invoices.map(function (invoice) {
+            const id = accountingEscape(invoice.id);
+
+            const number = accountingEscape(invoice.invoice_number || '—');
+
+            const name = accountingEscape(
+                type === 'sales'
+                    ? invoice.customer_name
+                    : invoice.supplier_name
+            );
+
+            const date = accountingEscape(invoice.invoice_date || '—');
+
+            const total = accountingMoney(invoice.total);
+
+            return `
+                <tr class="border-b border-neutral-800 hover:bg-neutral-800/50">
+                    <td class="p-3">${number}</td>
+                    <td class="p-3">${name}</td>
+                    <td class="p-3">${date}</td>
+                    <td class="p-3 whitespace-nowrap">${accountingEscape(total)}</td>
+                    <td class="p-3">
+                        <button
+                            type="button"
+                            onclick="viewAccountingInvoice('${id}', '${type}')"
+                            class="bg-amber-600 hover:bg-amber-500 text-black px-3 py-2 rounded-lg">
+                            التفاصيل
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+    } catch (error) {
+        console.error('ACCOUNTING INVOICES ERROR:', error);
+
+        list.innerHTML =
+            '<tr><td colspan="5" class="p-4 text-red-300">' +
+            accountingEscape(error.message) +
+            '</td></tr>';
+    }
+}
+
+// البحث في الفواتير
+function searchAccountingInvoices(event, type) {
+    event.preventDefault();
+
+    const input = document.getElementById(
+        type === 'sales'
+            ? 'acc-sales-search'
+            : 'acc-purchases-search'
+    );
+
+    loadAccountingInvoices(type, input ? input.value.trim() : '');
+}
+
+// =====================================================
+// تفاصيل الفاتورة
+// =====================================================
+
+async function viewAccountingInvoice(invoiceId, type) {
+    const container = document.getElementById('acc-invoice-details');
+
+    if (!container) {
+        return;
+    }
+
+    container.classList.remove('hidden');
+
+    container.innerHTML =
+        '<p class="text-gray-300">جارٍ تحميل تفاصيل الفاتورة...</p>';
+
+    try {
+        const result = await accountingRequest(
+            'get&type=' + encodeURIComponent(type) +
+            '&id=' + encodeURIComponent(invoiceId)
+        );
+
+        const invoice = result.invoice || {};
+        const items = result.items || [];
+        const payments = result.payments || [];
+
+        const name = type === 'sales'
+            ? invoice.customer_name
+            : invoice.supplier_name;
+
+        const paid = Number(result.paid || 0);
+        const total = Number(invoice.total || 0);
+        const remaining = Number(
+            result.remaining ?? Math.max(0, total - paid)
+        );
+
+        container.innerHTML = `
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+                <h4 class="text-xl font-extrabold text-white">
+                    تفاصيل الفاتورة ${accountingEscape(invoice.invoice_number || '')}
+                </h4>
+                <button type="button"
+                        onclick="document.getElementById('acc-invoice-details').classList.add('hidden')"
+                        class="bg-neutral-800 text-white px-3 py-2 rounded-lg">
+                    إغلاق
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <p class="text-gray-300">الاسم: ${accountingEscape(name || '—')}</p>
+                <p class="text-gray-300">التاريخ: ${accountingEscape(invoice.invoice_date || '—')}</p>
+                <p class="text-white">الإجمالي: ${accountingEscape(accountingMoney(total))}</p>
+                <p class="text-green-300">المدفوع: ${accountingEscape(accountingMoney(paid))}</p>
+                <p class="text-amber-300">المتبقي: ${accountingEscape(accountingMoney(remaining))}</p>
+            </div>
+
+            <h5 class="font-bold text-white mt-4">الأصناف</h5>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-right">
+                    <thead class="text-gray-400 border-b border-neutral-700">
+                        <tr>
+                            <th class="p-2">الصنف</th>
+                            <th class="p-2">الكمية</th>
+                            <th class="p-2">الوحدة</th>
+                            <th class="p-2">سعر الوحدة</th>
+                            <th class="p-2">الإجمالي</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${items.map(function (item) {
+                            return `
+                                <tr class="border-b border-neutral-800">
+                                    <td class="p-2">${accountingEscape(item.product_name || item.item_name || '')}</td>
+                                    <td class="p-2">${accountingEscape(item.quantity ?? 0)}</td>
+                                    <td class="p-2">${accountingEscape(item.unit || 'قطعة')}</td>
+                                    <td class="p-2">${accountingEscape(accountingMoney(item.unit_price))}</td>
+                                    <td class="p-2">${accountingEscape(accountingMoney(item.line_total))}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+
+            <h5 class="font-bold text-white mt-4">سجل الدفعات</h5>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-right">
+                    <thead class="text-gray-400 border-b border-neutral-700">
+                        <tr>
+                            <th class="p-2">التاريخ</th>
+                            <th class="p-2">المبلغ</th>
+                            <th class="p-2">طريقة الدفع</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${payments.length ? payments.map(function (payment) {
+                            return `
+                                <tr class="border-b border-neutral-800">
+                                    <td class="p-2">${accountingEscape(payment.receipt_date || payment.payment_date || '—')}</td>
+                                    <td class="p-2">${accountingEscape(accountingMoney(payment.amount))}</td>
+                                    <td class="p-2">${accountingEscape(payment.payment_method || '—')}</td>
+                                </tr>
+                            `;
+                        }).join('') : '<tr><td colspan="3" class="p-3 text-gray-400">لا توجد دفعات مسجلة.</td></tr>'}
+                    </tbody>
+                </table>
+            </div>
+
+            <button type="button"
+                    onclick="printAccountingInvoice('${accountingEscape(invoiceId)}', '${type}')"
+                    class="bg-neutral-800 hover:bg-neutral-700 text-white px-4 py-3 rounded-xl mt-4">
+                <i class="fas fa-print ml-1"></i> طباعة الفاتورة
+            </button>
+        `;
+
+        container.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+
+    } catch (error) {
+        console.error('ACCOUNTING INVOICE DETAIL ERROR:', error);
+
+        container.innerHTML =
+            '<p class="text-red-300">' +
+            accountingEscape(error.message) +
+            '</p>';
+    }
+}
+
+// =====================================================
+// تسجيل مصروف
+// =====================================================
+
+async function saveAccountingExpense(event) {
+    event.preventDefault();
+
+    const amount = Number(
+        document.getElementById('acc-expense-amount').value
+    );
+
+    const description = document.getElementById(
+        'acc-expense-description'
+    ).value.trim();
+
+    if (!description || !Number.isFinite(amount) || amount <= 0) {
+        accountingMessage('اكتب وصف المصروف ومبلغًا صحيحًا.', true);
+        return;
+    }
+
+    const body = {
+        expense_date: document.getElementById('acc-expense-date').value,
+        category: document.getElementById('acc-expense-category').value,
+        description,
+        amount,
+        payment_method: document.getElementById(
+            'acc-expense-payment-method'
+        ).value,
+        reference_number: document.getElementById(
+            'acc-expense-reference'
+        ).value.trim(),
+        notes: document.getElementById('acc-expense-notes').value.trim()
+    };
+
+    const submitButton = event.submitter;
+
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'جارٍ الحفظ...';
+    }
+
+    try {
+        await accountingRequest('expense', {
+            method: 'POST',
+            body
+        });
+
+        document.getElementById('acc-expense-form').reset();
+
+        const dateInput = document.getElementById('acc-expense-date');
+
+        if (dateInput) {
+            dateInput.value = new Date().toISOString().slice(0, 10);
+        }
+
+        accountingMessage('تم حفظ المصروف بنجاح.');
+
+        await renderAdminAccounting();
+
+    } catch (error) {
+        console.error('SAVE ACCOUNTING EXPENSE ERROR:', error);
+        accountingMessage(error.message, true);
+
+    } finally {
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.innerHTML =
+                '<i class="fas fa-save ml-1"></i> حفظ المصروف';
+        }
+    }
+}
+
+// =====================================================
+// طباعة تفاصيل الفاتورة
+// =====================================================
+
+async function printAccountingInvoice(invoiceId, type) {
+    try {
+        const result = await accountingRequest(
+            'get&type=' + encodeURIComponent(type) +
+            '&id=' + encodeURIComponent(invoiceId)
+        );
+
+        const invoice = result.invoice || {};
+        const items = result.items || [];
+
+        const name = type === 'sales'
+            ? invoice.customer_name
+            : invoice.supplier_name;
+
+        const paid = Number(result.paid || 0);
+        const total = Number(invoice.total || 0);
+        const remaining = Number(
+            result.remaining ?? Math.max(0, total - paid)
+        );
+
+        const printWindow = window.open('', '_blank');
+
+        if (!printWindow) {
+            throw new Error('اسمح بفتح النوافذ المنبثقة لطباعة الفاتورة.');
+        }
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html lang="ar" dir="rtl">
+            <head>
+                <meta charset="UTF-8">
+                <title>فاتورة المتحدة للرتان والأثاث</title>
+                <style>
+                    body {
+                        font-family: Tahoma, Arial, sans-serif;
+                        direction: rtl;
+                        margin: 30px;
+                        color: #222;
+                    }
+                    header {
+                        text-align: center;
+                        border-bottom: 2px solid #8B1E2B;
+                        padding-bottom: 15px;
+                        margin-bottom: 20px;
+                    }
+                    h1 { color: #8B1E2B; margin-bottom: 8px; }
+                    .info {
+                        display: flex;
+                        justify-content: space-between;
+                        flex-wrap: wrap;
+                        gap: 10px;
+                        margin-bottom: 20px;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-top: 20px;
+                    }
+                    th, td {
+                        border: 1px solid #ccc;
+                        padding: 10px;
+                        text-align: right;
+                    }
+                    th { background: #f3f3f3; }
+                    .totals {
+                        margin-top: 25px;
+                        line-height: 2;
+                        font-weight: bold;
+                    }
+                    @media print {
+                        body { margin: 12mm; }
+                    }
+                </style>
+            </head>
+            <body>
+                <header>
+                    <h1>المتحدة للرتان والأثاث</h1>
+                    <div>أثاث الرتان والأثاث الخارجي</div>
+                    <div>أشمون - المنوفية - جمهورية مصر العربية</div>
+                </header>
+
+                <div class="info">
+                    <div>نوع الفاتورة: ${type === 'sales' ? 'بيع' : 'شراء'}</div>
+                    <div>رقم الفاتورة: ${accountingEscape(invoice.invoice_number || '')}</div>
+                    <div>التاريخ: ${accountingEscape(invoice.invoice_date || '')}</div>
+                    <div>${type === 'sales' ? 'العميل' : 'المورد'}: ${accountingEscape(name || '')}</div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>الصنف</th>
+                            <th>الكمية</th>
+                            <th>الوحدة</th>
+                            <th>سعر الوحدة</th>
+                            <th>الإجمالي</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${items.map(function (item) {
+                            return `
+                                <tr>
+                                    <td>${accountingEscape(item.product_name || item.item_name || '')}</td>
+                                    <td>${accountingEscape(item.quantity ?? 0)}</td>
+                                    <td>${accountingEscape(item.unit || 'قطعة')}</td>
+                                    <td>${accountingEscape(accountingMoney(item.unit_price))}</td>
+                                    <td>${accountingEscape(accountingMoney(item.line_total))}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+
+                <div class="totals">
+                    <div>الإجمالي: ${accountingEscape(accountingMoney(total))}</div>
+                    <div>المدفوع: ${accountingEscape(accountingMoney(paid))}</div>
+                    <div>المتبقي: ${accountingEscape(accountingMoney(remaining))}</div>
+                </div>
+
+                <p style="margin-top:50px;text-align:center">
+                    شكرًا لتعاملكم مع المتحدة للرتان والأثاث
+                </p>
+
+                <script>
+                    window.onload = function () {
+                        window.print();
+                    };
+                <\/script>
+            </body>
+            </html>
+        `);
+
+        printWindow.document.close();
+
+    } catch (error) {
+        console.error('PRINT ACCOUNTING INVOICE ERROR:', error);
+        accountingMessage(error.message, true);
+    }
+}
+
+// نهاية نظام الحسابات
 
         
 </script>
