@@ -13579,12 +13579,22 @@ async function loadAccountingInvoices(type, search = '') {
                     <td class="p-3">${date}</td>
                     <td class="p-3 whitespace-nowrap">${accountingEscape(total)}</td>
                     <td class="p-3">
-                        <button
-                            type="button"
-                            onclick="viewAccountingInvoice('${id}', '${type}')"
-                            class="bg-amber-600 hover:bg-amber-500 text-black px-3 py-2 rounded-lg">
-                            التفاصيل
-                        </button>
+                        
+<div class="flex flex-wrap gap-2">
+    <button
+        type="button"
+        onclick="viewAccountingInvoice('${id}', '${type}')"
+        class="bg-amber-600 hover:bg-amber-500 text-black px-3 py-2 rounded-lg">
+        التفاصيل
+    </button>
+
+    <button
+        type="button"
+        onclick="editAccountingInvoice('${id}', '${type}')"
+        class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg">
+        تعديل
+    </button>
+</div>
                     </td>
                 </tr>
             `;
@@ -13751,6 +13761,173 @@ console.log('ACCOUNTING DETAIL RESPONSE:', result);
     }
 }
 
+
+    
+async function editAccountingInvoice(invoiceId, type) {
+    if (!['sales', 'purchases'].includes(type) || !invoiceId) {
+        alert('بيانات الفاتورة غير صحيحة.');
+        return;
+    }
+
+    try {
+        const result = await accountingRequest(
+            'action=get&type=' + encodeURIComponent(type) +
+            '&id=' + encodeURIComponent(invoiceId)
+        );
+
+        const invoice = result.invoice || {};
+        const items = result.items || [];
+        const paid = Number(result.paid || 0);
+
+        const wrapper = document.getElementById(
+            type === 'sales'
+                ? 'acc-sales-create-form'
+                : 'acc-purchases-create-form'
+        );
+
+        const form = document.getElementById(
+            type === 'sales'
+                ? 'acc-sales-invoice-form'
+                : 'acc-purchases-invoice-form'
+        );
+
+        if (!wrapper || !form) {
+            throw new Error('نموذج الفاتورة غير موجود.');
+        }
+
+        if (!items.length) {
+            throw new Error('لا توجد أصناف محملة لهذه الفاتورة.');
+        }
+
+        const setField = (name, value) => {
+            const field = form.querySelector(
+                '[name="' + name + '"]'
+            );
+
+            if (field) {
+                field.value = value ?? '';
+            }
+        };
+
+        // حفظ النص الأصلي لزر الحفظ مرة واحدة
+        const submitButton = form.querySelector(
+            'button[type="submit"]'
+        );
+
+        if (
+            submitButton &&
+            !form.dataset.originalSubmitText
+        ) {
+            form.dataset.originalSubmitText =
+                submitButton.innerHTML;
+        }
+
+        // إظهار نموذج الفاتورة
+        wrapper.classList.remove('hidden');
+        form.dataset.initialized = 'true';
+        form.dataset.editInvoiceId = String(invoice.id);
+        form.dataset.editType = type;
+        form.dataset.editPaid = String(paid);
+
+        // تعبئة بيانات الفاتورة
+        setField('invoice_number', invoice.invoice_number);
+        setField('invoice_date', invoice.invoice_date);
+        setField('discount', invoice.discount || 0);
+        setField('notes', invoice.notes || '');
+
+        if (type === 'sales') {
+            setField('customer_name', invoice.customer_name);
+            setField('customer_phone', invoice.customer_phone);
+            setField('shipping_cost', invoice.shipping_cost || 0);
+        } else {
+            setField('supplier_name', invoice.supplier_name);
+            setField(
+                'supplier_invoice_number',
+                invoice.supplier_invoice_number
+            );
+            setField('additional_cost', invoice.additional_cost || 0);
+        }
+
+        // المدفوع هنا للعرض والحساب فقط؛ لن نسجله كدفعة جديدة
+        setField('initial_paid', paid);
+
+        const itemsContainer = document.getElementById(
+            type === 'sales'
+                ? 'acc-sales-items'
+                : 'acc-purchases-items'
+        );
+
+        if (!itemsContainer) {
+            throw new Error('مكان عرض أصناف الفاتورة غير موجود.');
+        }
+
+        itemsContainer.innerHTML = '';
+
+        items.forEach(item => {
+            addAccountingInvoiceItem(type);
+
+            const row = itemsContainer.lastElementChild;
+
+            if (!row) {
+                throw new Error('تعذر تجهيز أحد أصناف الفاتورة.');
+            }
+
+            const nameField = row.querySelector('[name="item_name"]');
+            const categoryField = row.querySelector('[name="category"]');
+            const unitField = row.querySelector('[name="unit"]');
+            const quantityField = row.querySelector('[name="quantity"]');
+            const priceField = row.querySelector('[name="unit_price"]');
+
+            if (nameField) {
+                nameField.value =
+                    item.product_name || item.item_name || item.name || '';
+            }
+
+            if (categoryField) {
+                const category = item.category || 'أخرى';
+                categoryField.value = category;
+
+                if (categoryField.value !== category) {
+                    categoryField.value = 'أخرى';
+                }
+            }
+
+            if (unitField) {
+                const unit = item.unit || 'قطعة';
+                unitField.value = unit;
+
+                if (unitField.value !== unit) {
+                    unitField.value = 'أخرى';
+                }
+            }
+
+            if (quantityField) {
+                quantityField.value = item.quantity ?? 1;
+            }
+
+            if (priceField) {
+                priceField.value = item.unit_price ?? 0;
+            }
+        });
+
+        if (submitButton) {
+            submitButton.innerHTML = 'حفظ التعديلات';
+        }
+
+        calculateAccountingInvoice(type);
+
+        wrapper.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+
+    } catch (error) {
+        console.error('EDIT ACCOUNTING INVOICE ERROR:', error);
+        alert(error.message || 'تعذر فتح الفاتورة للتعديل.');
+    }
+}
+    
+        
 // =====================================================
 // تسجيل مصروف
 // =====================================================
@@ -14096,8 +14273,10 @@ function addAccountingInvoiceItem(type) {
         'bg-neutral-900 border border-neutral-700 rounded-xl p-3';
 
     row.innerHTML = `
-        <input name="item_name" required placeholder="اسم الصنف"
-            class="md:col-span-2 min-w-0 bg-black border border-neutral-700 rounded-lg p-2 text-white">
+<input name="item_name" required
+    placeholder="اكتب اسم الخامة أو الصنف بنفسك"
+    autocomplete="off"
+    class="md:col-span-2 min-w-0 bg-black border border-neutral-700 rounded-lg p-2 text-white">
 
         <select name="category"
             class="min-w-0 bg-black border border-neutral-700 rounded-lg p-2 text-white">
@@ -14220,17 +14399,30 @@ function calculateAccountingInvoice(type) {
     return { subtotal, discount, extra, paid, total, remaining };
 }
 
+
 async function saveAccountingInvoice(event, type) {
     event.preventDefault();
 
     const form = document.getElementById(
-        type === 'sales' ? 'acc-sales-invoice-form' : 'acc-purchases-invoice-form'
+        type === 'sales'
+            ? 'acc-sales-invoice-form'
+            : 'acc-purchases-invoice-form'
     );
 
     if (!form) return;
 
     const submitButton = form.querySelector('button[type="submit"]');
-    const originalButtonText = submitButton ? submitButton.innerHTML : '';
+
+    const originalButtonText =
+        form.dataset.originalSubmitText ||
+        (submitButton ? submitButton.innerHTML : '');
+
+    const editingInvoiceId = form.dataset.editInvoiceId || '';
+
+    const isEditing = Boolean(
+        editingInvoiceId &&
+        form.dataset.editType === type
+    );
 
     try {
         if (typeof accountingRequest !== 'function') {
@@ -14239,18 +14431,32 @@ async function saveAccountingInvoice(event, type) {
 
         if (!form.reportValidity()) return;
 
-        const rows = Array.from(form.querySelectorAll('.accounting-item-row'));
+        const rows = Array.from(
+            form.querySelectorAll('.accounting-item-row')
+        );
 
         if (!rows.length) {
             throw new Error('أضف صنفًا واحدًا على الأقل.');
         }
 
         const items = rows.map(row => ({
-            name: row.querySelector('[name="item_name"]').value.trim(),
-            category: row.querySelector('[name="category"]').value,
-            unit: row.querySelector('[name="unit"]').value,
-            quantity: Number(row.querySelector('[name="quantity"]').value),
-            unit_price: Number(row.querySelector('[name="unit_price"]').value)
+            name: String(
+                row.querySelector('[name="item_name"]')?.value || ''
+            ).trim(),
+
+            category:
+                row.querySelector('[name="category"]')?.value || 'أخرى',
+
+            unit:
+                row.querySelector('[name="unit"]')?.value || 'قطعة',
+
+            quantity: Number(
+                row.querySelector('[name="quantity"]')?.value
+            ),
+
+            unit_price: Number(
+                row.querySelector('[name="unit_price"]')?.value
+            )
         }));
 
         if (items.some(item =>
@@ -14264,65 +14470,167 @@ async function saveAccountingInvoice(event, type) {
         }
 
         const totals = calculateAccountingInvoice(type);
-        if (!totals) throw new Error('تعذر حساب إجمالي الفاتورة.');
 
-        if (totals.discount < 0 || totals.extra < 0 ||
-            totals.discount > totals.subtotal) {
+        if (!totals) {
+            throw new Error('تعذر حساب إجمالي الفاتورة.');
+        }
+
+        if (
+            totals.discount < 0 ||
+            totals.extra < 0 ||
+            totals.discount > totals.subtotal
+        ) {
             throw new Error('راجع قيمة الخصم والمصاريف الإضافية.');
         }
 
-        if (totals.paid < 0 || totals.paid > totals.total) {
-            throw new Error('المبلغ المدفوع يجب أن يكون بين صفر وإجمالي الفاتورة.');
+        // عند التعديل نقرأ الدفعات القديمة من الفاتورة،
+        // ولا نعتمد على قيمة قابلة للتغيير داخل النموذج.
+        let paid = 0;
+
+        if (isEditing) {
+            const detail = await accountingRequest(
+                'action=get&type=' + encodeURIComponent(type) +
+                '&id=' + encodeURIComponent(editingInvoiceId)
+            );
+
+            paid = Number(detail.paid || 0);
+
+            if (!Number.isFinite(paid) || paid < 0) {
+                throw new Error('تعذر التحقق من الدفعات المسجلة.');
+            }
+
+            if (totals.total + 0.001 < paid) {
+                throw new Error(
+                    'لا يمكن أن يكون إجمالي الفاتورة أقل من المبلغ المدفوع سابقًا (' +
+                    paid.toFixed(2) +
+                    ' ج.م). راجع الأسعار والخصم والمصاريف.'
+                );
+            }
+        } else {
+            paid = totals.paid;
+
+            if (
+                !Number.isFinite(paid) ||
+                paid < 0 ||
+                paid > totals.total
+            ) {
+                throw new Error(
+                    'المبلغ المدفوع يجب أن يكون بين صفر وإجمالي الفاتورة.'
+                );
+            }
         }
 
         const data = new FormData(form);
+
         const payload = {
-            invoice_number: String(data.get('invoice_number') || '').trim(),
+            invoice_number: String(
+                data.get('invoice_number') || ''
+            ).trim(),
+
             invoice_date: data.get('invoice_date'),
+
             items,
+
             discount: totals.discount,
-            initial_paid: totals.paid,
-            payment_method: data.get('payment_method') || 'كاش',
-            payment_date: data.get('payment_date') || data.get('invoice_date'),
-            reference_number: String(data.get('reference_number') || '').trim(),
-            notes: String(data.get('notes') || '').trim()
+
+            notes: String(
+                data.get('notes') || ''
+            ).trim()
         };
 
+        if (isEditing) {
+            payload.id = editingInvoiceId;
+        } else {
+            // الدفعة الأولية تُسجل عند الإنشاء فقط
+            payload.initial_paid = paid;
+
+            payload.payment_method =
+                data.get('payment_method') || 'كاش';
+
+            payload.payment_date =
+                data.get('payment_date') || data.get('invoice_date');
+
+            payload.reference_number = String(
+                data.get('reference_number') || ''
+            ).trim();
+        }
+
         if (type === 'sales') {
-            payload.customer_name = String(data.get('customer_name') || '').trim();
-            payload.customer_phone = String(data.get('customer_phone') || '').trim();
+            payload.customer_name = String(
+                data.get('customer_name') || ''
+            ).trim();
+
+            payload.customer_phone = String(
+                data.get('customer_phone') || ''
+            ).trim();
+
             payload.shipping_cost = totals.extra;
         } else {
-            payload.supplier_name = String(data.get('supplier_name') || '').trim();
-            payload.supplier_invoice_number =
-                String(data.get('supplier_invoice_number') || '').trim();
+            payload.supplier_name = String(
+                data.get('supplier_name') || ''
+            ).trim();
+
+            payload.supplier_invoice_number = String(
+                data.get('supplier_invoice_number') || ''
+            ).trim();
+
             payload.additional_cost = totals.extra;
         }
 
         if (submitButton) {
             submitButton.disabled = true;
-            submitButton.textContent = 'جارٍ حفظ الفاتورة...';
+            submitButton.textContent = isEditing
+                ? 'جارٍ حفظ التعديلات...'
+                : 'جارٍ حفظ الفاتورة...';
         }
 
-        const result = await accountingRequest(
-            type === 'sales' ? 'create-sales' : 'create-purchase',
-            {
-                method: 'POST',
-                body: payload
-            }
-        );
+        const action = isEditing
+            ? (
+                type === 'sales'
+                    ? 'update-sales'
+                    : 'update-purchase'
+            )
+            : (
+                type === 'sales'
+                    ? 'create-sales'
+                    : 'create-purchase'
+            );
+
+        const result = await accountingRequest(action, {
+            method: 'POST',
+            body: payload
+        });
 
         alert(
             result.message ||
-            'تم حفظ الفاتورة بنجاح.'
+            (
+                isEditing
+                    ? 'تم تعديل الفاتورة بنجاح.'
+                    : 'تم حفظ الفاتورة بنجاح.'
+            )
         );
+
+        // مسح حالة التعديل بعد نجاح الحفظ فقط
+        delete form.dataset.editInvoiceId;
+        delete form.dataset.editType;
+        delete form.dataset.editPaid;
 
         form.reset();
         form.dataset.initialized = '';
+
         const itemsContainer = document.getElementById(
-            type === 'sales' ? 'acc-sales-items' : 'acc-purchases-items'
+            type === 'sales'
+                ? 'acc-sales-items'
+                : 'acc-purchases-items'
         );
-        if (itemsContainer) itemsContainer.innerHTML = '';
+
+        if (itemsContainer) {
+            itemsContainer.innerHTML = '';
+        }
+
+        if (submitButton) {
+            submitButton.innerHTML = originalButtonText;
+        }
 
         calculateAccountingInvoice(type);
         hideAccountingInvoiceForm(type);
@@ -14335,15 +14643,21 @@ async function saveAccountingInvoice(event, type) {
 
     } catch (error) {
         console.error('SAVE ACCOUNTING INVOICE ERROR:', error);
-        alert(error.message || 'تعذر حفظ الفاتورة.');
+
+        alert(
+            error.message ||
+            'تعذر حفظ الفاتورة.'
+        );
     } finally {
         if (submitButton) {
             submitButton.disabled = false;
-            submitButton.innerHTML = originalButtonText;
+
+            submitButton.innerHTML = form.dataset.editInvoiceId
+                ? 'حفظ التعديلات'
+                : originalButtonText;
         }
     }
 }
-
         
 </script>
 
