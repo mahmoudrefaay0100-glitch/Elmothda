@@ -13334,39 +13334,33 @@ function accountingGetToken() {
 }
 
 // الاتصال بواجهة الحسابات الحالية
+
 async function accountingRequest(action, options = {}) {
     const token = accountingGetToken();
-
     const method = options.method || 'GET';
 
-    const query = String(action).includes('=')
-        ? String(action)
-        : 'action=' + encodeURIComponent(action);
+    const raw = String(action || '').replace(/^\?/, '');
 
-    const url = '/api/accounting?' + query;
+    const query = raw.startsWith('action=')
+        ? raw
+        : raw.includes('=')
+            ? 'action=' + raw
+            : 'action=' + encodeURIComponent(raw);
 
-    const response = await fetch(url, {
+    const response = await fetch('/api/accounting?' + query, {
         method,
         cache: 'no-store',
         headers: {
             'Authorization': 'Bearer ' + token,
-            ...(options.body ? {
-                'Content-Type': 'application/json'
-            } : {})
+            ...(options.body ? { 'Content-Type': 'application/json' } : {})
         },
-        ...(options.body ? {
-            body: JSON.stringify(options.body)
-        } : {})
+        ...(options.body ? { body: JSON.stringify(options.body) } : {})
     });
 
-    const result = await response.json().catch(function () {
-        return {};
-    });
+    const result = await response.json().catch(() => ({}));
 
     if (!response.ok || result.success === false) {
-        throw new Error(
-            result.error || 'تعذر تنفيذ طلب الحسابات.'
-        );
+        throw new Error(result.error || 'تعذر تنفيذ طلب الحسابات.');
     }
 
     return result;
