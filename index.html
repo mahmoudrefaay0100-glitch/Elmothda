@@ -13833,15 +13833,20 @@ async function saveAccountingExpense(event) {
 // طباعة تفاصيل الفاتورة
 // =====================================================
 
+
 async function printAccountingInvoice(invoiceId, type) {
     try {
         const result = await accountingRequest(
-            'get&type=' + encodeURIComponent(type) +
+            'action=get&type=' + encodeURIComponent(type) +
             '&id=' + encodeURIComponent(invoiceId)
         );
 
         const invoice = result.invoice || {};
-        const items = result.items || [];
+        const items = Array.isArray(result.items) ? result.items : [];
+
+        if (!invoice.id && !invoice.invoice_number) {
+            throw new Error('لم يتم تحميل بيانات الفاتورة. حدّث الصفحة وحاول مرة أخرى.');
+        }
 
         const name = type === 'sales'
             ? invoice.customer_name
@@ -13853,72 +13858,139 @@ async function printAccountingInvoice(invoiceId, type) {
             result.remaining ?? Math.max(0, total - paid)
         );
 
+        const escape = (value) => accountingEscape(String(value ?? ''));
+
         const printWindow = window.open('', '_blank');
 
         if (!printWindow) {
             throw new Error('اسمح بفتح النوافذ المنبثقة لطباعة الفاتورة.');
         }
 
+        const rows = items.length
+            ? items.map(function (item) {
+                const quantity = Number(item.quantity || 0);
+                const unitPrice = Number(item.unit_price || 0);
+                const lineTotal = item.line_total != null
+                    ? Number(item.line_total)
+                    : quantity * unitPrice;
+
+                return `
+                    <tr>
+                        <td>${escape(item.product_name || item.item_name || '—')}</td>
+                        <td>${escape(quantity)}</td>
+                        <td>${escape(item.unit || 'قطعة')}</td>
+                        <td>${escape(accountingMoney(unitPrice))}</td>
+                        <td>${escape(accountingMoney(lineTotal))}</td>
+                    </tr>
+                `;
+            }).join('')
+            : '<tr><td colspan="5">لا توجد أصناف مسجلة في الفاتورة</td></tr>';
+
         printWindow.document.write(`
             <!DOCTYPE html>
             <html lang="ar" dir="rtl">
             <head>
                 <meta charset="UTF-8">
-                <title>فاتورة المتحدة للرتان والأثاث</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <title>فاتورة ${escape(invoice.invoice_number || '')}</title>
                 <style>
+                    * { box-sizing: border-box; }
                     body {
                         font-family: Tahoma, Arial, sans-serif;
                         direction: rtl;
-                        margin: 30px;
+                        margin: 0;
+                        padding: 25px;
                         color: #222;
+                        background: #fff;
+                        font-size: 14px;
                     }
                     header {
                         text-align: center;
                         border-bottom: 2px solid #8B1E2B;
                         padding-bottom: 15px;
-                        margin-bottom: 20px;
+                        margin-bottom: 24px;
+                        position: relative;
                     }
-                    h1 { color: #8B1E2B; margin-bottom: 8px; }
+                    h1 {
+                        color: #8B1E2B;
+                        margin: 0 0 8px;
+                        font-size: 27px;
+                    }
+                    .subtitle { margin: 5px 0; }
+                    .invoice-title {
+                        display: inline-block;
+                        margin-top: 14px;
+                        padding: 7px 22px;
+                        border: 1px solid #8B1E2B;
+                        border-radius: 5px;
+                        color: #8B1E2B;
+                        font-weight: bold;
+                    }
                     .info {
-                        display: flex;
-                        justify-content: space-between;
-                        flex-wrap: wrap;
-                        gap: 10px;
-                        margin-bottom: 20px;
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 13px;
+                        margin-bottom: 22px;
+                    }
+                    .info div {
+                        border: 1px solid #ddd;
+                        padding: 10px;
+                        border-radius: 4px;
                     }
                     table {
                         width: 100%;
                         border-collapse: collapse;
-                        margin-top: 20px;
+                        margin-top: 15px;
                     }
                     th, td {
-                        border: 1px solid #ccc;
-                        padding: 10px;
+                        border: 1px solid #bbb;
+                        padding: 10px 8px;
                         text-align: right;
                     }
-                    th { background: #f3f3f3; }
-                    .totals {
-                        margin-top: 25px;
-                        line-height: 2;
-                        font-weight: bold;
+                    th {
+                        background: #f3e9e9;
+                        color: #54202a;
                     }
+                    .totals {
+                        width: 330px;
+                        max-width: 100%;
+                        margin: 25px 0 0 auto;
+                        padding: 12px 16px;
+                        border: 1px solid #ddd;
+                        line-height: 2.2;
+                    }
+                    .grand-total {
+                        color: #8B1E2B;
+                        border-bottom: 1px solid #ddd;
+                        font-size: 17px;
+                    }
+                    .thanks {
+                        margin-top: 45px;
+                        text-align: center;
+                        color: #666;
+                    }
+                    @page { size: A4; margin: 12mm; }
                     @media print {
-                        body { margin: 12mm; }
+                        body { padding: 0; }
+                        th { background: #f3e9e9 !important; print-color-adjust: exact; }
                     }
                 </style>
             </head>
             <body>
                 <header>
                     <h1>المتحدة للرتان والأثاث</h1>
-                    <div>أثاث الرتان والأثاث الخارجي</div>
-                    <div>أشمون - المنوفية - جمهورية مصر العربية</div>
+                    <div class="subtitle">أثاث الرتان والأثاث الخارجي</div>
+                    <div class="subtitle">أشمون - المنوفية - جمهورية مصر العربية</div>
+                    <div class="invoice-title">
+                        فاتورة ${type === 'sales' ? 'بيع' : 'شراء'}
+                    </div>
                 </header>
 
                 <div class="info">
-                    <div>نوع الفاتورة: ${type === 'sales' ? 'بيع' : 'شراء'}</div>
-                    <div>رقم الفاتورة: ${accountingEscape(invoice.invoice_number || '')}</div>
-                    <div>التاريخ: ${accountingEscape(invoice.invoice_date || '')}</div>
-                    <div>${type === 'sales' ? 'العميل' : 'المورد'}: ${accountingEscape(name || '')}</div>
+                    <div>رقم الفاتورة: ${escape(invoice.invoice_number || '—')}</div>
+                    <div>التاريخ: ${escape(invoice.invoice_date || invoice.created_at?.slice(0, 10) || '—')}</div>
+                    <div>${type === 'sales' ? 'العميل' : 'المورد'}: ${escape(name || '—')}</div>
+                    <div>الحالة: ${escape(invoice.status || '—')}</div>
                 </div>
 
                 <table>
@@ -13931,34 +14003,22 @@ async function printAccountingInvoice(invoiceId, type) {
                             <th>الإجمالي</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        ${items.map(function (item) {
-                            return `
-                                <tr>
-                                    <td>${accountingEscape(item.product_name || item.item_name || '')}</td>
-                                    <td>${accountingEscape(item.quantity ?? 0)}</td>
-                                    <td>${accountingEscape(item.unit || 'قطعة')}</td>
-                                    <td>${accountingEscape(accountingMoney(item.unit_price))}</td>
-                                    <td>${accountingEscape(accountingMoney(item.line_total))}</td>
-                                </tr>
-                            `;
-                        }).join('')}
-                    </tbody>
+                    <tbody>${rows}</tbody>
                 </table>
 
                 <div class="totals">
-                    <div>الإجمالي: ${accountingEscape(accountingMoney(total))}</div>
-                    <div>المدفوع: ${accountingEscape(accountingMoney(paid))}</div>
-                    <div>المتبقي: ${accountingEscape(accountingMoney(remaining))}</div>
+                    <div class="grand-total">الإجمالي: ${escape(accountingMoney(total))} ج.م</div>
+                    <div>المدفوع: ${escape(accountingMoney(paid))} ج.م</div>
+                    <div>المتبقي: ${escape(accountingMoney(remaining))} ج.م</div>
                 </div>
 
-                <p style="margin-top:50px;text-align:center">
-                    شكرًا لتعاملكم مع المتحدة للرتان والأثاث
-                </p>
+                <p class="thanks">شكرًا لتعاملكم مع المتحدة للرتان والأثاث</p>
 
                 <script>
                     window.onload = function () {
-                        window.print();
+                        setTimeout(function () {
+                            window.print();
+                        }, 300);
                     };
                 <\/script>
             </body>
