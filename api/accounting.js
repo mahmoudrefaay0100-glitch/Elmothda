@@ -330,6 +330,218 @@ export default async function handler(req, res) {
         // POST: تحصيل من عميل أو دفعة لمورد أو مصروف
         // ==================================================
         if (req.method === 'POST') {
+            
+if (action === 'update-sales' || action === 'update-purchase') {
+    const isSales = action === 'update-sales';
+    const id = text(body.id);
+
+    if (!id) fail('رقم الفاتورة مطلوب للتعديل.');
+
+    const name = text(
+        isSales ? body.customer_name : body.supplier_name
+    );
+
+    if (!name) {
+        fail(isSales ? 'اسم العميل مطلوب.' : 'اسم المورد مطلوب.');
+    }
+
+    if (!Array.isArray(body.items) || body.items.length === 0) {
+        fail('أضف صنفًا واحدًا على الأقل.');
+    }
+
+    const normalizedItems = body.items.map(item => {
+        const itemName = text(
+            item.item_name || item.product_name || item.name
+        );
+        const quantity = money(item.quantity);
+        const unitPrice = money(item.unit_price);
+
+        if (!itemName || quantity <= 0 || unitPrice < 0) {
+            fail('راجع أسماء الأصناف والكميات والأسعار.');
+        }
+
+        return {
+            ...item,
+            name: itemName,
+            quantity,
+            unit_price: unitPrice
+        };
+    });
+
+    const round = value =>
+        Math.round((value + Number.EPSILON) * 100) / 100;
+
+    const subtotal = round(
+        normalizedItems.reduce(
+            (sum, item) => sum + item.quantity * item.unit_price,
+            0
+        )
+    );
+
+    const discount = money(body.discount);
+    const extra = money(
+        isSales ? body.shipping_cost : body.additional_cost
+    );
+
+    if (
+        discount < 0 ||
+        extra < 0 ||
+        discount > subtotal
+    ) {
+        fail('راجع الخصم والمصاريف الإضافية.');
+    }
+
+    const total = round(subtotal - discount + extra);
+
+    const invoiceTable = isSales
+        ? 'accounting_sales_invoices'
+        : 'accounting_purchase_invoices';
+
+    const itemsTable = isSales
+        ? 'accounting_sales_invoice_items'
+        : 'accounting_purchase_invoice_items';
+
+    const paymentTable = isSales
+        ? 'accounting_customer_receipts'
+        : 'accounting_supplier_payments';
+
+    const paymentForeignKey = isSales
+        ? 'sales_invoice_id'
+        : 'purchase_invoice_id';
+
+    // التأكد من وجود الفاتورة قبل تعديلها
+    const invoices = await readRows(invoiceTable, {
+        select: '*',
+        id: `eq.${id}`,
+        limit: 1
+    });
+
+    if (!invoices.length) {
+        fail('الفاتورة المطلوب تعديلها غير موجودة.', 404);
+    }
+
+    // قراءة الدفعات القديمة وعدم تعديلها
+    const payments = await readRows(paymentTable, {
+        select: 'amount',
+        [paymentForeignKey]: `eq.${id}`
+    });
+
+    const paid = round(
+        payments.reduce((sum, payment) => sum + money(payment.amount), 0)
+    );
+
+    if (paid > total + 0.001) {
+        fail(
+            `إجمالي الفاتورة الجديد (${total.toFixed(2)}) أقل من المدفوع سابقًا (${paid.toFixed(2)}). لا يمكن الحفظ قبل مراجعة الدفعات.`
+        );
+    }
+
+    const header = isSales
+        ? {
+            customer_name: name,
+            customer_phone: text(body.customer_phone) || null,
+            invoice_date: text(body.invoice_date) ||
+                invoices[0].invoice_date,
+            subtotal,
+            discount,
+            shipping_cost: extra,
+            total,
+            notes: text(body.notes) || null
+        }
+        : {
+            supplier_name: name,
+            supplier_invoice_number:
+                text(body.supplier_invoice_number) || null,
+            invoice_date: text(body.invoice_date) ||
+                invoices[0].invoice_date,
+            subtotal,
+            discount,
+            additional_cost: extra,
+            total,
+            notes: text(body.notes) || null
+        };
+
+    // نجهز الأصناف الجديدة ونضيفها أولًا.
+    // لا نحذف الأصناف القديمة إلا بعد نجاح الإضافة.
+    const newRows = normalizedItems.map(item => {
+        const row = {
+            invoice_id: id,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            line_total: round(item.quantity * item.unit_price),
+            notes: text(item.notes) || null,
+            unit: text(item.unit) || 'قطعة',
+            category: text(item.category) || 'أخرى'
+        };
+
+        if (isSales) {
+            row.product_name = item.name;
+            row.product_id = text(item.product_id) || null;
+        } else {
+            row.item_name = item.name;
+        }
+
+        return row;
+    });
+
+    // نحفظ الأصناف الجديدة مؤقتًا قبل تغيير الفاتورة
+    const insertedItems = await db(itemsTable, 'POST', {}, newRows);
+
+    if (
+        !Array.isArray(insertedItems) ||
+        insertedItems.length !== newRows.length
+    ) {
+        fail(
+            'لم يتم تأكيد حفظ كل الأصناف الجديدة. راجع الفاتورة قبل إعادة المحاولة.'
+        );
+    }
+
+    try {
+        // تحديث بيانات الفاتورة نفسها
+        await db(invoiceTable, 'PATCH', {
+            id: `eq.${id}`
+        }, header);
+
+        // حذف الأصناف القديمة فقط بعد نجاح حفظ الجديدة وتحديث الفاتورة
+        // نستخدم معرفات الأصناف القديمة حتى لا نحذف الأصناف الجديدة.
+        const oldItems = await readRows(itemsTable, {
+            select: 'id',
+            invoice_id: `eq.${id}`
+        });
+
+        const newIds = new Set(
+            insertedItems.map(item => String(item.id))
+        );
+
+        const oldIds = oldItems
+            .filter(item => !newIds.has(String(item.id)))
+            .map(item => item.id);
+
+        for (const oldId of oldIds) {
+            await db(itemsTable, 'DELETE', {
+                id: `eq.${oldId}`,
+                invoice_id: `eq.${id}`
+            });
+        }
+    } catch (error) {
+        console.error('ACCOUNTING INVOICE UPDATE ERROR:', error);
+        throw new Error(
+            'تعذر إكمال تعديل الفاتورة. راجع الفاتورة وأصنافها في قاعدة البيانات قبل إعادة المحاولة.'
+        );
+    }
+
+    return res.status(200).json({
+        success: true,
+        message: 'تم تعديل الفاتورة بنجاح.',
+        invoice: { ...invoices[0], ...header, id },
+        subtotal,
+        discount,
+        extra,
+        total,
+        paid,
+        remaining: round(total - paid)
+    });
+}
             if (action === 'create-sales' || action === 'create-purchase') {
                 const isSales = action === 'create-sales';
                 const type = isSales ? 'sales' : 'purchases';
