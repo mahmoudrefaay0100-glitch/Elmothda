@@ -11258,7 +11258,40 @@ appState.products = (data.products || []).map(p => {
         // =====================================================
 
         renderAllViews();
+        
+        // فتح تخصيص المنتج القادم من صفحة التفاصيل مرة واحدة
+        const pageParams = new URLSearchParams(window.location.search);
+        const customizeProductId = pageParams.get('customize');
 
+        if (customizeProductId) {
+            // إزالة المعامل حتى لا تتكرر نافذة التخصيص عند إعادة تحميل البيانات
+            pageParams.delete('customize');
+
+            const remainingQuery = pageParams.toString();
+            const cleanUrl =
+                window.location.pathname +
+                (remainingQuery ? '?' + remainingQuery : '') +
+                window.location.hash;
+
+            window.history.replaceState({}, document.title, cleanUrl);
+
+            // فتح نافذة التخصيص بعد تحميل المنتجات ورسم الموقع
+            if (
+                Array.isArray(appState.products) &&
+                appState.products.some(
+                    p => String(p.id) === String(customizeProductId)
+                ) &&
+                typeof openCustomizerModal === 'function'
+            ) {
+                openCustomizerModal(customizeProductId);
+            } else {
+                console.error(
+                    'CUSTOMIZE PRODUCT NOT FOUND:',
+                    customizeProductId
+                );
+            }
+        }
+        
 
         // =====================================================
         // إعادة رسم لوحة التحكم
