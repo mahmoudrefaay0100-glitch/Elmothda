@@ -215,13 +215,51 @@ if (!Number.isFinite(sunbadgeFee) || sunbadgeFee < 0) {
                 throw new Error("قسم المنتج مطلوب.");
             }
 
+         
+            // تجهيز روابط الصور المتعددة مع الحفاظ على الصور القديمة
+            const suppliedImages = Array.isArray(product.images)
+                ? product.images
+                : null;
+
+            const existingImages = Array.isArray(existingProduct?.images)
+                ? existingProduct.images
+                : [];
+
+            let images;
+
+            if (suppliedImages !== null) {
+                images = suppliedImages
+                    .filter(url => typeof url === "string")
+                    .map(url => url.trim())
+                    .filter(Boolean);
+            } else if (
+                product.image_url !== undefined ||
+                product.imageUrl !== undefined
+            ) {
+                const imageUrl = String(
+                    product.image_url ?? product.imageUrl ?? ""
+                ).trim();
+
+                images = imageUrl ? [imageUrl] : [];
+            } else if (existingImages.length > 0) {
+                images = existingImages;
+            } else {
+                const oldImage = String(
+                    existingProduct?.image_url ??
+                    existingProduct?.imageUrl ??
+                    ""
+                ).trim();
+
+                images = oldImage ? [oldImage] : [];
+            }
+
             const payload = {
                 name,
                 category,
                 price,
                 old_price: oldPrice,
 
-                // الرسوم الخاصة بالمنتج نفسه
+                // الحفاظ على رسوم صن بيدج الخاصة بالمنتج
                 sunbadge_fee: sunbadgeFee,
 
                 sku: String(
@@ -253,13 +291,9 @@ if (!Number.isFinite(sunbadgeFee) || sunbadgeFee < 0) {
                 sofa_3_count: sofa3Count,
                 table_count: tableCount,
 
-                image_url: String(
-                    product.image_url ??
-                    product.imageUrl ??
-                    existingProduct?.image_url ??
-                    existingProduct?.imageUrl ??
-                    ""
-                ),
+                // كل الصور، مع الإبقاء على الصورة الأولى كصورة رئيسية
+                images: images,
+                image_url: images[0] || "",
 
                 visible:
                     product.visible === undefined
