@@ -13636,10 +13636,18 @@ async function viewAccountingInvoice(invoiceId, type) {
         '<p class="text-gray-300">جارٍ تحميل تفاصيل الفاتورة...</p>';
 
     try {
-        const result = await accountingRequest(
-            'get&type=' + encodeURIComponent(type) +
-            '&id=' + encodeURIComponent(invoiceId)
-        );
+      
+console.log('ACCOUNTING DETAIL REQUEST:', {
+    invoiceId,
+    type
+});
+
+const result = await accountingRequest(
+    'get&type=' + encodeURIComponent(type) +
+    '&id=' + encodeURIComponent(invoiceId)
+);
+
+console.log('ACCOUNTING DETAIL RESPONSE:', result);
 
         const invoice = result.invoice || {};
         const items = result.items || [];
