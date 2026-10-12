@@ -10456,34 +10456,6 @@ if (isEditing) {
     productData.image_url = uploadedImage;
 }
 
-// =====================================================
-// إضافة رسوم صن بيدج إلى بيانات المنتج قبل الحفظ
-// =====================================================
-
-const sunbadgeFeeInput = document.getElementById(
-    'product-editor-sunbadge-fee'
-);
-
-if (sunbadgeFeeInput) {
-    const rawSunbadgeFee = sunbadgeFeeInput.value.trim();
-    const sunbadgeFee = Number(rawSunbadgeFee);
-
-    if (
-        rawSunbadgeFee === '' ||
-        !Number.isFinite(sunbadgeFee) ||
-        sunbadgeFee < 0
-    ) {
-        showToast(
-            'اكتب رسوم صن بيدج صحيحة أو اكتب 0.',
-            'error'
-        );
-
-        sunbadgeFeeInput.focus();
-        return;
-    }
-
-    productData.sunbadge_fee = sunbadgeFee;
-}
         
         // حفظ المنتج في قاعدة البيانات
         const response = await fetch('/api/products', {
