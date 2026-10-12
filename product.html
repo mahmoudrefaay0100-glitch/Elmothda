@@ -1,0 +1,152 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#171717">
+    <title>تفاصيل المنتج | المتحدة للرتان والأثاث</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: #111;
+            color: white;
+            font-family: Tahoma, Arial, sans-serif;
+        }
+        .gold { color: #D4AF37; }
+        .wine { background: #8B1E2B; }
+        .amber { background: #E87A18; color: #111; }
+    </style>
+</head>
+<body>
+    <header class="border-b border-neutral-800 p-4">
+        <a href="/" class="font-bold text-lg">المتحدة للرتان والأثاث</a>
+    </header>
+
+    <main class="max-w-5xl mx-auto p-4 md:p-8">
+        <a href="/" class="text-sm text-gray-400">← الرجوع للمنتجات</a>
+
+        <div id="product-details" class="mt-6 text-center text-gray-400">
+            جارٍ تحميل بيانات المنتج...
+        </div>
+    </main>
+
+    <script>
+    (async function () {
+        const container = document.getElementById('product-details');
+        const productId = new URLSearchParams(location.search).get('id');
+
+        if (!productId) {
+            container.textContent = 'لم يتم تحديد المنتج.';
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/products', {
+                cache: 'no-store'
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success || !Array.isArray(data.products)) {
+                throw new Error('تعذر تحميل المنتجات.');
+            }
+
+            const item = data.products.find(
+                p => String(p.id) === String(productId)
+            );
+
+            if (!item) {
+                container.textContent = 'المنتج غير موجود أو لم يعد متاحًا.';
+                return;
+            }
+
+            const product = {
+                id: item.id,
+                title: item.name || item.title || '',
+                category: item.category || '',
+                price: Number(item.price) || 0,
+                image: item.image_url ||
+                    (Array.isArray(item.images) ? item.images[0] : '') ||
+                    'https://placehold.co/700x500',
+                description: item.description || '',
+                dimensions: item.dimensions || '',
+                specifications: item.specifications || ''
+            };
+
+            const safe = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[ch]);
+
+            container.className = 'mt-6';
+            container.innerHTML = `
+                <div class="grid md:grid-cols-2 gap-8 items-start text-right">
+                    <div class="rounded-2xl overflow-hidden border border-neutral-800 bg-neutral-900">
+                        <img
+                            src="${safe(product.image)}"
+                            alt="${safe(product.title)}"
+                            class="w-full object-cover"
+                            style="max-height:600px"
+                        >
+                    </div>
+
+                    <section class="space-y-5">
+                        <p class="text-sm gold">${safe(product.category)}</p>
+                        <h1 class="text-2xl md:text-3xl font-bold">
+                            ${safe(product.title)}
+                        </h1>
+
+                        <p class="text-2xl font-extrabold gold">
+                            ${product.price.toLocaleString('en-US')} ج.م
+                        </p>
+
+                        ${product.description ? `
+                            <div>
+                                <h2 class="font-bold mb-2">وصف المنتج</h2>
+                                <p class="text-gray-300 leading-8 whitespace-pre-line">${safe(product.description)}</p>
+                            </div>` : ''}
+
+                        ${product.dimensions ? `
+                            <div>
+                                <h2 class="font-bold mb-2">المقاسات</h2>
+                                <p class="text-gray-300">${safe(product.dimensions)}</p>
+                            </div>` : ''}
+
+                        ${product.specifications ? `
+                            <div>
+                                <h2 class="font-bold mb-2">المواصفات</h2>
+                                <p class="text-gray-300 leading-8 whitespace-pre-line">${safe(product.specifications)}</p>
+                            </div>` : ''}
+
+                        <button
+                            id="customize-product"
+                            class="amber w-full rounded-xl p-4 font-extrabold"
+                        >
+                            تخصيص وإضافة للسلة
+                        </button>
+
+                        <p class="text-xs text-gray-500">
+                            يتم اختيار التنجيد والألوان وإتمام الإضافة للسلة من صفحة المتجر.
+                        </p>
+                    </section>
+                </div>
+            `;
+
+            document.getElementById('customize-product').addEventListener('click', () => {
+                location.href = '/?customize=' + encodeURIComponent(product.id);
+            });
+
+            document.title = product.title + ' | المتحدة للرتان والأثاث';
+
+        } catch (error) {
+            console.error('PRODUCT PAGE ERROR:', error);
+            container.textContent = 'حدث خطأ أثناء تحميل المنتج. حاول تحديث الصفحة.';
+        }
+    })();
+    </script>
+</body>
+</html>
