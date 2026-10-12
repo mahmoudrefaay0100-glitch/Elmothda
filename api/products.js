@@ -93,33 +93,6 @@ export default async function handler(req, res) {
             Prefer: "return=representation"
         };
 
-        // =========================================
-        // قراءة رسوم صن بيدج
-        // لا توجد رسوم افتراضية مخفية
-        // =========================================
-
-        function readSunbadgeFee(product) {
-            const rawFee =
-                product.sunbadge_fee ??
-                product.sunbadgeFee;
-
-            // إذا لم تُرسل قيمة صريحة، نعتبرها صفرًا.
-            if (
-                rawFee === undefined ||
-                rawFee === null ||
-                rawFee === ""
-            ) {
-                return 0;
-            }
-
-            const fee = Number(rawFee);
-
-            if (!Number.isFinite(fee) || fee < 0) {
-                return null;
-            }
-
-            return fee;
-        }
 
         // =========================================
         // التحقق من الأرقام
@@ -154,7 +127,8 @@ export default async function handler(req, res) {
             } = options;
 
 
-            const rawSunbadgeFee =
+           
+const rawSunbadgeFee =
     product.sunbadge_fee ??
     product.sunbadgeFee ??
     product.sunbadge_unit_fee ??
@@ -167,41 +141,23 @@ const existingSunbadgeFee =
     existingProduct?.sunbadgeUnitFee ??
     0;
 
+// لو الرسوم لم تُرسل، احتفظ بالرسوم القديمة عند التعديل.
+// لو أُرسلت الخانة فارغة، اعتبرها صفرًا.
 const sunbadgeFee =
-    rawSunbadgeFee === undefined ||
-    rawSunbadgeFee === null ||
-    rawSunbadgeFee === ""
+    rawSunbadgeFee === undefined || rawSunbadgeFee === null
         ? Number(existingSunbadgeFee)
-        : Number(rawSunbadgeFee);
+        : rawSunbadgeFee === ''
+            ? 0
+            : Number(rawSunbadgeFee);
 
-if (
-    !Number.isFinite(sunbadgeFee) ||
-    sunbadgeFee < 0
-) {
+// التحقق من الرسوم مرة واحدة فقط
+if (!Number.isFinite(sunbadgeFee) || sunbadgeFee < 0) {
     throw new Error(
         "رسوم صن بيدج يجب أن تكون رقمًا صحيحًا أو صفرًا."
     );
 }
-
-
-if (
-    !Number.isFinite(Number(sunbadgeFee)) ||
-    Number(sunbadgeFee) < 0
-) {
-    throw new Error(
-        "رسوم الصن بيدج يجب أن تكون رقمًا صحيحًا أو صفرًا."
-    );
-}
-
-
-
-            if (sunbadgeFee === null) {
-                throw new Error(
-                    "رسوم الصن بيدج يجب أن تكون رقمًا صحيحًا أو صفرًا."
-                );
-            }
-
-            const price = readNonNegativeNumber(product.price);
+           const price = readNonNegativeNumber(product.price);
+    
             const oldPrice = readNonNegativeNumber(
                 product.old_price ?? product.oldPrice
             );
