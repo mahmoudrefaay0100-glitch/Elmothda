@@ -13643,7 +13643,7 @@ console.log('ACCOUNTING DETAIL REQUEST:', {
 });
 
 const result = await accountingRequest(
-    'get&type=' + encodeURIComponent(type) +
+    'action=get&type=' + encodeURIComponent(type) +
     '&id=' + encodeURIComponent(invoiceId)
 );
 
