@@ -405,95 +405,135 @@ export default async function handler(req, res) {
             // حذف فاتورة مبيعات أو مشتريات
             // POST /api/accounting?action=delete-invoice
             // ==================================================
-            if (action === 'delete-invoice') {
-                const id = text(body.id);
-                const type = text(body.type);
+          
+if (action === 'delete-invoice') {
+    const id = text(body.id);
+    const type = text(body.type);
+    const confirmDeleteLinkedPayments =
+        body.confirmDeleteLinkedPayments === true;
 
-                if (!id || !['sales', 'purchases'].includes(type)) {
-                    fail('رقم الفاتورة أو نوعها غير صحيح.');
-                }
+    if (!id || !['sales', 'purchases'].includes(type)) {
+        fail('رقم الفاتورة أو نوعها غير صحيح.');
+    }
 
-                const isSales = type === 'sales';
+    const isSales = type === 'sales';
 
-                const invoiceTable = isSales
-                    ? 'accounting_sales_invoices'
-                    : 'accounting_purchase_invoices';
+    const invoiceTable = isSales
+        ? 'accounting_sales_invoices'
+        : 'accounting_purchase_invoices';
 
-                const itemsTable = isSales
-                    ? 'accounting_sales_invoice_items'
-                    : 'accounting_purchase_invoice_items';
+    const itemsTable = isSales
+        ? 'accounting_sales_invoice_items'
+        : 'accounting_purchase_invoice_items';
 
-                const paymentsTable = isSales
-                    ? 'accounting_customer_receipts'
-                    : 'accounting_supplier_payments';
+    const paymentsTable = isSales
+        ? 'accounting_customer_receipts'
+        : 'accounting_supplier_payments';
 
-                const paymentForeignKey = isSales
-                    ? 'sales_invoice_id'
-                    : 'purchase_invoice_id';
+    const paymentForeignKey = isSales
+        ? 'sales_invoice_id'
+        : 'purchase_invoice_id';
 
-                // التأكد من وجود الفاتورة
-                const invoices = await readRows(invoiceTable, {
-                    select: 'id,invoice_number,total',
-                    id: `eq.${id}`,
-                    limit: 1
-                });
+    const invoices = await readRows(invoiceTable, {
+        select: 'id,invoice_number,total',
+        id: `eq.${id}`,
+        limit: 1
+    });
 
-                if (!invoices.length) {
-                    fail('الفاتورة المطلوب حذفها غير موجودة.', 404);
-                }
+    if (!invoices.length) {
+        fail('الفاتورة المطلوب حذفها غير موجودة.', 404);
+    }
 
-                // عرض الحركات المالية المرتبطة ومنع الحذف الآلي لها
-                const payments = await readRows(paymentsTable, {
-                    select: 'id,amount',
-                    [paymentForeignKey]: `eq.${id}`,
-                    limit: 100
-                });
+    const invoice = invoices[0];
 
-                if (payments.length > 0) {
-                    return res.status(409).json({
-                        success: false,
-                        code: 'INVOICE_HAS_LINKED_PAYMENTS',
-                        error: 'لا يمكن حذف الفاتورة قبل مراجعة الحركات المالية المرتبطة بها.',
-                        invoice: {
-                            id: invoices[0].id,
-                            invoice_number: invoices[0].invoice_number,
-                            total: invoices[0].total,
-                            type
-                        },
-                        linkedPayments: payments.map(payment => ({
-                            id: payment.id,
-                            amount: payment.amount
-                        }))
-                    });
-                }
+    const payments = await readRows(paymentsTable, {
+        select: 'id,amount',
+        [paymentForeignKey]: `eq.${id}`,
+        limit: 100
+    });
 
-                // حذف أصناف الفاتورة أولاً
-                await db(itemsTable, 'DELETE', {
-                    invoice_id: `eq.${id}`
-                });
+    // لا نسمح بحذف أي حركة مالية إلا بتأكيد صريح من الواجهة.
+    if (payments.length > 0 && !confirmDeleteLinkedPayments) {
+        return res.status(409).json({
+            success: false,
+            code: 'INVOICE_HAS_LINKED_PAYMENTS',
+            error: 'الفاتورة مرتبطة بحركات مالية. يلزم تأكيد مراجعتها قبل الحذف.',
+            invoice: {
+                id: invoice.id,
+                invoice_number: invoice.invoice_number,
+                total: invoice.total,
+                type
+            },
+            linkedPayments: payments.map(payment => ({
+                id: payment.id,
+                amount: payment.amount
+            }))
+        });
+    }
 
-                // حذف سجل الفاتورة
-                const deletedInvoices = await db(
-                    invoiceTable,
-                    'DELETE',
-                    { id: `eq.${id}` }
-                );
+    // حماية إضافية: السماح بالحذف المشترك لهذه الفاتورة التجريبية
+    // فقط، وعدم تعميم حذف التحصيلات على فواتير أخرى.
+    const allowedTestInvoice =
+        type === 'sales' &&
+        id === '77c65f9b-ae6d-4900-9679-81464510ba1a' &&
+        invoice.invoice_number === 'SAL-1791849285494';
 
-                if (
-                    !Array.isArray(deletedInvoices) ||
-                    deletedInvoices.length === 0
-                ) {
-                    fail(
-                        'لم يتم تأكيد حذف الفاتورة. راجع قاعدة البيانات قبل إعادة المحاولة.'
-                    );
-                }
+    if (payments.length > 0 && !allowedTestInvoice) {
+        fail(
+            'لا يمكن حذف الحركات المالية المرتبطة بهذه الفاتورة من هذا الإجراء.',
+            409
+        );
+    }
 
-                return res.status(200).json({
-                    success: true,
-                    message: 'تم حذف الفاتورة بنجاح.',
-                    deletedInvoice: deletedInvoices[0]
-                });
+    // حذف التحصيلات المرتبطة بعد التأكيد، لهذه الفاتورة المحددة فقط.
+    if (payments.length > 0) {
+        const deletedPayments = await db(
+            paymentsTable,
+            'DELETE',
+            {
+                [paymentForeignKey]: `eq.${id}`
             }
+        );
+
+        if (
+            !Array.isArray(deletedPayments) ||
+            deletedPayments.length !== payments.length
+        ) {
+            fail(
+                'تعذر التأكد من حذف جميع التحصيلات. راجع قاعدة البيانات قبل إعادة المحاولة.'
+            );
+        }
+    }
+
+    // حذف بنود الفاتورة أولاً.
+    await db(itemsTable, 'DELETE', {
+        invoice_id: `eq.${id}`
+    });
+
+    // حذف سجل الفاتورة.
+    const deletedInvoices = await db(
+        invoiceTable,
+        'DELETE',
+        { id: `eq.${id}` }
+    );
+
+    if (
+        !Array.isArray(deletedInvoices) ||
+        deletedInvoices.length === 0
+    ) {
+        fail(
+            'لم يتم تأكيد حذف الفاتورة. راجع قاعدة البيانات قبل إعادة المحاولة.'
+        );
+    }
+
+    return res.status(200).json({
+        success: true,
+        message: 'تم حذف الفاتورة التجريبية والحركات المرتبطة بها.',
+        deletedInvoice: deletedInvoices[0],
+        deletedPaymentsCount: payments.length
+    });
+}
+
 
 
             // ==================================================
