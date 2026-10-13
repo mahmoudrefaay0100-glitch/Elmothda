@@ -178,7 +178,15 @@ export default async function handler(req, res) {
         // GET: قائمة الفواتير
         // GET: تفاصيل فاتورة واحدة
         // ==================================================
+       
+        // ==================================================
+        // GET: ملخص الحسابات + قائمة الفواتير + تفاصيل فاتورة
+        // ==================================================
         if (req.method === 'GET') {
+
+            // ==============================================
+            // ملخص الحسابات
+            // ==============================================
             if (!action || action === 'dashboard') {
                 const [
                     salesInvoices,
@@ -196,32 +204,88 @@ export default async function handler(req, res) {
                     readRows('accounting_expenses')
                 ]);
 
+                const roundMoney = value =>
+                    Math.round((value + Number.EPSILON) * 100) / 100;
+
                 const confirmedSales = salesInvoices.filter(
-                    x => String(x.status).toLowerCase() === 'confirmed'
-                );
-                const confirmedPurchases = purchaseInvoices.filter(
-                    x => String(x.status).toLowerCase() === 'confirmed'
+                    invoice =>
+                        String(invoice.status || '').trim().toLowerCase() === 'confirmed'
                 );
 
-                const totalSales = confirmedSales.reduce((s, x) => s + money(x.total), 0);
-                const totalReceipts = receipts.reduce((s, x) => s + money(x.amount), 0);
-                const totalPurchases = confirmedPurchases.reduce((s, x) => s + money(x.total), 0);
-                const totalSupplierPayments = supplierPayments.reduce((s, x) => s + money(x.amount), 0);
-                const totalOrderCosts = orderCosts.reduce((s, x) => s + money(x.amount), 0);
-                const totalExpenses = expenses.reduce((s, x) => s + money(x.amount), 0);
+                const confirmedPurchases = purchaseInvoices.filter(
+                    invoice =>
+                        String(invoice.status || '').trim().toLowerCase() === 'confirmed'
+                );
+
+                const totalSales = roundMoney(
+                    confirmedSales.reduce(
+                        (sum, invoice) => sum + money(invoice.total),
+                        0
+                    )
+                );
+
+                const totalPurchases = roundMoney(
+                    confirmedPurchases.reduce(
+                        (sum, invoice) => sum + money(invoice.total),
+                        0
+                    )
+                );
+
+                const totalReceipts = roundMoney(
+                    receipts.reduce(
+                        (sum, receipt) => sum + money(receipt.amount),
+                        0
+                    )
+                );
+
+                const totalSupplierPayments = roundMoney(
+                    supplierPayments.reduce(
+                        (sum, payment) => sum + money(payment.amount),
+                        0
+                    )
+                );
+
+                const totalOrderCosts = roundMoney(
+                    orderCosts.reduce(
+                        (sum, cost) => sum + money(cost.amount),
+                        0
+                    )
+                );
+
+                const totalExpenses = roundMoney(
+                    expenses.reduce(
+                        (sum, expense) => sum + money(expense.amount),
+                        0
+                    )
+                );
+
+                // المبالغ المتبقية على العملاء والموردين
+                const customerReceivables = roundMoney(
+                    Math.max(0, totalSales - totalReceipts)
+                );
+
+                const supplierPayables = roundMoney(
+                    Math.max(0, totalPurchases - totalSupplierPayments)
+                );
+
+                // صافي الربح التقديري بعد خصم المشتريات والمصروفات
+                // لا نخصم مدفوعات الموردين والتحصيلات مرة ثانية.
+                const netProfit = roundMoney(
+                    totalSales - totalPurchases - totalExpenses
+                );
 
                 return res.status(200).json({
                     success: true,
                     dashboard: {
                         totalSales,
                         totalReceipts,
-                        customerReceivables: Math.max(0, totalSales - totalReceipts),
+                        customerReceivables,
                         totalPurchases,
                         totalSupplierPayments,
-                        supplierPayables: Math.max(0, totalPurchases - totalSupplierPayments),
+                        supplierPayables,
                         totalOrderCosts,
                         totalExpenses,
-                        netProfit: totalSales - totalOrderCosts - totalExpenses,
+                        netProfit,
                         counts: {
                             salesInvoices: confirmedSales.length,
                             purchaseInvoices: confirmedPurchases.length,
@@ -234,14 +298,17 @@ export default async function handler(req, res) {
                 });
             }
 
+            // ==============================================
+            // قائمة فواتير المبيعات أو المشتريات
+            // ==============================================
             if (action === 'list') {
                 const type = text(req.query?.type);
+
                 if (!['sales', 'purchases'].includes(type)) {
                     fail('نوع الفواتير غير صحيح.');
                 }
 
-                const isSales = type === 'sales';
-                const table = isSales
+                const table = type === 'sales'
                     ? 'accounting_sales_invoices'
                     : 'accounting_purchase_invoices';
 
@@ -252,6 +319,7 @@ export default async function handler(req, res) {
                 });
 
                 const search = text(req.query?.search).toLowerCase();
+
                 const filtered = search
                     ? rows.filter(row => [
                         row.invoice_number,
@@ -259,12 +327,20 @@ export default async function handler(req, res) {
                         row.supplier_name,
                         row.customer_phone,
                         row.supplier_invoice_number
-                    ].some(value => text(value).toLowerCase().includes(search)))
+                    ].some(value =>
+                        text(value).toLowerCase().includes(search)
+                    ))
                     : rows;
 
-                return res.status(200).json({ success: true, invoices: filtered });
+                return res.status(200).json({
+                    success: true,
+                    invoices: filtered
+                });
             }
 
+            // ==============================================
+            // تفاصيل فاتورة واحدة
+            // ==============================================
             if (action === 'get') {
                 const type = text(req.query?.type);
                 const id = text(req.query?.id);
@@ -274,17 +350,20 @@ export default async function handler(req, res) {
                 }
 
                 const isSales = type === 'sales';
-                const table = isSales
+
+                const invoiceTable = isSales
                     ? 'accounting_sales_invoices'
                     : 'accounting_purchase_invoices';
 
-                const invoiceRows = await readRows(table, {
+                const invoiceRows = await readRows(invoiceTable, {
                     select: '*',
                     id: `eq.${id}`,
                     limit: 1
                 });
 
-                if (!invoiceRows.length) fail('الفاتورة غير موجودة.', 404);
+                if (!invoiceRows.length) {
+                    fail('الفاتورة غير موجودة.', 404);
+                }
 
                 const invoice = invoiceRows[0];
 
@@ -293,7 +372,11 @@ export default async function handler(req, res) {
                         isSales
                             ? 'accounting_sales_invoice_items'
                             : 'accounting_purchase_invoice_items',
-                        { select: '*', invoice_id: `eq.${id}`, order: 'created_at.asc' }
+                        {
+                            select: '*',
+                            invoice_id: `eq.${id}`,
+                            order: 'created_at.asc'
+                        }
                     ),
                     readRows(
                         isSales
@@ -301,13 +384,25 @@ export default async function handler(req, res) {
                             : 'accounting_supplier_payments',
                         {
                             select: '*',
-                            [isSales ? 'sales_invoice_id' : 'purchase_invoice_id']: `eq.${id}`,
-                            order: isSales ? 'receipt_date.desc' : 'payment_date.desc'
+                            [isSales
+                                ? 'sales_invoice_id'
+                                : 'purchase_invoice_id']: `eq.${id}`,
+                            order: isSales
+                                ? 'receipt_date.desc'
+                                : 'payment_date.desc'
                         }
                     )
                 ]);
 
-                const paid = payments.reduce((sum, payment) => sum + money(payment.amount), 0);
+                const roundMoney = value =>
+                    Math.round((value + Number.EPSILON) * 100) / 100;
+
+                const paid = roundMoney(
+                    payments.reduce(
+                        (sum, payment) => sum + money(payment.amount),
+                        0
+                    )
+                );
 
                 return res.status(200).json({
                     success: true,
@@ -315,7 +410,10 @@ export default async function handler(req, res) {
                     items,
                     payments,
                     paid,
-                    remaining: Math.max(0, money(invoice.total) - paid)
+                    remaining: Math.max(
+                        0,
+                        roundMoney(money(invoice.total) - paid)
+                    )
                 });
             }
 
