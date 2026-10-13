@@ -13403,31 +13403,37 @@ async function renderAdminAccounting() {
 
     try {
         const result = await accountingRequest('dashboard');
-
         const data = result.dashboard || result.data || result;
 
-        const values = {
-            'acc-total-sales': data.totalSales,
-            'acc-customer-receivables': data.customerReceivables,
-            'acc-total-purchases': data.totalPurchases,
-            'acc-supplier-payables': data.supplierPayables,
-            'acc-total-receipts': data.totalReceipts,
-            'acc-total-supplier-payments': data.totalSupplierPayments,
-            'acc-total-expenses': data.totalExpenses,
-            'acc-net-profit': data.netProfit
+        const fields = {
+            'acc-total-sales': 'totalSales',
+            'acc-customer-receivables': 'customerReceivables',
+            'acc-total-purchases': 'totalPurchases',
+            'acc-supplier-payables': 'supplierPayables',
+            'acc-total-receipts': 'totalReceipts',
+            'acc-total-supplier-payments': 'totalSupplierPayments',
+            'acc-total-expenses': 'totalExpenses',
+            'acc-net-profit': 'netProfit'
         };
 
-        Object.entries(values).forEach(function ([id, value]) {
-            const element = document.getElementById(id);
+        Object.entries(fields).forEach(function ([elementId, field]) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
 
-            if (element) {
-                element.textContent = accountingMoney(value);
+            const value = Number(data[field]);
+
+            if (data[field] === null || data[field] === undefined ||
+                data[field] === '' || !Number.isFinite(value)) {
+                element.textContent = '—';
+                return;
             }
+
+            element.textContent = accountingMoney(value);
         });
 
         if (status) {
             status.textContent =
-                'تم تحميل الملخص من قاعدة البيانات بنجاح.';
+                'تم تحميل ملخص الحسابات من قاعدة البيانات بنجاح.';
         }
 
         accountingState.dashboardLoaded = true;
@@ -13436,13 +13442,17 @@ async function renderAdminAccounting() {
         console.error('ACCOUNTING DASHBOARD ERROR:', error);
 
         if (status) {
-            status.textContent = error.message;
+            status.textContent =
+                'تعذر تحميل الحسابات. حاول تحديث الصفحة.';
         }
 
-        accountingMessage(error.message, true);
+        accountingMessage(
+            error.message || 'حدث خطأ أثناء تحميل الحسابات.',
+            true
+        );
     }
 }
-
+        
 // =====================================================
 // التنقل بين أقسام الحسابات
 // =====================================================
@@ -14338,11 +14348,23 @@ function addAccountingInvoiceItem(type) {
     calculateAccountingInvoice(type);
 }
 
+
 function accountingFormMoney(form, name) {
     const input = form.querySelector(`[name="${name}"]`);
-    const value = Number(input ? input.value : 0);
-    return Number.isFinite(value) ? value : 0;
+
+    if (!input || input.value.trim() === '') {
+        return 0;
+    }
+
+    const value = Number(input.value);
+
+    if (!Number.isFinite(value) || value < 0) {
+        return 0;
+    }
+
+    return Math.round((value + Number.EPSILON) * 100) / 100;
 }
+
 
 function calculateAccountingInvoice(type) {
     const form = document.getElementById(
@@ -14400,8 +14422,11 @@ function calculateAccountingInvoice(type) {
 }
 
 
+
 async function saveAccountingInvoice(event, type) {
-    event.preventDefault();
+    if (event) {
+        event.preventDefault();
+    }
 
     const form = document.getElementById(
         type === 'sales'
@@ -14409,7 +14434,17 @@ async function saveAccountingInvoice(event, type) {
             : 'acc-purchases-invoice-form'
     );
 
-    if (!form) return;
+    if (!form) {
+        alert('تعذر العثور على نموذج الفاتورة.');
+        return;
+    }
+
+    // منع تكرار إرسال نفس النموذج أثناء الحفظ
+    if (form.dataset.submitting === 'true') {
+        return;
+    }
+
+    form.dataset.submitting = 'true';
 
     const submitButton = form.querySelector('button[type="submit"]');
 
@@ -14429,7 +14464,9 @@ async function saveAccountingInvoice(event, type) {
             throw new Error('دالة الاتصال بالحسابات غير موجودة.');
         }
 
-        if (!form.reportValidity()) return;
+        if (!form.reportValidity()) {
+            return;
+        }
 
         const rows = Array.from(
             form.querySelectorAll('.accounting-item-row')
@@ -14483,8 +14520,6 @@ async function saveAccountingInvoice(event, type) {
             throw new Error('راجع قيمة الخصم والمصاريف الإضافية.');
         }
 
-        // عند التعديل نقرأ الدفعات القديمة من الفاتورة،
-        // ولا نعتمد على قيمة قابلة للتغيير داخل النموذج.
         let paid = 0;
 
         if (isEditing) {
@@ -14541,7 +14576,6 @@ async function saveAccountingInvoice(event, type) {
         if (isEditing) {
             payload.id = editingInvoiceId;
         } else {
-            // الدفعة الأولية تُسجل عند الإنشاء فقط
             payload.initial_paid = paid;
 
             payload.payment_method =
@@ -14610,7 +14644,6 @@ async function saveAccountingInvoice(event, type) {
             )
         );
 
-        // مسح حالة التعديل بعد نجاح الحفظ فقط
         delete form.dataset.editInvoiceId;
         delete form.dataset.editType;
         delete form.dataset.editPaid;
@@ -14648,7 +14681,11 @@ async function saveAccountingInvoice(event, type) {
             error.message ||
             'تعذر حفظ الفاتورة.'
         );
+
     } finally {
+        // السماح بمحاولة جديدة بعد انتهاء العملية
+        delete form.dataset.submitting;
+
         if (submitButton) {
             submitButton.disabled = false;
 
@@ -14658,6 +14695,9 @@ async function saveAccountingInvoice(event, type) {
         }
     }
 }
+
+
+
         
 </script>
 
