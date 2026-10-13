@@ -148,8 +148,10 @@ module.exports = async function handler(req, res) {    try {
             }
 
          
+
 const encodedTrackId = encodeURIComponent(trackId);
 
+// البحث أولاً برقم الطلب كما أدخله العميل
 let {
     response,
     data: orders,
@@ -161,7 +163,7 @@ let {
     `&limit=1`
 );
 
-// لو لم نجد الرقم المختصر، نبحث بالمعرّف الداخلي
+// لو لم يوجد، جرّب الرقم الداخلي للطلب
 if (
     response.ok &&
     Array.isArray(orders) &&
@@ -177,6 +179,24 @@ if (
     response = fallback.response;
     orders = fallback.data;
     text = fallback.text;
+}
+
+// لو لم يوجد بعد ذلك، جرّب مطابقة رقم الطلب دون حساسية لحالة الأحرف
+if (
+    response.ok &&
+    Array.isArray(orders) &&
+    orders.length === 0
+) {
+    const insensitive = await getSupabaseJson(
+        `${SUPABASE_URL}/rest/v1/orders` +
+        `?select=*` +
+        `&order_number=ilike.${encodedTrackId}` +
+        `&limit=1`
+    );
+
+    response = insensitive.response;
+    orders = insensitive.data;
+    text = insensitive.text;
 }
 
             if (!response.ok) {
