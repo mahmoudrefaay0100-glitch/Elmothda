@@ -14453,6 +14453,7 @@ async function loadAccountingInvoices(type, search = '') {
 }
 
         
+
 async function deleteAccountingInvoice(id, type) {
     id = String(id ?? '').trim();
 
@@ -14465,9 +14466,17 @@ async function deleteAccountingInvoice(id, type) {
         ? 'فاتورة المبيعات'
         : 'فاتورة المشتريات';
 
+    const TEST_INVOICE_ID =
+        '77c65f9b-ae6d-4900-9679-81464510ba1a';
+
+    const TEST_INVOICE_NUMBER = 'SAL-1791849285494';
+
+    let confirmDeleteLinkedPayments = false;
+
     if (!confirm(
-        `هل أنت متأكد من حذف ${invoiceType} رقم ${id}؟\n` +
-        'لا يمكن التراجع عن هذا الإجراء.'
+        `هل أنت متأكد من حذف ${invoiceType}؟\n` +
+        `المعرّف: ${id}\n\n` +
+        'لن يتم حذف أي حركة مالية مرتبطة دون تأكيد إضافي.'
     )) {
         return;
     }
@@ -14478,29 +14487,99 @@ async function deleteAccountingInvoice(id, type) {
             : '';
 
         if (!token) {
-            throw new Error('جلسة الأدمن غير موجودة. سجّل الدخول مجددًا.');
+            throw new Error(
+                'جلسة الأدمن غير موجودة. سجّل الدخول مجددًا.'
+            );
         }
 
-        const response = await fetch(
-            '/api/accounting?action=delete-invoice',
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: 'Bearer ' + token
-                },
-                body: JSON.stringify({ id, type }),
-                cache: 'no-store'
-            }
-        );
+        async function sendDeleteRequest(confirmLinkedPayments) {
+            const response = await fetch(
+                '/api/accounting?action=delete-invoice',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        id,
+                        type,
+                        confirmDeleteLinkedPayments:
+                            confirmLinkedPayments
+                    }),
+                    cache: 'no-store'
+                }
+            );
 
-        const result = await response.json().catch(() => ({}));
+            const result = await response.json().catch(() => ({}));
+
+            return { response, result };
+        }
+
+        let { response, result } =
+            await sendDeleteRequest(false);
+
+        // إذا كانت الفاتورة مرتبطة بتحصيل، اعرض التفاصيل قبل أي حذف.
+        if (
+            response.status === 409 &&
+            result.code === 'INVOICE_HAS_LINKED_PAYMENTS'
+        ) {
+            const invoice = result.invoice || {};
+            const payments = Array.isArray(result.linkedPayments)
+                ? result.linkedPayments
+                : [];
+
+            const paymentsText = payments.map((payment, index) => {
+                const amount = Number(payment.amount || 0);
+
+                return `${index + 1}) مبلغ التحصيل: ${
+                    amount.toLocaleString('ar-EG')
+                } جنيه`;
+            }).join('\n');
+
+            const isExactTestInvoice =
+                type === 'sales' &&
+                id === TEST_INVOICE_ID &&
+                invoice.invoice_number === TEST_INVOICE_NUMBER;
+
+            if (!isExactTestInvoice) {
+                throw new Error(
+                    'الفاتورة مرتبطة بحركات مالية. ' +
+                    'لم يتم حذف أي حركة.\n' +
+                    (paymentsText || result.error || '')
+                );
+            }
+
+            const approved = confirm(
+                'تم العثور على الفاتورة التجريبية المحددة:\n\n' +
+                `رقم الفاتورة: ${invoice.invoice_number}\n` +
+                `إجمالي الفاتورة: ${Number(invoice.total || 0).toLocaleString('ar-EG')} جنيه\n\n` +
+                `الحركات المرتبطة:\n${paymentsText}\n\n` +
+                'بما أنك أكدت أن هذه البيانات تجريبية، ' +
+                'هل تريد متابعة حذف التحصيلات المرتبطة والفاتورة؟'
+            );
+
+            if (!approved) {
+                alert('تم إلغاء العملية. لم يتم حذف أي بيانات.');
+                return;
+            }
+
+            confirmDeleteLinkedPayments = true;
+
+            ({ response, result } =
+                await sendDeleteRequest(true));
+        }
 
         if (!response.ok || result.success !== true) {
-            throw new Error(result.error || 'تعذر حذف الفاتورة.');
+            throw new Error(
+                result.error || 'تعذر حذف الفاتورة.'
+            );
         }
 
-        alert(result.message || 'تم حذف الفاتورة بنجاح.');
+        alert(
+            result.message ||
+            'تم حذف الفاتورة بنجاح.'
+        );
 
         const searchInput = document.getElementById(
             type === 'sales'
@@ -14518,12 +14597,18 @@ async function deleteAccountingInvoice(id, type) {
         }
 
     } catch (error) {
-        console.error('DELETE ACCOUNTING INVOICE ERROR:', error);
-        alert(error.message || 'حدث خطأ أثناء حذف الفاتورة.');
+        console.error(
+            'DELETE ACCOUNTING INVOICE ERROR:',
+            error
+        );
+
+        alert(
+            error.message ||
+            'حدث خطأ أثناء حذف الفاتورة.'
+        );
     }
 }
 
-// إتاحة الدالة لأزرار onclick الموجودة في الصفحة
 window.deleteAccountingInvoice = deleteAccountingInvoice;
 
 
