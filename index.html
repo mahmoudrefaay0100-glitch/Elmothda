@@ -2527,7 +2527,8 @@ async function saveSunbrellaRate() {
     }
 }
         
-      function switchView(viewName) {
+     
+function switchView(viewName) {
 
     const views = [
         'view-store',
@@ -2546,13 +2547,11 @@ async function saveSunbrellaRate() {
         }
     });
 
-
     if (viewName === 'store') {
 
         document.getElementById(
             'view-store'
         )?.classList.remove('hidden');
-
 
     } else if (viewName === 'orders-track') {
 
@@ -2560,24 +2559,25 @@ async function saveSunbrellaRate() {
             'view-orders-track'
         )?.classList.remove('hidden');
 
-
     } else if (viewName === 'admin-login') {
 
-        const token =
-            sessionStorage.getItem(
-                'OSCAR_ADMIN_ACCESS_TOKEN'
-            );
+        const token = sessionStorage.getItem(
+            'OSCAR_ADMIN_ACCESS_TOKEN'
+        );
 
-        const auth =
-            sessionStorage.getItem(
-                'OSCAR_ADMIN_AUTH'
-            );
+        const auth = sessionStorage.getItem(
+            'OSCAR_ADMIN_AUTH'
+        );
 
         if (token && auth === 'true') {
 
             document.getElementById(
                 'view-admin-dashboard'
             )?.classList.remove('hidden');
+
+            if (typeof startAdminOrdersMonitor === 'function') {
+                startAdminOrdersMonitor();
+            }
 
         } else {
 
@@ -2587,13 +2587,11 @@ async function saveSunbrellaRate() {
 
         }
 
-
     } else if (viewName === 'admin-product-editor') {
 
         document.getElementById(
             'view-admin-product-editor'
         )?.classList.remove('hidden');
-
 
     } else if (viewName === 'admin-offer-editor') {
 
@@ -2601,28 +2599,45 @@ async function saveSunbrellaRate() {
             'view-admin-offer-editor'
         )?.classList.remove('hidden');
 
-
     } else if (viewName === 'admin-dashboard') {
+
+        const token = sessionStorage.getItem(
+            'OSCAR_ADMIN_ACCESS_TOKEN'
+        );
+
+        const auth = sessionStorage.getItem(
+            'OSCAR_ADMIN_AUTH'
+        );
+
+        if (!token || auth !== 'true') {
+            document.getElementById(
+                'view-admin-login'
+            )?.classList.remove('hidden');
+
+            return;
+        }
 
         document.getElementById(
             'view-admin-dashboard'
         )?.classList.remove('hidden');
 
-        setTimeout(() => {
-
-            if (typeof loadAdminOrders === 'function') {
+        // بدء مراقبة الطلبات الجديدة
+        if (typeof startAdminOrdersMonitor === 'function') {
+            startAdminOrdersMonitor();
+        } else if (typeof loadAdminOrders === 'function') {
+            setTimeout(() => {
                 loadAdminOrders();
-            }
+            }, 300);
+        }
 
-        }, 300);
     }
-
 
     window.scrollTo({
         top: 0,
         behavior: 'smooth'
     });
 }
+
         
         function scrollToSection(sectionId) {
             switchView('store');
