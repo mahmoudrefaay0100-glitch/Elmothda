@@ -400,6 +400,8 @@ export default async function handler(req, res) {
         if (req.method === 'POST') {
 
             // ==================================================
+           
+            // ==================================================
             // حذف فاتورة مبيعات أو مشتريات
             // POST /api/accounting?action=delete-invoice
             // ==================================================
@@ -440,26 +442,37 @@ export default async function handler(req, res) {
                     fail('الفاتورة المطلوب حذفها غير موجودة.', 404);
                 }
 
-                // لا نحذف فاتورة مرتبطة بتحصيل أو دفعة مورد
+                // عرض الحركات المالية المرتبطة ومنع الحذف الآلي لها
                 const payments = await readRows(paymentsTable, {
                     select: 'id,amount',
                     [paymentForeignKey]: `eq.${id}`,
-                    limit: 1
+                    limit: 100
                 });
 
-                if (payments.length) {
-                    fail(
-                        'لا يمكن حذف الفاتورة لوجود تحصيل أو دفعة مرتبطة بها. راجع الحركة المالية المرتبطة أولاً.',
-                        409
-                    );
+                if (payments.length > 0) {
+                    return res.status(409).json({
+                        success: false,
+                        code: 'INVOICE_HAS_LINKED_PAYMENTS',
+                        error: 'لا يمكن حذف الفاتورة قبل مراجعة الحركات المالية المرتبطة بها.',
+                        invoice: {
+                            id: invoices[0].id,
+                            invoice_number: invoices[0].invoice_number,
+                            total: invoices[0].total,
+                            type
+                        },
+                        linkedPayments: payments.map(payment => ({
+                            id: payment.id,
+                            amount: payment.amount
+                        }))
+                    });
                 }
 
-                // حذف أصناف الفاتورة
+                // حذف أصناف الفاتورة أولاً
                 await db(itemsTable, 'DELETE', {
                     invoice_id: `eq.${id}`
                 });
 
-                // حذف سجل الفاتورة بعد حذف الأصناف
+                // حذف سجل الفاتورة
                 const deletedInvoices = await db(
                     invoiceTable,
                     'DELETE',
@@ -481,6 +494,7 @@ export default async function handler(req, res) {
                     deletedInvoice: deletedInvoices[0]
                 });
             }
+
 
             // ==================================================
             // تعديل فاتورة مبيعات أو مشتريات
