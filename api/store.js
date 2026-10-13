@@ -1,6 +1,5 @@
 
-export default async function handler(req, res) {
-    // منع تخزين بيانات المتجر مؤقتًا
+module.exports = async function handler(req, res) {    // منع تخزين بيانات المتجر مؤقتًا
     res.setHeader(
         'Cache-Control',
         'no-store, no-cache, must-revalidate, proxy-revalidate'
