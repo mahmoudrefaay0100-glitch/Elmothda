@@ -1734,6 +1734,14 @@
         سجل المصروفات
     </h4>
 
+<button
+    type="button"
+    onclick="printAccountingExpenses()"
+    class="bg-neutral-700 hover:bg-neutral-600 text-white px-4 py-2 rounded-lg">
+    <i class="fas fa-print ml-1"></i>
+    طباعة سجل المصروفات
+</button>
+
     <input
         id="acc-expenses-search"
         type="search"
@@ -13808,6 +13816,7 @@ async function loadAccountingExpenses() {
 // البحث في سجل المصروفات
 // =====================================================
 
+
 function filterAccountingExpenses(searchValue) {
     const tbody = document.getElementById('acc-expenses-table-body');
     const count = document.getElementById('acc-expenses-count');
@@ -13818,6 +13827,7 @@ function filterAccountingExpenses(searchValue) {
 
     const filtered = accountingExpensesCache.filter(function (expense) {
         const values = [
+            expense.id,
             expense.recipient,
             expense.description,
             expense.category,
@@ -13841,7 +13851,7 @@ function filterAccountingExpenses(searchValue) {
     if (!filtered.length) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" class="p-4 text-center text-gray-400">
+                <td colspan="8" class="p-4 text-center text-gray-400">
                     لا توجد مصروفات مطابقة للبحث.
                 </td>
             </tr>
@@ -13899,6 +13909,16 @@ function filterAccountingExpenses(searchValue) {
 
                 <td class="p-3">
                     ${escapeAccountingExpenseHtml(expense.notes || '—')}
+                </td>
+
+                <td class="p-3 whitespace-nowrap">
+                    <button
+                        type="button"
+                        onclick="editAccountingExpense('${escapeAccountingExpenseHtml(expense.id)}')"
+                        class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-sm">
+                        <i class="fas fa-edit ml-1"></i>
+                        تعديل
+                    </button>
                 </td>
             </tr>
         `;
@@ -15350,6 +15370,168 @@ async function enableAdminOrderNotifications() {
 window.enableAdminOrderNotifications =
     enableAdminOrderNotifications;
 
+
+function printAccountingExpenses() {
+    const searchInput = document.getElementById('acc-expenses-search');
+    const search = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+    const expenses = (accountingExpensesCache || []).filter(function (expense) {
+        const values = [
+            expense.recipient,
+            expense.description,
+            expense.category,
+            expense.reference_number,
+            expense.notes,
+            expense.payment_method,
+            expense.expense_date,
+            expense.amount
+        ];
+
+        return !search || values.some(function (value) {
+            return String(value ?? '').toLowerCase().includes(search);
+        });
+    });
+
+    if (!expenses.length) {
+        alert('لا توجد مصروفات لطباعتها.');
+        return;
+    }
+
+    const categories = {
+        other: 'أخرى',
+        rent: 'إيجار',
+        salaries: 'رواتب',
+        transport: 'نقل ومواصلات',
+        utilities: 'مرافق',
+        maintenance: 'صيانة',
+        materials: 'خامات',
+        weaving_labor: 'مصنعية جدل',
+        upholstery_labor: 'مصنعية تنجيد',
+        iron_labor: 'مصنعية حديد',
+        umbrella_labor: 'مصنعية شماسي'
+    };
+
+    const escape = function (value) {
+        return String(value ?? '—').replace(/[&<>"']/g, function (char) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[char];
+        });
+    };
+
+    const total = expenses.reduce(function (sum, expense) {
+        const amount = Number(expense.amount);
+        return sum + (Number.isFinite(amount) ? amount : 0);
+    }, 0);
+
+    const rows = expenses.map(function (expense) {
+        return `
+            <tr>
+                <td>${escape(expense.expense_date)}</td>
+                <td>${escape(expense.recipient || '—')}</td>
+                <td>${escape(categories[expense.category] || expense.category || 'أخرى')}</td>
+                <td>${escape(expense.description)}</td>
+                <td>${escape(expense.payment_method || '—')}</td>
+                <td>${escape(expense.reference_number || '—')}</td>
+                <td>${escape(expense.notes || '—')}</td>
+                <td class="amount">${(Number(expense.amount) || 0).toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                })} ج.م</td>
+            </tr>
+        `;
+    }).join('');
+
+    const printWindow = window.open('', '_blank');
+
+    if (!printWindow) {
+        alert('المتصفح منع نافذة الطباعة. اسمح بالنوافذ المنبثقة للموقع ثم حاول مرة أخرى.');
+        return;
+    }
+
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+        <head>
+            <meta charset="UTF-8">
+            <title>سجل مصروفات المتحدة للرتان والأثاث</title>
+            <style>
+                body {
+                    font-family: Arial, Tahoma, sans-serif;
+                    color: #111;
+                    margin: 24px;
+                }
+                h2, p { text-align: center; }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 20px;
+                }
+                th, td {
+                    border: 1px solid #999;
+                    padding: 8px;
+                    text-align: right;
+                    font-size: 12px;
+                }
+                th {
+                    background: #eee;
+                }
+                .amount {
+                    white-space: nowrap;
+                    font-weight: bold;
+                }
+                .total {
+                    margin-top: 18px;
+                    font-size: 18px;
+                    font-weight: bold;
+                }
+                @media print {
+                    body { margin: 8mm; }
+                    tr { page-break-inside: avoid; }
+                }
+            </style>
+        </head>
+        <body>
+            <h2>المتحدة للرتان والأثاث</h2>
+            <p>سجل المصروفات</p>
+            <p>تاريخ الطباعة: ${escape(new Date().toLocaleDateString('ar-EG'))}</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>المستلم</th>
+                        <th>التصنيف</th>
+                        <th>الوصف</th>
+                        <th>طريقة الدفع</th>
+                        <th>رقم المرجع</th>
+                        <th>ملاحظات</th>
+                        <th>المبلغ</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+            <div class="total">
+                إجمالي المصروفات المعروضة:
+                ${total.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                })} ج.م
+            </div>
+            <script>
+                window.onload = function () {
+                    window.print();
+                };
+            <\/script>
+        </body>
+        </html>
+    `);
+
+    printWindow.document.close();
+}
 
         
 </script>
