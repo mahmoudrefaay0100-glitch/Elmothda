@@ -358,30 +358,6 @@ module.exports = async function handler(req, res) {    // منع تخزين بي
 
 
         // =====================================================
-        // SPLIT COLORS BY TYPE
-        // =====================================================
-
-        const allColors =
-            Array.isArray(storeColors)
-                ? storeColors
-                : [];
-
-        const cushionColors =
-            allColors.filter(
-                color => color.type === 'cushion'
-            );
-
-        const wickerColors =
-            allColors.filter(
-                color => color.type === 'wicker'
-            );
-
-        const woodColors =
-            allColors.filter(
-                color => color.type === 'wood'
-            );
-
-        // =====================================================
         // STORE SETTINGS
         // =====================================================
 
