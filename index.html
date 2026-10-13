@@ -8077,92 +8077,261 @@ function renderAdminOrders() {
     }).join('');
 }
 
-   async function loadAdminOrders() {
+ 
+/* ==========================================
+   إشعارات الطلبات الجديدة - المتحدة
+========================================== */
 
-    console.log('===== LOAD ADMIN ORDERS START =====');
+let adminOrdersMonitorStarted = false;
+let adminOrdersFirstLoad = true;
+let adminKnownOrderIds = new Set();
+let adminOrdersAudioContext = null;
 
-    const token =
-        sessionStorage.getItem(
-            'OSCAR_ADMIN_ACCESS_TOKEN'
-        );
+function getAdminOrderId(order) {
+    return String(
+        order?.id ??
+        order?.order_number ??
+        order?.orderNumber ??
+        ''
+    ).trim();
+}
 
-    console.log(
-        'TOKEN EXISTS:',
-        !!token
+function playAdminNewOrderSound() {
+    try {
+        const AudioContextClass =
+            window.AudioContext ||
+            window.webkitAudioContext;
+
+        if (!AudioContextClass) return;
+
+        if (!adminOrdersAudioContext) {
+            adminOrdersAudioContext =
+                new AudioContextClass();
+        }
+
+        const ctx = adminOrdersAudioContext;
+
+        if (ctx.state === 'suspended') {
+            ctx.resume().catch(() => {});
+        }
+
+        const playTone = (frequency, startTime) => {
+            const oscillator = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            oscillator.type = 'sine';
+            oscillator.frequency.value = frequency;
+
+            gain.gain.setValueAtTime(0.001, startTime);
+            gain.gain.exponentialRampToValueAtTime(
+                0.18,
+                startTime + 0.03
+            );
+            gain.gain.exponentialRampToValueAtTime(
+                0.001,
+                startTime + 0.35
+            );
+
+            oscillator.connect(gain);
+            gain.connect(ctx.destination);
+
+            oscillator.start(startTime);
+            oscillator.stop(startTime + 0.36);
+        };
+
+        const now = ctx.currentTime;
+
+        playTone(880, now);
+        playTone(1175, now + 0.22);
+
+    } catch (error) {
+        console.warn('تعذر تشغيل صوت الطلب الجديد:', error);
+    }
+}
+
+function notifyAdminNewOrder(order) {
+    const customer = order.customer || {};
+
+    const customerName =
+        customer.name ||
+        order.customer_name ||
+        order.name ||
+        'عميل جديد';
+
+    const orderId = getAdminOrderId(order);
+
+    const total = Number(order.total) || 0;
+
+    const message =
+        `طلب جديد من ${customerName} - ` +
+        `رقم الطلب: ${orderId} - ` +
+        `الإجمالي: ${total.toLocaleString('ar-EG')} جنيه`;
+
+    // إشعار داخل لوحة التحكم
+    if (typeof showToast === 'function') {
+        showToast(message, 'success');
+    } else {
+        console.log(message);
+    }
+
+    // صوت التنبيه
+    playAdminNewOrderSound();
+
+    // إشعار المتصفح إذا سبق للمستخدم السماح به
+    if (
+        'Notification' in window &&
+        Notification.permission === 'granted'
+    ) {
+        try {
+            const notification = new Notification(
+                'طلب جديد - المتحدة للرتان والأثاث',
+                {
+                    body: message,
+                    tag: `united-order-${orderId}`
+                }
+            );
+
+            notification.onclick = function () {
+                window.focus();
+                notification.close();
+            };
+        } catch (error) {
+            console.warn(
+                'تعذر عرض إشعار المتصفح:',
+                error
+            );
+        }
+    }
+}
+
+/* ==========================================
+   جلب الطلبات من قاعدة البيانات
+========================================== */
+
+async function loadAdminOrders(options = {}) {
+    const silent = options.silent === true;
+
+    const token = sessionStorage.getItem(
+        'OSCAR_ADMIN_ACCESS_TOKEN'
     );
 
     if (!token) {
-        alert('خطأ: Access Token غير موجود');
+        if (!silent) {
+            alert(
+                'جلسة لوحة التحكم غير موجودة. سجل الدخول مرة أخرى.'
+            );
+        }
         return;
     }
 
     try {
-
-        const response =
-            await fetch('/api/orders', {
+        const response = await fetch(
+            '/api/orders?_=' + Date.now(),
+            {
                 method: 'GET',
+                cache: 'no-store',
                 headers: {
-                    'Authorization':
-                        `Bearer ${token}`,
-                    'Content-Type':
-                        'application/json'
+                    'Authorization': `Bearer ${token}`,
+                    'x-admin-token': token,
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache'
                 }
-            });
-
-        console.log(
-            'API STATUS:',
-            response.status
+            }
         );
 
-        const data =
-            await response.json();
+        const data = await response.json();
 
-        console.log(
-            'API RESPONSE:',
-            data
-        );
-
-        if (!response.ok) {
-            alert(
-                'API Error:\n' +
-                (data?.error || response.status)
+        if (!response.ok || data.success === false) {
+            throw new Error(
+                data?.error ||
+                `فشل تحميل الطلبات (${response.status})`
             );
-            return;
         }
 
-        appState.orders =
-            Array.isArray(data.orders)
-                ? data.orders
-                : [];
+        const freshOrders = Array.isArray(data.orders)
+            ? data.orders
+            : [];
 
-        console.log(
-            'ORDERS COUNT:',
-            appState.orders.length
-        );
+        // أول تحميل: تسجيل الطلبات الموجودة بدون تنبيهات
+        if (adminOrdersFirstLoad) {
+            adminKnownOrderIds = new Set(
+                freshOrders
+                    .map(getAdminOrderId)
+                    .filter(Boolean)
+            );
+
+            adminOrdersFirstLoad = false;
+        } else {
+            // مقارنة الطلبات الحالية بالطلبات المعروفة
+            const newOrders = freshOrders.filter(order => {
+                const id = getAdminOrderId(order);
+
+                return id && !adminKnownOrderIds.has(id);
+            });
+
+            // تسجيل المعرفات قبل عرض التنبيهات لمنع تكرارها
+            freshOrders.forEach(order => {
+                const id = getAdminOrderId(order);
+                if (id) adminKnownOrderIds.add(id);
+            });
+
+            // تنبيه مرة واحدة لكل طلب جديد
+            newOrders.reverse().forEach(notifyAdminNewOrder);
+        }
+
+        appState.orders = freshOrders;
 
         renderAdminOrders();
 
-        alert(
-            'تم جلب الطلبات من قاعدة البيانات: ' +
-            appState.orders.length
+        console.log(
+            'تم تحديث الطلبات:',
+            freshOrders.length
         );
 
     } catch (error) {
+        console.error('LOAD ADMIN ORDERS ERROR:', error);
 
-        console.error(
-            'LOAD ORDERS ERROR:',
-            error
-        );
-
-        alert(
-            'حصل خطأ أثناء جلب الطلبات:\n' +
-            error.message
-        );
+        if (!silent) {
+            alert(
+                'تعذر تحميل الطلبات:\n' +
+                error.message
+            );
+        }
     }
 }
 
-window.loadAdminOrders =
-    loadAdminOrders;
+window.loadAdminOrders = loadAdminOrders;
+
+/* ==========================================
+   بدء المراقبة التلقائية
+========================================== */
+
+function startAdminOrdersMonitor() {
+    if (adminOrdersMonitorStarted) return;
+
+    adminOrdersMonitorStarted = true;
+
+    // تحميل أول مرة بدون تنبيه للطلبات القديمة
+    loadAdminOrders({ silent: true });
+
+    // تحديث الطلبات كل 10 ثوانٍ
+    window.setInterval(() => {
+        const token = sessionStorage.getItem(
+            'OSCAR_ADMIN_ACCESS_TOKEN'
+        );
+
+        if (!token) return;
+
+        // لا نحدّث في الخلفية عندما يكون التبويب مخفياً
+        if (document.hidden) return;
+
+        loadAdminOrders({ silent: true });
+    }, 10000);
+}
+
+window.startAdminOrdersMonitor =
+    startAdminOrdersMonitor;
+
         
      async function updateOrderStatus(orderId, newStatus) {
 
@@ -15147,6 +15316,24 @@ async function saveAccountingInvoice(event, type) {
     }
 }
 
+
+async function enableAdminOrderNotifications() {
+    if (!('Notification' in window)) {
+        alert('المتصفح لا يدعم إشعارات سطح المكتب.');
+        return;
+    }
+
+    const permission = await Notification.requestPermission();
+
+    if (permission === 'granted') {
+        alert('تم السماح بإشعارات الطلبات الجديدة.');
+    } else {
+        alert('لم يتم السماح بإشعارات المتصفح.');
+    }
+}
+
+window.enableAdminOrderNotifications =
+    enableAdminOrderNotifications;
 
 
         
