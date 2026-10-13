@@ -915,21 +915,35 @@ if (action === 'update-sales' || action === 'update-purchase') {
                 const description = text(body.description);
                 const amount = money(body.amount);
 
-                if (!description) fail('وصف المصروف مطلوب.');
-                if (amount <= 0) fail('قيمة المصروف يجب أن تكون أكبر من صفر.');
+                if (!description) {
+                    fail('وصف المصروف مطلوب.');
+                }
+
+                if (amount <= 0) {
+                    fail('قيمة المصروف يجب أن تكون أكبر من صفر.');
+                }
 
                 const expense = await insertOne('accounting_expenses', {
-                    expense_date: text(body.expense_date) || new Date().toISOString().slice(0, 10),
+                    expense_date:
+                        text(body.expense_date) ||
+                        new Date().toISOString().slice(0, 10),
                     category: text(body.category) || 'other',
                     description,
                     recipient: text(body.recipient) || null,
                     amount,
                     payment_method: text(body.payment_method) || 'كاش',
-                    reference_number: text(body.reference_number) || null,
+                    reference_number:
+                        text(body.reference_number) || null,
                     notes: text(body.notes) || null
                 });
 
-                
+                return res.status(201).json({
+                    success: true,
+                    message: 'تم تسجيل المصروف.',
+                    expense
+                });
+            }
+
             if (action === 'update-expense') {
                 const id = text(body.id);
                 const description = text(body.description);
@@ -937,9 +951,17 @@ if (action === 'update-sales' || action === 'update-purchase') {
                 const expenseDate = text(body.expense_date);
                 const category = text(body.category) || 'other';
 
-                if (!id) fail('رقم المصروف مطلوب للتعديل.');
-                if (!description) fail('وصف المصروف مطلوب.');
-                if (amount <= 0) fail('قيمة المصروف يجب أن تكون أكبر من صفر.');
+                if (!id) {
+                    fail('رقم المصروف مطلوب للتعديل.');
+                }
+
+                if (!description) {
+                    fail('وصف المصروف مطلوب.');
+                }
+
+                if (amount <= 0) {
+                    fail('قيمة المصروف يجب أن تكون أكبر من صفر.');
+                }
 
                 if (
                     !/^\d{4}-\d{2}-\d{2}$/.test(expenseDate) ||
@@ -948,11 +970,14 @@ if (action === 'update-sales' || action === 'update-purchase') {
                     fail('تاريخ المصروف غير صحيح.');
                 }
 
-                const existing = await readRows('accounting_expenses', {
-                    select: 'id',
-                    id: `eq.${id}`,
-                    limit: 1
-                });
+                const existing = await readRows(
+                    'accounting_expenses',
+                    {
+                        select: 'id',
+                        id: `eq.${id}`,
+                        limit: 1
+                    }
+                );
 
                 if (!existing.length) {
                     fail('المصروف المطلوب تعديله غير موجود.', 404);
@@ -969,12 +994,16 @@ if (action === 'update-sales' || action === 'update-purchase') {
                         recipient: text(body.recipient) || null,
                         amount,
                         payment_method: text(body.payment_method) || 'كاش',
-                        reference_number: text(body.reference_number) || null,
+                        reference_number:
+                            text(body.reference_number) || null,
                         notes: text(body.notes) || null
                     }
                 );
 
-                if (!Array.isArray(updatedRows) || !updatedRows.length) {
+                if (
+                    !Array.isArray(updatedRows) ||
+                    !updatedRows.length
+                ) {
                     fail('لم يتم تأكيد تعديل المصروف.');
                 }
 
@@ -984,18 +1013,6 @@ if (action === 'update-sales' || action === 'update-purchase') {
                     expense: updatedRows[0]
                 });
             }
-
-                return res.status(201).json({
-                    success: true,
-                    message: 'تم تسجيل المصروف.',
-                    expense
-                });
-            }
-
-            return res.status(400).json({
-                success: false,
-                error: 'نوع عملية الحفظ غير معروف.'
-            });
         }
 
         return res.status(405).json({
