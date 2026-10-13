@@ -1597,6 +1597,7 @@
         </table>
     </div>
 </div>
+   
     <!-- المصروفات -->
     <div id="acc-panel-expenses"
          class="accounting-panel hidden bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-4">
@@ -1613,63 +1614,115 @@
                        class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white">
             </div>
 
-            <div>
-                <label class="block text-gray-300 text-sm mb-2">التصنيف</label>
-                <select id="acc-expense-category" required
-                        class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white">
-                    <option value="other">أخرى</option>
-                    <option value="rent">إيجار</option>
-                    <option value="salaries">رواتب وأجور</option>
-                    <option value="transport">نقل ومواصلات</option>
-                    <option value="utilities">كهرباء ومياه</option>
-                    <option value="maintenance">صيانة</option>
-                    <option value="materials">خامات</option>
-                </select>
-            </div>
+           
+<!-- تصنيف وبيانات المصروف -->
+<div>
+    <label class="block text-gray-300 text-sm mb-2">
+        التصنيف
+    </label>
+    <select id="acc-expense-category" required
+            class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white">
+        <option value="other">أخرى</option>
+        <option value="rent">إيجار</option>
+        <option value="salaries">رواتب وأجور</option>
+        <option value="transport">نقل ومواصلات</option>
+        <option value="utilities">كهرباء ومياه</option>
+        <option value="maintenance">صيانة</option>
+        <option value="materials">خامات</option>
+        <option value="weaving_labor">مصنعية جدل</option>
+        <option value="upholstery_labor">مصنعية تنجيد</option>
+        <option value="iron_labor">مصنعية حديد</option>
+        <option value="umbrella_labor">مصنعية شماسي</option>
+    </select>
+</div>
 
-            <div>
-                <label class="block text-gray-300 text-sm mb-2">وصف المصروف</label>
-                <input id="acc-expense-description" type="text" required
-                       class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"
-                       placeholder="مثال: نقل خامات">
-            </div>
+<div>
+    <label for="acc-expense-recipient"
+           class="block text-gray-300 text-sm mb-2">
+        اسم المستلم (الشخص أو الجهة)
+    </label>
+    <input
+        id="acc-expense-recipient"
+        type="text"
+        required
+        maxlength="150"
+        placeholder="مثال: أحمد - مصنعية حديد"
+        class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"
+    >
+</div>
 
-            <div>
-                <label class="block text-gray-300 text-sm mb-2">المبلغ بالجنيه</label>
-                <input id="acc-expense-amount" type="number" min="0.01" step="0.01" required
-                       class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white">
-            </div>
+<div>
+    <label class="block text-gray-300 text-sm mb-2">
+        وصف المصروف
+    </label>
+    <input
+        id="acc-expense-description"
+        type="text"
+        required
+        placeholder="مثال: نقل خامات"
+        class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"
+    >
+</div>
 
-            <div>
-                <label class="block text-gray-300 text-sm mb-2">طريقة الدفع</label>
-                <select id="acc-expense-payment-method"
-                        class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white">
-                    <option value="cash">كاش / نقدي</option>
-                    <option value="instapay">إنستا باي</option>
-                    <option value="credit">آجل</option>
-                </select>
-            </div>
+<div>
+    <label class="block text-gray-300 text-sm mb-2">
+        المبلغ بالجنيه
+    </label>
+    <input
+        id="acc-expense-amount"
+        type="number"
+        min="0.01"
+        step="0.01"
+        required
+        class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"
+    >
+</div>
 
-            <div>
-                <label class="block text-gray-300 text-sm mb-2">رقم مرجعي (اختياري)</label>
-                <input id="acc-expense-reference" type="text"
-                       class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white">
-            </div>
+<div>
+    <label class="block text-gray-300 text-sm mb-2">
+        طريقة الدفع
+    </label>
+    <select
+        id="acc-expense-payment-method"
+        class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"
+    >
+        <option value="cash">كاش / نقدي</option>
+        <option value="instapay">إنستا باي</option>
+        <option value="credit">آجل</option>
+    </select>
+</div>
 
-            <div class="md:col-span-2">
-                <label class="block text-gray-300 text-sm mb-2">ملاحظات</label>
-                <textarea id="acc-expense-notes" rows="3"
-                          class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"></textarea>
-            </div>
+<div>
+    <label class="block text-gray-300 text-sm mb-2">
+        رقم مرجعي (اختياري)
+    </label>
+    <input
+        id="acc-expense-reference"
+        type="text"
+        class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"
+    >
+</div>
 
-            <div class="md:col-span-2">
-                <button type="submit"
-                        class="bg-amber-600 hover:bg-amber-500 text-black font-extrabold px-6 py-3 rounded-xl">
-                    <i class="fas fa-save ml-1"></i> حفظ المصروف
-                </button>
-            </div>
-        </form>
-    </div>
+<div class="md:col-span-2">
+    <label class="block text-gray-300 text-sm mb-2">
+        ملاحظات
+    </label>
+    <textarea
+        id="acc-expense-notes"
+        rows="3"
+        class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"
+    ></textarea>
+</div>
+
+<div class="md:col-span-2">
+    <button
+        type="submit"
+        class="bg-amber-600 hover:bg-amber-500 text-black font-extrabold px-6 py-3 rounded-xl"
+    >
+        <i class="fas fa-save ml-1"></i>
+        حفظ المصروف
+    </button>
+</div>
 
     <!-- مساحة تفاصيل الفاتورة -->
     <div id="acc-invoice-details"
@@ -13394,6 +13447,12 @@ function accountingMessage(message, isError = false) {
 // تحميل الملخص المالي
 // =====================================================
 
+// =====================================================
+// تحميل ملخص الحسابات وسجل المصروفات
+// =====================================================
+
+let accountingExpensesCache = [];
+
 async function renderAdminAccounting() {
     const status = document.getElementById('acc-dashboard-status');
 
@@ -13422,8 +13481,12 @@ async function renderAdminAccounting() {
 
             const value = Number(data[field]);
 
-            if (data[field] === null || data[field] === undefined ||
-                data[field] === '' || !Number.isFinite(value)) {
+            if (
+                data[field] === null ||
+                data[field] === undefined ||
+                data[field] === '' ||
+                !Number.isFinite(value)
+            ) {
                 element.textContent = '—';
                 return;
             }
@@ -13431,12 +13494,14 @@ async function renderAdminAccounting() {
             element.textContent = accountingMoney(value);
         });
 
+        accountingState.dashboardLoaded = true;
+
+        await loadAccountingExpenses();
+
         if (status) {
             status.textContent =
-                'تم تحميل ملخص الحسابات من قاعدة البيانات بنجاح.';
+                'تم تحميل ملخص الحسابات وسجل المصروفات بنجاح.';
         }
-
-        accountingState.dashboardLoaded = true;
 
     } catch (error) {
         console.error('ACCOUNTING DASHBOARD ERROR:', error);
@@ -13451,6 +13516,321 @@ async function renderAdminAccounting() {
             true
         );
     }
+}
+
+
+// =====================================================
+// تحميل سجل المصروفات من قاعدة البيانات
+// =====================================================
+
+async function loadAccountingExpenses() {
+    const tbody = document.getElementById('acc-expenses-table-body');
+    const count = document.getElementById('acc-expenses-count');
+
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="p-4 text-center text-gray-400">
+                    جارٍ تحميل المصروفات...
+                </td>
+            </tr>
+        `;
+    }
+
+    try {
+        const result = await accountingRequest('expenses');
+
+        accountingExpensesCache = Array.isArray(result.expenses)
+            ? result.expenses
+            : [];
+
+        const searchInput =
+            document.getElementById('acc-expenses-search');
+
+        filterAccountingExpenses(searchInput ? searchInput.value : '');
+
+    } catch (error) {
+        console.error('LOAD ACCOUNTING EXPENSES ERROR:', error);
+
+        if (count) {
+            count.textContent = 'تعذر تحميل سجل المصروفات.';
+        }
+
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="p-4 text-center text-red-400">
+                        ${escapeAccountingExpenseHtml(
+                            error.message || 'حدث خطأ أثناء تحميل المصروفات.'
+                        )}
+                    </td>
+                </tr>
+            `;
+        }
+    }
+}
+
+
+// =====================================================
+// البحث في سجل المصروفات
+// =====================================================
+
+function filterAccountingExpenses(searchValue) {
+    const tbody = document.getElementById('acc-expenses-table-body');
+    const count = document.getElementById('acc-expenses-count');
+
+    if (!tbody) return;
+
+    const search = String(searchValue || '').trim().toLowerCase();
+
+    const filtered = accountingExpensesCache.filter(function (expense) {
+        const values = [
+            expense.recipient,
+            expense.description,
+            expense.category,
+            expense.reference_number,
+            expense.notes,
+            expense.payment_method,
+            expense.expense_date,
+            expense.amount
+        ];
+
+        return !search || values.some(function (value) {
+            return String(value ?? '').toLowerCase().includes(search);
+        });
+    });
+
+    if (count) {
+        count.textContent =
+            `عدد المصروفات المعروضة: ${filtered.length} من ${accountingExpensesCache.length}`;
+    }
+
+    if (!filtered.length) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="p-4 text-center text-gray-400">
+                    لا توجد مصروفات مطابقة للبحث.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    const categories = {
+        other: 'أخرى',
+        rent: 'إيجار',
+        salaries: 'رواتب',
+        transport: 'نقل ومواصلات',
+        utilities: 'مرافق',
+        maintenance: 'صيانة',
+        materials: 'خامات',
+        weaving_labor: 'مصنعية جدل',
+        upholstery_labor: 'مصنعية تنجيد',
+        iron_labor: 'مصنعية حديد',
+        umbrella_labor: 'مصنعية شماسي'
+    };
+
+    tbody.innerHTML = filtered.map(function (expense) {
+        const category =
+            categories[expense.category] || expense.category || '—';
+
+        const amount = Number(expense.amount);
+
+        return `
+            <tr class="border-b border-neutral-800 hover:bg-neutral-800">
+                <td class="p-3 whitespace-nowrap">
+                    ${escapeAccountingExpenseHtml(expense.expense_date || '—')}
+                </td>
+
+                <td class="p-3">
+                    ${escapeAccountingExpenseHtml(expense.recipient || '—')}
+                </td>
+
+                <td class="p-3">
+                    ${escapeAccountingExpenseHtml(category)}
+                </td>
+
+                <td class="p-3">
+                    ${escapeAccountingExpenseHtml(expense.description || '—')}
+                </td>
+
+                <td class="p-3 whitespace-nowrap">
+                    ${escapeAccountingExpenseHtml(expense.payment_method || '—')}
+                </td>
+
+                <td class="p-3 whitespace-nowrap font-bold text-amber-400">
+                    ${escapeAccountingExpenseHtml(
+                        Number.isFinite(amount) ? accountingMoney(amount) : '—'
+                    )}
+                </td>
+
+                <td class="p-3">
+                    ${escapeAccountingExpenseHtml(expense.notes || '—')}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+
+// =====================================================
+// حماية النصوص المعروضة في جدول المصروفات
+// =====================================================
+
+function escapeAccountingExpenseHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, function (char) {
+        const entities = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        };
+
+        return entities[char];
+    });
+}
+
+
+        async function loadAccountingExpenses() {
+    const tbody = document.getElementById('acc-expenses-table-body');
+    const count = document.getElementById('acc-expenses-count');
+
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="p-4 text-center text-gray-400">
+                    جارٍ تحميل المصروفات...
+                </td>
+            </tr>
+        `;
+    }
+
+    try {
+        const result = await accountingRequest('expenses');
+
+        accountingExpensesCache = Array.isArray(result.expenses)
+            ? result.expenses
+            : [];
+
+        const searchInput = document.getElementById('acc-expenses-search');
+
+        filterAccountingExpenses(searchInput ? searchInput.value : '');
+
+    } catch (error) {
+        console.error('LOAD ACCOUNTING EXPENSES ERROR:', error);
+
+        if (count) {
+            count.textContent = 'تعذر تحميل سجل المصروفات.';
+        }
+
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="p-4 text-center text-red-400">
+                        ${escapeAccountingExpenseHtml(
+                            error.message || 'حدث خطأ أثناء تحميل المصروفات.'
+                        )}
+                    </td>
+                </tr>
+            `;
+        }
+    }
+}
+
+
+        function filterAccountingExpenses(searchValue) {
+    const tbody = document.getElementById('acc-expenses-table-body');
+    const count = document.getElementById('acc-expenses-count');
+
+    if (!tbody) return;
+
+    const search = String(searchValue || '').trim().toLowerCase();
+
+    const filtered = accountingExpensesCache.filter(function (expense) {
+        const values = [
+            expense.recipient,
+            expense.description,
+            expense.category,
+            expense.reference_number,
+            expense.notes,
+            expense.payment_method,
+            expense.expense_date,
+            expense.amount
+        ];
+
+        return !search || values.some(function (value) {
+            return String(value ?? '').toLowerCase().includes(search);
+        });
+    });
+
+    if (count) {
+        count.textContent =
+            `عدد المصروفات المعروضة: ${filtered.length} من ${accountingExpensesCache.length}`;
+    }
+
+    if (!filtered.length) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="p-4 text-center text-gray-400">
+                    لا توجد مصروفات مطابقة للبحث.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    const categories = {
+        other: 'أخرى',
+        rent: 'إيجار',
+        salaries: 'رواتب',
+        transport: 'نقل ومواصلات',
+        utilities: 'مرافق',
+        maintenance: 'صيانة',
+        materials: 'خامات',
+        weaving_labor: 'مصنعية جدل',
+        upholstery_labor: 'مصنعية تنجيد',
+        iron_labor: 'مصنعية حديد',
+        umbrella_labor: 'مصنعية شماسي'
+    };
+
+    tbody.innerHTML = filtered.map(function (expense) {
+        const category =
+            categories[expense.category] || expense.category || '—';
+
+        const amount = Number(expense.amount);
+
+        return `
+            <tr class="border-b border-neutral-800 hover:bg-neutral-800">
+                <td class="p-3">${escapeAccountingExpenseHtml(expense.expense_date || '—')}</td>
+                <td class="p-3">${escapeAccountingExpenseHtml(expense.recipient || '—')}</td>
+                <td class="p-3">${escapeAccountingExpenseHtml(category)}</td>
+                <td class="p-3">${escapeAccountingExpenseHtml(expense.description || '—')}</td>
+                <td class="p-3">${escapeAccountingExpenseHtml(expense.payment_method || '—')}</td>
+                <td class="p-3 font-bold text-amber-400">
+                    ${escapeAccountingExpenseHtml(
+                        Number.isFinite(amount) ? accountingMoney(amount) : '—'
+                    )}
+                </td>
+                <td class="p-3">${escapeAccountingExpenseHtml(expense.notes || '—')}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+
+                function escapeAccountingExpenseHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, function (char) {
+        const entities = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        };
+
+        return entities[char];
+    });
 }
         
 // =====================================================
@@ -13942,8 +14322,15 @@ async function editAccountingInvoice(invoiceId, type) {
 // تسجيل مصروف
 // =====================================================
 
+
 async function saveAccountingExpense(event) {
     event.preventDefault();
+
+    const form = document.getElementById('acc-expense-form');
+
+    if (!form || form.dataset.submitting === 'true') {
+        return;
+    }
 
     const amount = Number(
         document.getElementById('acc-expense-amount').value
@@ -13952,6 +14339,15 @@ async function saveAccountingExpense(event) {
     const description = document.getElementById(
         'acc-expense-description'
     ).value.trim();
+
+    const recipient = document.getElementById(
+        'acc-expense-recipient'
+    ).value.trim();
+
+    if (!recipient) {
+        accountingMessage('اكتب اسم الشخص أو الجهة المستلمة للمصروف.', true);
+        return;
+    }
 
     if (!description || !Number.isFinite(amount) || amount <= 0) {
         accountingMessage('اكتب وصف المصروف ومبلغًا صحيحًا.', true);
@@ -13962,6 +14358,7 @@ async function saveAccountingExpense(event) {
         expense_date: document.getElementById('acc-expense-date').value,
         category: document.getElementById('acc-expense-category').value,
         description,
+        recipient,
         amount,
         payment_method: document.getElementById(
             'acc-expense-payment-method'
@@ -13974,6 +14371,8 @@ async function saveAccountingExpense(event) {
 
     const submitButton = event.submitter;
 
+    form.dataset.submitting = 'true';
+
     if (submitButton) {
         submitButton.disabled = true;
         submitButton.textContent = 'جارٍ الحفظ...';
@@ -13985,7 +14384,7 @@ async function saveAccountingExpense(event) {
             body
         });
 
-        document.getElementById('acc-expense-form').reset();
+        form.reset();
 
         const dateInput = document.getElementById('acc-expense-date');
 
@@ -13999,9 +14398,11 @@ async function saveAccountingExpense(event) {
 
     } catch (error) {
         console.error('SAVE ACCOUNTING EXPENSE ERROR:', error);
-        accountingMessage(error.message, true);
+        accountingMessage(error.message || 'تعذر حفظ المصروف.', true);
 
     } finally {
+        delete form.dataset.submitting;
+
         if (submitButton) {
             submitButton.disabled = false;
             submitButton.innerHTML =
@@ -14009,6 +14410,7 @@ async function saveAccountingExpense(event) {
         }
     }
 }
+
 
 // =====================================================
 // طباعة تفاصيل الفاتورة
