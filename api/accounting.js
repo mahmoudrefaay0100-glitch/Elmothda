@@ -929,6 +929,62 @@ if (action === 'update-sales' || action === 'update-purchase') {
                     notes: text(body.notes) || null
                 });
 
+                
+            if (action === 'update-expense') {
+                const id = text(body.id);
+                const description = text(body.description);
+                const amount = money(body.amount);
+                const expenseDate = text(body.expense_date);
+                const category = text(body.category) || 'other';
+
+                if (!id) fail('رقم المصروف مطلوب للتعديل.');
+                if (!description) fail('وصف المصروف مطلوب.');
+                if (amount <= 0) fail('قيمة المصروف يجب أن تكون أكبر من صفر.');
+
+                if (
+                    !/^\d{4}-\d{2}-\d{2}$/.test(expenseDate) ||
+                    Number.isNaN(Date.parse(expenseDate))
+                ) {
+                    fail('تاريخ المصروف غير صحيح.');
+                }
+
+                const existing = await readRows('accounting_expenses', {
+                    select: 'id',
+                    id: `eq.${id}`,
+                    limit: 1
+                });
+
+                if (!existing.length) {
+                    fail('المصروف المطلوب تعديله غير موجود.', 404);
+                }
+
+                const updatedRows = await db(
+                    'accounting_expenses',
+                    'PATCH',
+                    { id: `eq.${id}` },
+                    {
+                        expense_date: expenseDate,
+                        category,
+                        description,
+                        recipient: text(body.recipient) || null,
+                        amount,
+                        payment_method: text(body.payment_method) || 'كاش',
+                        reference_number: text(body.reference_number) || null,
+                        notes: text(body.notes) || null
+                    }
+                );
+
+                if (!Array.isArray(updatedRows) || !updatedRows.length) {
+                    fail('لم يتم تأكيد تعديل المصروف.');
+                }
+
+                return res.status(200).json({
+                    success: true,
+                    message: 'تم تعديل المصروف بنجاح.',
+                    expense: updatedRows[0]
+                });
+            }
+
                 return res.status(201).json({
                     success: true,
                     message: 'تم تسجيل المصروف.',
