@@ -1,4 +1,3 @@
-
 export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store, max-age=0');
 
@@ -66,7 +65,7 @@ export default async function handler(req, res) {
             });
         }
 
-        // كل عمليات قاعدة البيانات تتم من الخادم فقط
+        // عمليات قاعدة البيانات من الخادم فقط
         async function db(table, method = 'GET', query = {}, body = null) {
             const params = new URLSearchParams();
 
@@ -85,11 +84,7 @@ export default async function handler(req, res) {
                 'Content-Type': 'application/json'
             };
 
-            if (method === 'POST') {
-                headers.Prefer = 'return=representation';
-            } else if (method === 'PATCH') {
-                headers.Prefer = 'return=representation';
-            } else if (method === 'DELETE') {
+            if (['POST', 'PATCH', 'DELETE'].includes(method)) {
                 headers.Prefer = 'return=representation';
             }
 
@@ -110,9 +105,17 @@ export default async function handler(req, res) {
             }
 
             if (!response.ok) {
-                console.error('ACCOUNTING DB ERROR', table, method, response.status, data);
+                console.error(
+                    'ACCOUNTING DB ERROR',
+                    table,
+                    method,
+                    response.status,
+                    data
+                );
+
                 fail(
-                    data?.message || data?.hint || `تعذر تنفيذ العملية على ${table}.`,
+                    data?.message || data?.hint ||
+                    `تعذر تنفيذ العملية على ${table}.`,
                     response.status >= 500 ? 500 : 400
                 );
             }
@@ -122,9 +125,11 @@ export default async function handler(req, res) {
 
         async function insertOne(table, row) {
             const result = await db(table, 'POST', {}, row);
+
             if (!Array.isArray(result) || !result[0]) {
                 fail('لم يتم تأكيد حفظ البيانات.');
             }
+
             return result[0];
         }
 
@@ -133,60 +138,13 @@ export default async function handler(req, res) {
             return Array.isArray(result) ? result : [];
         }
 
-        async function replaceItems(table, invoiceId, items, type) {
-            if (!Array.isArray(items) || items.length === 0) {
-                fail('أضف صنفًا واحدًا على الأقل إلى الفاتورة.');
-            }
-
-            const rows = items.map(item => {
-                const name = text(item.item_name || item.product_name || item.name);
-                const quantity = money(item.quantity);
-                const unitPrice = money(item.unit_price);
-
-                if (!name) fail('اسم أحد الأصناف فارغ.');
-                if (quantity <= 0) fail(`الكمية غير صحيحة للصنف: ${name}`);
-                if (unitPrice < 0) fail(`السعر غير صحيح للصنف: ${name}`);
-
-                const row = {
-                    invoice_id: invoiceId,
-                    quantity,
-                    unit_price: unitPrice,
-                    line_total: Math.round(quantity * unitPrice * 100) / 100,
-                    notes: text(item.notes) || null,
-                    unit: text(item.unit) || 'قطعة',
-                    category: text(item.category) || 'أخرى'
-                };
-
-                if (type === 'sales') {
-                    row.product_name = name;
-                    row.product_id = text(item.product_id) || null;
-                } else {
-                    row.item_name = name;
-                }
-
-                return row;
-            });
-
-            return db(table, 'POST', {}, rows);
-        }
-
         const action = text(req.query?.action || '');
         const body = req.body && typeof req.body === 'object' ? req.body : {};
 
         // ==================================================
-        // GET: ملخص الحسابات الحالي
-        // GET: قائمة الفواتير
-        // GET: تفاصيل فاتورة واحدة
-        // ==================================================
-       
-        // ==================================================
-        // GET: ملخص الحسابات + قائمة الفواتير + تفاصيل فاتورة
+        // GET: ملخص الحسابات
         // ==================================================
         if (req.method === 'GET') {
-
-            // ==============================================
-            // ملخص الحسابات
-            // ==============================================
             if (!action || action === 'dashboard') {
                 const [
                     salesInvoices,
@@ -219,47 +177,40 @@ export default async function handler(req, res) {
 
                 const totalSales = roundMoney(
                     confirmedSales.reduce(
-                        (sum, invoice) => sum + money(invoice.total),
-                        0
+                        (sum, invoice) => sum + money(invoice.total), 0
                     )
                 );
 
                 const totalPurchases = roundMoney(
                     confirmedPurchases.reduce(
-                        (sum, invoice) => sum + money(invoice.total),
-                        0
+                        (sum, invoice) => sum + money(invoice.total), 0
                     )
                 );
 
                 const totalReceipts = roundMoney(
                     receipts.reduce(
-                        (sum, receipt) => sum + money(receipt.amount),
-                        0
+                        (sum, receipt) => sum + money(receipt.amount), 0
                     )
                 );
 
                 const totalSupplierPayments = roundMoney(
                     supplierPayments.reduce(
-                        (sum, payment) => sum + money(payment.amount),
-                        0
+                        (sum, payment) => sum + money(payment.amount), 0
                     )
                 );
 
                 const totalOrderCosts = roundMoney(
                     orderCosts.reduce(
-                        (sum, cost) => sum + money(cost.amount),
-                        0
+                        (sum, cost) => sum + money(cost.amount), 0
                     )
                 );
 
                 const totalExpenses = roundMoney(
                     expenses.reduce(
-                        (sum, expense) => sum + money(expense.amount),
-                        0
+                        (sum, expense) => sum + money(expense.amount), 0
                     )
                 );
 
-                // المبالغ المتبقية على العملاء والموردين
                 const customerReceivables = roundMoney(
                     Math.max(0, totalSales - totalReceipts)
                 );
@@ -268,8 +219,7 @@ export default async function handler(req, res) {
                     Math.max(0, totalPurchases - totalSupplierPayments)
                 );
 
-                // صافي الربح التقديري بعد خصم المشتريات والمصروفات
-                // لا نخصم مدفوعات الموردين والتحصيلات مرة ثانية.
+                // صافي الربح التقديري لا يخصم الدفعات والتحصيلات مرة ثانية
                 const netProfit = roundMoney(
                     totalSales - totalPurchases - totalExpenses
                 );
@@ -298,12 +248,7 @@ export default async function handler(req, res) {
                 });
             }
 
-
-            
-            // ==============================================
-            // سجل المصروفات والبحث فيها
-            // GET /api/accounting?action=expenses
-            // ==============================================
+            // سجل المصروفات
             if (action === 'expenses') {
                 const rows = await readRows('accounting_expenses', {
                     select: '*',
@@ -311,9 +256,7 @@ export default async function handler(req, res) {
                     limit: 1000
                 });
 
-                const search = text(req.query?.search)
-                    .trim()
-                    .toLowerCase();
+                const search = text(req.query?.search).toLowerCase();
 
                 const filtered = search
                     ? rows.filter(expense => [
@@ -324,9 +267,7 @@ export default async function handler(req, res) {
                         expense.notes,
                         expense.payment_method,
                         expense.expense_date
-                    ].some(value =>
-                        text(value).toLowerCase().includes(search)
-                    ))
+                    ].some(value => text(value).toLowerCase().includes(search)))
                     : rows;
 
                 return res.status(200).json({
@@ -336,11 +277,7 @@ export default async function handler(req, res) {
                 });
             }
 
-
-            
-            // ==============================================
-            // قائمة فواتير المبيعات أو المشتريات
-            // ==============================================
+            // قائمة فواتير المبيعات والمشتريات
             if (action === 'list') {
                 const type = text(req.query?.type);
 
@@ -367,9 +304,7 @@ export default async function handler(req, res) {
                         row.supplier_name,
                         row.customer_phone,
                         row.supplier_invoice_number
-                    ].some(value =>
-                        text(value).toLowerCase().includes(search)
-                    ))
+                    ].some(value => text(value).toLowerCase().includes(search)))
                     : rows;
 
                 return res.status(200).json({
@@ -378,9 +313,7 @@ export default async function handler(req, res) {
                 });
             }
 
-            // ==============================================
-            // تفاصيل فاتورة واحدة
-            // ==============================================
+            // تفاصيل فاتورة
             if (action === 'get') {
                 const type = text(req.query?.type);
                 const id = text(req.query?.id);
@@ -424,9 +357,8 @@ export default async function handler(req, res) {
                             : 'accounting_supplier_payments',
                         {
                             select: '*',
-                            [isSales
-                                ? 'sales_invoice_id'
-                                : 'purchase_invoice_id']: `eq.${id}`,
+                            [isSales ? 'sales_invoice_id' : 'purchase_invoice_id']:
+                                `eq.${id}`,
                             order: isSales
                                 ? 'receipt_date.desc'
                                 : 'payment_date.desc'
@@ -439,8 +371,7 @@ export default async function handler(req, res) {
 
                 const paid = roundMoney(
                     payments.reduce(
-                        (sum, payment) => sum + money(payment.amount),
-                        0
+                        (sum, payment) => sum + money(payment.amount), 0
                     )
                 );
 
@@ -464,236 +395,118 @@ export default async function handler(req, res) {
         }
 
         // ==================================================
-        // POST: إنشاء فاتورة مبيعات أو مشتريات
-        // POST: تحصيل من عميل أو دفعة لمورد أو مصروف
+        // POST: العمليات التي تغيّر البيانات
         // ==================================================
         if (req.method === 'POST') {
-            
-if (action === 'update-sales' || action === 'update-purchase') {
-    const isSales = action === 'update-sales';
-    const id = text(body.id);
 
-    if (!id) fail('رقم الفاتورة مطلوب للتعديل.');
+            // ==================================================
+            // حذف فاتورة مبيعات أو مشتريات
+            // POST /api/accounting?action=delete-invoice
+            // ==================================================
+            if (action === 'delete-invoice') {
+                const id = text(body.id);
+                const type = text(body.type);
 
-    const name = text(
-        isSales ? body.customer_name : body.supplier_name
-    );
+                if (!id || !['sales', 'purchases'].includes(type)) {
+                    fail('رقم الفاتورة أو نوعها غير صحيح.');
+                }
 
-    if (!name) {
-        fail(isSales ? 'اسم العميل مطلوب.' : 'اسم المورد مطلوب.');
-    }
+                const isSales = type === 'sales';
 
-    if (!Array.isArray(body.items) || body.items.length === 0) {
-        fail('أضف صنفًا واحدًا على الأقل.');
-    }
+                const invoiceTable = isSales
+                    ? 'accounting_sales_invoices'
+                    : 'accounting_purchase_invoices';
 
-    const normalizedItems = body.items.map(item => {
-        const itemName = text(
-            item.item_name || item.product_name || item.name
-        );
-        const quantity = money(item.quantity);
-        const unitPrice = money(item.unit_price);
+                const itemsTable = isSales
+                    ? 'accounting_sales_invoice_items'
+                    : 'accounting_purchase_invoice_items';
 
-        if (!itemName || quantity <= 0 || unitPrice < 0) {
-            fail('راجع أسماء الأصناف والكميات والأسعار.');
-        }
+                const paymentsTable = isSales
+                    ? 'accounting_customer_receipts'
+                    : 'accounting_supplier_payments';
 
-        return {
-            ...item,
-            name: itemName,
-            quantity,
-            unit_price: unitPrice
-        };
-    });
+                const paymentForeignKey = isSales
+                    ? 'sales_invoice_id'
+                    : 'purchase_invoice_id';
 
-    const round = value =>
-        Math.round((value + Number.EPSILON) * 100) / 100;
+                // التأكد من وجود الفاتورة
+                const invoices = await readRows(invoiceTable, {
+                    select: 'id,invoice_number,total',
+                    id: `eq.${id}`,
+                    limit: 1
+                });
 
-    const subtotal = round(
-        normalizedItems.reduce(
-            (sum, item) => sum + item.quantity * item.unit_price,
-            0
-        )
-    );
+                if (!invoices.length) {
+                    fail('الفاتورة المطلوب حذفها غير موجودة.', 404);
+                }
 
-    const discount = money(body.discount);
-    const extra = money(
-        isSales ? body.shipping_cost : body.additional_cost
-    );
+                // لا نحذف فاتورة مرتبطة بتحصيل أو دفعة مورد
+                const payments = await readRows(paymentsTable, {
+                    select: 'id,amount',
+                    [paymentForeignKey]: `eq.${id}`,
+                    limit: 1
+                });
 
-    if (
-        discount < 0 ||
-        extra < 0 ||
-        discount > subtotal
-    ) {
-        fail('راجع الخصم والمصاريف الإضافية.');
-    }
+                if (payments.length) {
+                    fail(
+                        'لا يمكن حذف الفاتورة لوجود تحصيل أو دفعة مرتبطة بها. راجع الحركة المالية المرتبطة أولاً.',
+                        409
+                    );
+                }
 
-    const total = round(subtotal - discount + extra);
+                // حذف أصناف الفاتورة
+                await db(itemsTable, 'DELETE', {
+                    invoice_id: `eq.${id}`
+                });
 
-    const invoiceTable = isSales
-        ? 'accounting_sales_invoices'
-        : 'accounting_purchase_invoices';
+                // حذف سجل الفاتورة بعد حذف الأصناف
+                const deletedInvoices = await db(
+                    invoiceTable,
+                    'DELETE',
+                    { id: `eq.${id}` }
+                );
 
-    const itemsTable = isSales
-        ? 'accounting_sales_invoice_items'
-        : 'accounting_purchase_invoice_items';
+                if (
+                    !Array.isArray(deletedInvoices) ||
+                    deletedInvoices.length === 0
+                ) {
+                    fail(
+                        'لم يتم تأكيد حذف الفاتورة. راجع قاعدة البيانات قبل إعادة المحاولة.'
+                    );
+                }
 
-    const paymentTable = isSales
-        ? 'accounting_customer_receipts'
-        : 'accounting_supplier_payments';
+                return res.status(200).json({
+                    success: true,
+                    message: 'تم حذف الفاتورة بنجاح.',
+                    deletedInvoice: deletedInvoices[0]
+                });
+            }
 
-    const paymentForeignKey = isSales
-        ? 'sales_invoice_id'
-        : 'purchase_invoice_id';
+            // ==================================================
+            // تعديل فاتورة مبيعات أو مشتريات
+            // ==================================================
+            if (action === 'update-sales' || action === 'update-purchase') {
+                const isSales = action === 'update-sales';
+                const id = text(body.id);
 
-    // التأكد من وجود الفاتورة قبل تعديلها
-    const invoices = await readRows(invoiceTable, {
-        select: '*',
-        id: `eq.${id}`,
-        limit: 1
-    });
+                if (!id) fail('رقم الفاتورة مطلوب للتعديل.');
 
-    if (!invoices.length) {
-        fail('الفاتورة المطلوب تعديلها غير موجودة.', 404);
-    }
+                const name = text(
+                    isSales ? body.customer_name : body.supplier_name
+                );
 
-    // قراءة الدفعات القديمة وعدم تعديلها
-    const payments = await readRows(paymentTable, {
-        select: 'amount',
-        [paymentForeignKey]: `eq.${id}`
-    });
+                if (!name) {
+                    fail(isSales ? 'اسم العميل مطلوب.' : 'اسم المورد مطلوب.');
+                }
 
-    const paid = round(
-        payments.reduce((sum, payment) => sum + money(payment.amount), 0)
-    );
-
-    if (paid > total + 0.001) {
-        fail(
-            `إجمالي الفاتورة الجديد (${total.toFixed(2)}) أقل من المدفوع سابقًا (${paid.toFixed(2)}). لا يمكن الحفظ قبل مراجعة الدفعات.`
-        );
-    }
-
-    const header = isSales
-        ? {
-            customer_name: name,
-            customer_phone: text(body.customer_phone) || null,
-            invoice_date: text(body.invoice_date) ||
-                invoices[0].invoice_date,
-            subtotal,
-            discount,
-            shipping_cost: extra,
-            total,
-            notes: text(body.notes) || null
-        }
-        : {
-            supplier_name: name,
-            supplier_invoice_number:
-                text(body.supplier_invoice_number) || null,
-            invoice_date: text(body.invoice_date) ||
-                invoices[0].invoice_date,
-            subtotal,
-            discount,
-            additional_cost: extra,
-            total,
-            notes: text(body.notes) || null
-        };
-
-    // نجهز الأصناف الجديدة ونضيفها أولًا.
-    // لا نحذف الأصناف القديمة إلا بعد نجاح الإضافة.
-    const newRows = normalizedItems.map(item => {
-        const row = {
-            invoice_id: id,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            line_total: round(item.quantity * item.unit_price),
-            notes: text(item.notes) || null,
-            unit: text(item.unit) || 'قطعة',
-            category: text(item.category) || 'أخرى'
-        };
-
-        if (isSales) {
-            row.product_name = item.name;
-            row.product_id = text(item.product_id) || null;
-        } else {
-            row.item_name = item.name;
-        }
-
-        return row;
-    });
-
-    // نحفظ الأصناف الجديدة مؤقتًا قبل تغيير الفاتورة
-    const insertedItems = await db(itemsTable, 'POST', {}, newRows);
-
-    if (
-        !Array.isArray(insertedItems) ||
-        insertedItems.length !== newRows.length
-    ) {
-        fail(
-            'لم يتم تأكيد حفظ كل الأصناف الجديدة. راجع الفاتورة قبل إعادة المحاولة.'
-        );
-    }
-
-    try {
-        // تحديث بيانات الفاتورة نفسها
-        await db(invoiceTable, 'PATCH', {
-            id: `eq.${id}`
-        }, header);
-
-        // حذف الأصناف القديمة فقط بعد نجاح حفظ الجديدة وتحديث الفاتورة
-        // نستخدم معرفات الأصناف القديمة حتى لا نحذف الأصناف الجديدة.
-        const oldItems = await readRows(itemsTable, {
-            select: 'id',
-            invoice_id: `eq.${id}`
-        });
-
-        const newIds = new Set(
-            insertedItems.map(item => String(item.id))
-        );
-
-        const oldIds = oldItems
-            .filter(item => !newIds.has(String(item.id)))
-            .map(item => item.id);
-
-        for (const oldId of oldIds) {
-            await db(itemsTable, 'DELETE', {
-                id: `eq.${oldId}`,
-                invoice_id: `eq.${id}`
-            });
-        }
-    } catch (error) {
-        console.error('ACCOUNTING INVOICE UPDATE ERROR:', error);
-        throw new Error(
-            'تعذر إكمال تعديل الفاتورة. راجع الفاتورة وأصنافها في قاعدة البيانات قبل إعادة المحاولة.'
-        );
-    }
-
-    return res.status(200).json({
-        success: true,
-        message: 'تم تعديل الفاتورة بنجاح.',
-        invoice: { ...invoices[0], ...header, id },
-        subtotal,
-        discount,
-        extra,
-        total,
-        paid,
-        remaining: round(total - paid)
-    });
-}
-            if (action === 'create-sales' || action === 'create-purchase') {
-                const isSales = action === 'create-sales';
-                const type = isSales ? 'sales' : 'purchases';
-                const items = body.items;
-                const name = text(isSales ? body.customer_name : body.supplier_name);
-
-                if (!name) fail(isSales ? 'اسم العميل مطلوب.' : 'اسم المورد مطلوب.');
-
-                if (!Array.isArray(items) || items.length === 0) {
+                if (!Array.isArray(body.items) || body.items.length === 0) {
                     fail('أضف صنفًا واحدًا على الأقل.');
                 }
 
-                const normalizedItems = items.map(item => {
-                    const itemName = text(item.item_name || item.product_name || item.name);
+                const normalizedItems = body.items.map(item => {
+                    const itemName = text(
+                        item.item_name || item.product_name || item.name
+                    );
                     const quantity = money(item.quantity);
                     const unitPrice = money(item.unit_price);
 
@@ -709,18 +522,235 @@ if (action === 'update-sales' || action === 'update-purchase') {
                     };
                 });
 
-                const subtotal = Math.round(normalizedItems.reduce(
-                    (sum, item) => sum + item.quantity * item.unit_price, 0
-                ) * 100) / 100;
+                const round = value =>
+                    Math.round((value + Number.EPSILON) * 100) / 100;
+
+                const subtotal = round(
+                    normalizedItems.reduce(
+                        (sum, item) => sum + item.quantity * item.unit_price,
+                        0
+                    )
+                );
 
                 const discount = money(body.discount);
-                const extra = money(isSales ? body.shipping_cost : body.additional_cost);
+                const extra = money(
+                    isSales ? body.shipping_cost : body.additional_cost
+                );
+
+                if (discount < 0 || extra < 0 || discount > subtotal) {
+                    fail('راجع الخصم والمصاريف الإضافية.');
+                }
+
+                const total = round(subtotal - discount + extra);
+
+                const invoiceTable = isSales
+                    ? 'accounting_sales_invoices'
+                    : 'accounting_purchase_invoices';
+
+                const itemsTable = isSales
+                    ? 'accounting_sales_invoice_items'
+                    : 'accounting_purchase_invoice_items';
+
+                const paymentTable = isSales
+                    ? 'accounting_customer_receipts'
+                    : 'accounting_supplier_payments';
+
+                const paymentForeignKey = isSales
+                    ? 'sales_invoice_id'
+                    : 'purchase_invoice_id';
+
+                const invoices = await readRows(invoiceTable, {
+                    select: '*',
+                    id: `eq.${id}`,
+                    limit: 1
+                });
+
+                if (!invoices.length) {
+                    fail('الفاتورة المطلوب تعديلها غير موجودة.', 404);
+                }
+
+                const payments = await readRows(paymentTable, {
+                    select: 'amount',
+                    [paymentForeignKey]: `eq.${id}`
+                });
+
+                const paid = round(
+                    payments.reduce(
+                        (sum, payment) => sum + money(payment.amount), 0
+                    )
+                );
+
+                if (paid > total + 0.001) {
+                    fail(
+                        `إجمالي الفاتورة الجديد (${total.toFixed(2)}) أقل من المدفوع سابقًا (${paid.toFixed(2)}). لا يمكن الحفظ قبل مراجعة الدفعات.`
+                    );
+                }
+
+                const header = isSales
+                    ? {
+                        customer_name: name,
+                        customer_phone: text(body.customer_phone) || null,
+                        invoice_date: text(body.invoice_date) ||
+                            invoices[0].invoice_date,
+                        subtotal,
+                        discount,
+                        shipping_cost: extra,
+                        total,
+                        notes: text(body.notes) || null
+                    }
+                    : {
+                        supplier_name: name,
+                        supplier_invoice_number:
+                            text(body.supplier_invoice_number) || null,
+                        invoice_date: text(body.invoice_date) ||
+                            invoices[0].invoice_date,
+                        subtotal,
+                        discount,
+                        additional_cost: extra,
+                        total,
+                        notes: text(body.notes) || null
+                    };
+
+                const newRows = normalizedItems.map(item => {
+                    const row = {
+                        invoice_id: id,
+                        quantity: item.quantity,
+                        unit_price: item.unit_price,
+                        line_total: round(item.quantity * item.unit_price),
+                        notes: text(item.notes) || null,
+                        unit: text(item.unit) || 'قطعة',
+                        category: text(item.category) || 'أخرى'
+                    };
+
+                    if (isSales) {
+                        row.product_name = item.name;
+                        row.product_id = text(item.product_id) || null;
+                    } else {
+                        row.item_name = item.name;
+                    }
+
+                    return row;
+                });
+
+                const insertedItems = await db(itemsTable, 'POST', {}, newRows);
+
+                if (
+                    !Array.isArray(insertedItems) ||
+                    insertedItems.length !== newRows.length
+                ) {
+                    fail(
+                        'لم يتم تأكيد حفظ كل الأصناف الجديدة. راجع الفاتورة قبل إعادة المحاولة.'
+                    );
+                }
+
+                try {
+                    const updatedRows = await db(
+                        invoiceTable,
+                        'PATCH',
+                        { id: `eq.${id}` },
+                        header
+                    );
+
+                    if (!Array.isArray(updatedRows) || !updatedRows.length) {
+                        fail('لم يتم تأكيد تعديل بيانات الفاتورة.');
+                    }
+
+                    const oldItems = await readRows(itemsTable, {
+                        select: 'id',
+                        invoice_id: `eq.${id}`
+                    });
+
+                    const newIds = new Set(
+                        insertedItems.map(item => String(item.id))
+                    );
+
+                    const oldIds = oldItems
+                        .filter(item => !newIds.has(String(item.id)))
+                        .map(item => item.id);
+
+                    for (const oldId of oldIds) {
+                        await db(itemsTable, 'DELETE', {
+                            id: `eq.${oldId}`,
+                            invoice_id: `eq.${id}`
+                        });
+                    }
+                } catch (error) {
+                    console.error('ACCOUNTING INVOICE UPDATE ERROR:', error);
+                    throw new Error(
+                        'تعذر إكمال تعديل الفاتورة. راجع الفاتورة وأصنافها في قاعدة البيانات قبل إعادة المحاولة.'
+                    );
+                }
+
+                return res.status(200).json({
+                    success: true,
+                    message: 'تم تعديل الفاتورة بنجاح.',
+                    invoice: { ...invoices[0], ...header, id },
+                    subtotal,
+                    discount,
+                    extra,
+                    total,
+                    paid,
+                    remaining: round(total - paid)
+                });
+            }
+
+            // ==================================================
+            // إنشاء فاتورة مبيعات أو مشتريات
+            // ==================================================
+            if (action === 'create-sales' || action === 'create-purchase') {
+                const isSales = action === 'create-sales';
+                const items = body.items;
+                const name = text(
+                    isSales ? body.customer_name : body.supplier_name
+                );
+
+                if (!name) {
+                    fail(isSales ? 'اسم العميل مطلوب.' : 'اسم المورد مطلوب.');
+                }
+
+                if (!Array.isArray(items) || items.length === 0) {
+                    fail('أضف صنفًا واحدًا على الأقل.');
+                }
+
+                const normalizedItems = items.map(item => {
+                    const itemName = text(
+                        item.item_name || item.product_name || item.name
+                    );
+                    const quantity = money(item.quantity);
+                    const unitPrice = money(item.unit_price);
+
+                    if (!itemName || quantity <= 0 || unitPrice < 0) {
+                        fail('راجع أسماء الأصناف والكميات والأسعار.');
+                    }
+
+                    return {
+                        ...item,
+                        name: itemName,
+                        quantity,
+                        unit_price: unitPrice
+                    };
+                });
+
+                const subtotal = Math.round(
+                    normalizedItems.reduce(
+                        (sum, item) => sum + item.quantity * item.unit_price,
+                        0
+                    ) * 100
+                ) / 100;
+
+                const discount = money(body.discount);
+                const extra = money(
+                    isSales ? body.shipping_cost : body.additional_cost
+                );
 
                 if (discount < 0 || extra < 0 || discount > subtotal) {
                     fail('راجع قيمة الخصم والمصاريف الإضافية.');
                 }
 
-                const total = Math.round((subtotal - discount + extra) * 100) / 100;
+                const total = Math.round(
+                    (subtotal - discount + extra) * 100
+                ) / 100;
+
                 const initialPaid = money(body.initial_paid);
 
                 if (initialPaid < 0 || initialPaid > total) {
@@ -730,12 +760,15 @@ if (action === 'update-sales' || action === 'update-purchase') {
                 const invoiceNumber = text(body.invoice_number) ||
                     `${isSales ? 'SAL' : 'PUR'}-${Date.now()}`;
 
+                const invoiceDate = text(body.invoice_date) ||
+                    new Date().toISOString().slice(0, 10);
+
                 const header = isSales
                     ? {
                         invoice_number: invoiceNumber,
                         customer_name: name,
                         customer_phone: text(body.customer_phone) || null,
-                        invoice_date: text(body.invoice_date) || new Date().toISOString().slice(0, 10),
+                        invoice_date: invoiceDate,
                         subtotal,
                         discount,
                         shipping_cost: extra,
@@ -746,8 +779,9 @@ if (action === 'update-sales' || action === 'update-purchase') {
                     : {
                         invoice_number: invoiceNumber,
                         supplier_name: name,
-                        supplier_invoice_number: text(body.supplier_invoice_number) || null,
-                        invoice_date: text(body.invoice_date) || new Date().toISOString().slice(0, 10),
+                        supplier_invoice_number:
+                            text(body.supplier_invoice_number) || null,
+                        invoice_date: invoiceDate,
                         subtotal,
                         discount,
                         additional_cost: extra,
@@ -772,7 +806,9 @@ if (action === 'update-sales' || action === 'update-purchase') {
                             invoice_id: invoice.id,
                             quantity: item.quantity,
                             unit_price: item.unit_price,
-                            line_total: Math.round(item.quantity * item.unit_price * 100) / 100,
+                            line_total: Math.round(
+                                item.quantity * item.unit_price * 100
+                            ) / 100,
                             notes: text(item.notes) || null,
                             unit: text(item.unit) || 'قطعة',
                             category: text(item.category) || 'أخرى'
@@ -792,16 +828,18 @@ if (action === 'update-sales' || action === 'update-purchase') {
 
                     if (initialPaid > 0) {
                         const paymentMethod = text(body.payment_method) || 'كاش';
+                        const paymentDate = text(body.payment_date) || invoiceDate;
 
                         if (isSales) {
                             await insertOne('accounting_customer_receipts', {
                                 customer_name: name,
                                 customer_id: invoice.customer_id || null,
                                 sales_invoice_id: invoice.id,
-                                receipt_date: text(body.payment_date) || header.invoice_date,
+                                receipt_date: paymentDate,
                                 amount: initialPaid,
                                 payment_method: paymentMethod,
-                                reference_number: text(body.reference_number) || null,
+                                reference_number:
+                                    text(body.reference_number) || null,
                                 notes: 'دفعة عند إنشاء الفاتورة'
                             });
                         } else {
@@ -809,10 +847,11 @@ if (action === 'update-sales' || action === 'update-purchase') {
                                 supplier_name: name,
                                 supplier_id: invoice.supplier_id || null,
                                 purchase_invoice_id: invoice.id,
-                                payment_date: text(body.payment_date) || header.invoice_date,
+                                payment_date: paymentDate,
                                 amount: initialPaid,
                                 payment_method: paymentMethod,
-                                reference_number: text(body.reference_number) || null,
+                                reference_number:
+                                    text(body.reference_number) || null,
                                 notes: 'دفعة عند إنشاء الفاتورة'
                             });
                         }
@@ -837,10 +876,15 @@ if (action === 'update-sales' || action === 'update-purchase') {
                 });
             }
 
+            // ==================================================
+            // تحصيل من عميل أو دفعة لمورد
+            // ==================================================
             if (action === 'receipt' || action === 'supplier-payment') {
                 const isReceipt = action === 'receipt';
                 const amount = money(body.amount);
-                const name = text(isReceipt ? body.customer_name : body.supplier_name);
+                const name = text(
+                    isReceipt ? body.customer_name : body.supplier_name
+                );
                 const invoiceId = text(body.invoice_id);
 
                 if (!name) fail('اسم العميل أو المورد مطلوب.');
@@ -857,24 +901,35 @@ if (action === 'update-sales' || action === 'update-purchase') {
                     limit: 1
                 });
 
-                if (!invoices.length) fail('الفاتورة المرتبطة بالدفعة غير موجودة.', 404);
+                if (!invoices.length) {
+                    fail('الفاتورة المرتبطة بالدفعة غير موجودة.', 404);
+                }
 
                 const invoice = invoices[0];
+
                 const paymentTable = isReceipt
                     ? 'accounting_customer_receipts'
                     : 'accounting_supplier_payments';
 
-                const foreignKey = isReceipt ? 'sales_invoice_id' : 'purchase_invoice_id';
+                const foreignKey = isReceipt
+                    ? 'sales_invoice_id'
+                    : 'purchase_invoice_id';
+
                 const existingPayments = await readRows(paymentTable, {
                     select: 'amount',
                     [foreignKey]: `eq.${invoiceId}`
                 });
 
-                const alreadyPaid = existingPayments.reduce((sum, p) => sum + money(p.amount), 0);
+                const alreadyPaid = existingPayments.reduce(
+                    (sum, payment) => sum + money(payment.amount), 0
+                );
+
                 const remaining = money(invoice.total) - alreadyPaid;
 
                 if (amount > remaining + 0.001) {
-                    fail(`قيمة الدفعة أكبر من المتبقي على الفاتورة (${Math.max(0, remaining).toFixed(2)}).`);
+                    fail(
+                        `قيمة الدفعة أكبر من المتبقي على الفاتورة (${Math.max(0, remaining).toFixed(2)}).`
+                    );
                 }
 
                 const payment = isReceipt
@@ -883,20 +938,24 @@ if (action === 'update-sales' || action === 'update-purchase') {
                         customer_id: invoice.customer_id || null,
                         sales_invoice_id: invoiceId,
                         order_number: invoice.order_number || null,
-                        receipt_date: text(body.payment_date) || new Date().toISOString().slice(0, 10),
+                        receipt_date: text(body.payment_date) ||
+                            new Date().toISOString().slice(0, 10),
                         amount,
                         payment_method: text(body.payment_method) || 'كاش',
-                        reference_number: text(body.reference_number) || null,
+                        reference_number:
+                            text(body.reference_number) || null,
                         notes: text(body.notes) || null
                     }
                     : {
                         supplier_name: name,
                         supplier_id: invoice.supplier_id || null,
                         purchase_invoice_id: invoiceId,
-                        payment_date: text(body.payment_date) || new Date().toISOString().slice(0, 10),
+                        payment_date: text(body.payment_date) ||
+                            new Date().toISOString().slice(0, 10),
                         amount,
                         payment_method: text(body.payment_method) || 'كاش',
-                        reference_number: text(body.reference_number) || null,
+                        reference_number:
+                            text(body.reference_number) || null,
                         notes: text(body.notes) || null
                     };
 
@@ -907,28 +966,27 @@ if (action === 'update-sales' || action === 'update-purchase') {
                     message: 'تم تسجيل الدفعة.',
                     payment: saved,
                     paid: alreadyPaid + amount,
-                    remaining: Math.max(0, money(invoice.total) - alreadyPaid - amount)
+                    remaining: Math.max(
+                        0,
+                        money(invoice.total) - alreadyPaid - amount
+                    )
                 });
             }
 
-                      // =====================================================
-            // تسجيل مصروف جديد
-            // =====================================================
+            // ==================================================
+            // تسجيل مصروف
+            // ==================================================
             if (action === 'expense') {
                 const description = text(body.description);
                 const amount = money(body.amount);
 
-                if (!description) {
-                    fail('وصف المصروف مطلوب.');
-                }
-
+                if (!description) fail('وصف المصروف مطلوب.');
                 if (amount <= 0) {
                     fail('قيمة المصروف يجب أن تكون أكبر من صفر.');
                 }
 
                 const expense = await insertOne('accounting_expenses', {
-                    expense_date:
-                        text(body.expense_date) ||
+                    expense_date: text(body.expense_date) ||
                         new Date().toISOString().slice(0, 10),
                     category: text(body.category) || 'other',
                     description,
@@ -946,9 +1004,9 @@ if (action === 'update-sales' || action === 'update-purchase') {
                 });
             }
 
-            // =====================================================
-            // تعديل مصروف موجود
-            // =====================================================
+            // ==================================================
+            // تعديل مصروف
+            // ==================================================
             if (action === 'update-expense') {
                 const id = text(body.id);
                 const description = text(body.description);
@@ -956,14 +1014,8 @@ if (action === 'update-sales' || action === 'update-purchase') {
                 const expenseDate = text(body.expense_date);
                 const category = text(body.category) || 'other';
 
-                if (!id) {
-                    fail('رقم المصروف مطلوب للتعديل.');
-                }
-
-                if (!description) {
-                    fail('وصف المصروف مطلوب.');
-                }
-
+                if (!id) fail('رقم المصروف مطلوب للتعديل.');
+                if (!description) fail('وصف المصروف مطلوب.');
                 if (amount <= 0) {
                     fail('قيمة المصروف يجب أن تكون أكبر من صفر.');
                 }
@@ -975,14 +1027,11 @@ if (action === 'update-sales' || action === 'update-purchase') {
                     fail('تاريخ المصروف غير صحيح.');
                 }
 
-                const existing = await readRows(
-                    'accounting_expenses',
-                    {
-                        select: 'id',
-                        id: `eq.${id}`,
-                        limit: 1
-                    }
-                );
+                const existing = await readRows('accounting_expenses', {
+                    select: 'id',
+                    id: `eq.${id}`,
+                    limit: 1
+                });
 
                 if (!existing.length) {
                     fail('المصروف المطلوب تعديله غير موجود.', 404);
@@ -998,18 +1047,13 @@ if (action === 'update-sales' || action === 'update-purchase') {
                         description,
                         recipient: text(body.recipient) || null,
                         amount,
-                        payment_method:
-                            text(body.payment_method) || 'كاش',
-                        reference_number:
-                            text(body.reference_number) || null,
+                        payment_method: text(body.payment_method) || 'كاش',
+                        reference_number: text(body.reference_number) || null,
                         notes: text(body.notes) || null
                     }
                 );
 
-                if (
-                    !Array.isArray(updatedRows) ||
-                    updatedRows.length === 0
-                ) {
+                if (!Array.isArray(updatedRows) || !updatedRows.length) {
                     fail('لم يتم تأكيد تعديل المصروف.');
                 }
 
@@ -1020,24 +1064,19 @@ if (action === 'update-sales' || action === 'update-purchase') {
                 });
             }
 
-            // =====================================================
-            // حذف مصروف موجود
-            // =====================================================
+            // ==================================================
+            // حذف مصروف
+            // ==================================================
             if (action === 'delete-expense') {
                 const id = text(body.id);
 
-                if (!id) {
-                    fail('رقم المصروف مطلوب للحذف.');
-                }
+                if (!id) fail('رقم المصروف مطلوب للحذف.');
 
-                const existing = await readRows(
-                    'accounting_expenses',
-                    {
-                        select: 'id,description,amount',
-                        id: `eq.${id}`,
-                        limit: 1
-                    }
-                );
+                const existing = await readRows('accounting_expenses', {
+                    select: 'id,description,amount',
+                    id: `eq.${id}`,
+                    limit: 1
+                });
 
                 if (!existing.length) {
                     fail('المصروف المطلوب حذفه غير موجود.', 404);
@@ -1049,10 +1088,7 @@ if (action === 'update-sales' || action === 'update-purchase') {
                     { id: `eq.${id}` }
                 );
 
-                if (
-                    !Array.isArray(deletedRows) ||
-                    deletedRows.length === 0
-                ) {
+                if (!Array.isArray(deletedRows) || !deletedRows.length) {
                     fail(
                         'لم يتم تأكيد حذف المصروف. تحقق من صلاحيات قاعدة البيانات.'
                     );
@@ -1064,7 +1100,7 @@ if (action === 'update-sales' || action === 'update-purchase') {
                     deletedExpense: deletedRows[0]
                 });
             }
-                    }
+        }
 
         return res.status(405).json({
             success: false,
