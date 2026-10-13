@@ -13658,7 +13658,115 @@ async function accountingRequest(action, options = {}) {
     }
 
     return result;
+}      
+
+
+
+async function deleteAccountingExpense(id) {
+    const expenseId = String(id ?? '').trim();
+
+    if (!expenseId) {
+        alert('رقم المصروف غير صحيح.');
+        return;
+    }
+
+    const expense = Array.isArray(accountingExpensesCache)
+        ? accountingExpensesCache.find(
+            item => String(item.id) === expenseId
+        )
+        : null;
+
+    const description = expense?.description || 'هذا المصروف';
+    const amount = Number(expense?.amount);
+
+    const confirmed = confirm(
+        `هل أنت متأكد من حذف "${description}" نهائيًا؟\n` +
+        (
+            Number.isFinite(amount)
+                ? `قيمة المصروف: ${accountingMoney(amount)}\n`
+                : ''
+        ) +
+        '\nهذا الإجراء نهائي وسيؤثر على إجمالي المصروفات وصافي الربح.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+        const result = await accountingRequest('delete-expense', {
+            method: 'POST',
+            body: { id: expenseId }
+        });
+
+        // تحديث الملخص المالي من قاعدة البيانات
+        const dashboardResult = await accountingRequest('dashboard');
+        const data = dashboardResult.dashboard;
+
+        if (!data) {
+            throw new Error(
+                'تم إرسال طلب الحذف، لكن تعذر تحميل الملخص المالي. حدّث الصفحة للتحقق من النتيجة.'
+            );
+        }
+
+        const fields = {
+            'acc-total-sales': 'totalSales',
+            'acc-customer-receivables': 'customerReceivables',
+            'acc-total-purchases': 'totalPurchases',
+            'acc-supplier-payables': 'supplierPayables',
+            'acc-total-receipts': 'totalReceipts',
+            'acc-total-supplier-payments': 'totalSupplierPayments',
+            'acc-total-expenses': 'totalExpenses',
+            'acc-net-profit': 'netProfit'
+        };
+
+        Object.entries(fields).forEach(([elementId, field]) => {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            const value = Number(data[field]);
+
+            element.textContent =
+                data[field] !== null &&
+                data[field] !== undefined &&
+                data[field] !== '' &&
+                Number.isFinite(value)
+                    ? accountingMoney(value)
+                    : '—';
+        });
+
+        // تحديث سجل المصروفات بشكل مستقل
+        await loadAccountingExpenses();
+
+        // التحقق أن المصروف لم يعد موجودًا في السجل المحمّل
+        const stillExists = accountingExpensesCache.some(
+            item => String(item.id) === expenseId
+        );
+
+        if (stillExists) {
+            accountingMessage(
+                'تم تنفيذ طلب الحذف، لكن المصروف ما زال ظاهرًا في السجل. راجع قاعدة البيانات قبل إعادة المحاولة.',
+                true
+            );
+            return;
+        }
+
+        accountingMessage(
+            result.message || 'تم حذف المصروف وتحديث الحسابات بنجاح.',
+            false
+        );
+
+    } catch (error) {
+        console.error('DELETE ACCOUNTING EXPENSE ERROR:', error);
+
+        accountingMessage(
+            error.message ||
+            'تعذر تأكيد حذف المصروف وتحديث الحسابات.',
+            true
+        );
+    }
 }
+
+
+
         
 // إظهار رسائل النجاح والخطأ
 function accountingMessage(message, isError = false) {
@@ -13817,7 +13925,8 @@ async function loadAccountingExpenses() {
 // =====================================================
 
 
-        function filterAccountingExpenses(searchValue) {
+      
+function filterAccountingExpenses(searchValue) {
     const tbody = document.getElementById('acc-expenses-table-body');
     const count = document.getElementById('acc-expenses-count');
 
@@ -13825,7 +13934,10 @@ async function loadAccountingExpenses() {
 
     const search = String(searchValue || '').trim().toLowerCase();
 
-    const filtered = accountingExpensesCache.filter(function (expense) {
+    const filtered = (Array.isArray(accountingExpensesCache)
+        ? accountingExpensesCache
+        : []
+    ).filter(function (expense) {
         const values = [
             expense.id,
             expense.recipient,
@@ -13878,8 +13990,6 @@ async function loadAccountingExpenses() {
             categories[expense.category] || expense.category || '—';
 
         const amount = Number(expense.amount);
-
-        // نتجنب وضع المعرّف الخام داخل كود JavaScript في HTML.
         const expenseId = String(expense.id ?? '');
 
         return `
@@ -13906,7 +14016,9 @@ async function loadAccountingExpenses() {
 
                 <td class="p-3 whitespace-nowrap font-bold text-amber-400">
                     ${escapeAccountingExpenseHtml(
-                        Number.isFinite(amount) ? accountingMoney(amount) : '—'
+                        Number.isFinite(amount)
+                            ? accountingMoney(amount)
+                            : '—'
                     )}
                 </td>
 
@@ -13939,6 +14051,7 @@ async function loadAccountingExpenses() {
         `;
     }).join('');
 }
+
 
 // =====================================================
 // حماية النصوص المعروضة في جدول المصروفات
