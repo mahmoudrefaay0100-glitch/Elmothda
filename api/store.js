@@ -52,15 +52,15 @@ export default async function handler(req, res) {
                 Prefer: 'return=representation'
             };
 
-            const response = await fetch(url, {
-                method,
-                headers,
-                body:
-                    body !== null
-                        ? JSON.stringify(body)
-                        : undefined,
-                cache: 'no-store'
-            });
+           const response = await fetch(url, {
+    method,
+    headers,
+    body: body !== null
+        ? JSON.stringify(body)
+        : undefined,
+    cache: 'no-store',
+    signal: AbortSignal.timeout(7000)
+});
 
             const responseText = await response.text();
 
@@ -263,111 +263,100 @@ export default async function handler(req, res) {
             });
         }
 
+       
         // =====================================================
-        // GET: LOAD PRODUCTS
+        // LOAD ALL STORE DATA IN PARALLEL
         // =====================================================
 
-        const products =
-            await supabaseRequest(
+        const [
+            products,
+            offers,
+            categories,
+            siteSettings,
+            shippingOptions,
+            upholsteryTypes,
+            storeColors
+        ] = await Promise.all([
+            supabaseRequest(
                 'products',
                 'GET',
                 'select=*'
-            );
-
-        // =====================================================
-        // NORMALIZE PRODUCT SUNBADGE FEE
-        //
-        // sunbadge_fee = رسوم القطعة الواحدة.
-        // لا نضرب الرسوم في الكمية هنا.
-        // حساب إجمالي الرسوم يتم في السلة والطلب:
-        // رسوم القطعة الواحدة × كمية السطر.
-        // =====================================================
-
-        const normalizedProducts =
-            (Array.isArray(products) ? products : [])
-                .map(product => {
-                    const rawFee =
-                        product.sunbadge_fee ??
-                        product.sunbadgeFee ??
-                        0;
-
-                    const sunbadgeFee =
-                        safeNumber(rawFee, 0);
-
-                    return {
-                        ...product,
-
-                        // اسم موحد للواجهة
-                        sunbadge_fee: sunbadgeFee,
-                        sunbadgeFee: sunbadgeFee
-                    };
-                });
-
-        // =====================================================
-        // LOAD OFFERS
-        // =====================================================
-
-        const offers =
-            await supabaseRequest(
+            ),
+            supabaseRequest(
                 'offers',
                 'GET',
                 'select=*&order=sort_order.asc,created_at.desc'
-            );
-
-        // =====================================================
-        // LOAD CATEGORIES
-        // =====================================================
-
-        const categories =
-            await supabaseRequest(
+            ),
+            supabaseRequest(
                 'categories',
                 'GET',
                 'select=*'
-            );
-
-        // =====================================================
-        // LOAD SITE SETTINGS
-        // =====================================================
-
-        const siteSettings =
-            await supabaseRequest(
+            ),
+            supabaseRequest(
                 'site_settings',
                 'GET',
                 'select=*'
-            );
-
-        // =====================================================
-        // LOAD SHIPPING OPTIONS
-        // =====================================================
-
-        const shippingOptions =
-            await supabaseRequest(
+            ),
+            supabaseRequest(
                 'shipping_options',
                 'GET',
                 'select=*'
-            );
-
-        // =====================================================
-        // LOAD UPHOLSTERY TYPES
-        // =====================================================
-
-        const upholsteryTypes =
-            await supabaseRequest(
+            ),
+            supabaseRequest(
                 'upholstery_types',
                 'GET',
                 'select=*'
-            );
-
-        // =====================================================
-        // LOAD STORE COLORS
-        // =====================================================
-
-        const storeColors =
-            await supabaseRequest(
+            ),
+            supabaseRequest(
                 'store_colors',
                 'GET',
                 'select=*'
-            );
+            )
+        ]);
+
+        // =====================================================
+        // NORMALIZE PRODUCT SUNBADGE FEE
+        // =====================================================
+
+        function normalizeProduct(product) {
+            const rawFee =
+                product.sunbadge_fee ??
+                product.sunbadgeFee ??
+                0;
+
+            const sunbadgeFee = safeNumber(rawFee, 0);
+
+            return {
+                ...product,
+                sunbadge_fee: sunbadgeFee,
+                sunbadgeFee: sunbadgeFee
+            };
+        }
+
+        const normalizedProducts = (
+            Array.isArray(products) ? products : []
+        ).map(normalizeProduct);
+
+        // =====================================================
+        // SPLIT COLORS BY TYPE
+        // =====================================================
+
+        const allColors = Array.isArray(storeColors)
+            ? storeColors
+            : [];
+
+        const cushionColors = allColors.filter(
+            color => color.type === 'cushion'
+        );
+
+        const wickerColors = allColors.filter(
+            color => color.type === 'wicker'
+        );
+
+        const woodColors = allColors.filter(
+            color => color.type === 'wood'
+        );
+
 
         // =====================================================
         // SPLIT COLORS BY TYPE
