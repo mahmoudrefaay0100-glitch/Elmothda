@@ -14452,6 +14452,80 @@ async function loadAccountingInvoices(type, search = '') {
     }
 }
 
+        
+async function deleteAccountingInvoice(id, type) {
+    id = String(id ?? '').trim();
+
+    if (!id || !['sales', 'purchases'].includes(type)) {
+        alert('رقم الفاتورة أو نوعها غير صحيح.');
+        return;
+    }
+
+    const invoiceType = type === 'sales'
+        ? 'فاتورة المبيعات'
+        : 'فاتورة المشتريات';
+
+    if (!confirm(
+        `هل أنت متأكد من حذف ${invoiceType} رقم ${id}؟\n` +
+        'لا يمكن التراجع عن هذا الإجراء.'
+    )) {
+        return;
+    }
+
+    try {
+        const token = typeof accountingGetToken === 'function'
+            ? accountingGetToken()
+            : '';
+
+        if (!token) {
+            throw new Error('جلسة الأدمن غير موجودة. سجّل الدخول مجددًا.');
+        }
+
+        const response = await fetch(
+            '/api/accounting?action=delete-invoice',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: 'Bearer ' + token
+                },
+                body: JSON.stringify({ id, type }),
+                cache: 'no-store'
+            }
+        );
+
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok || result.success !== true) {
+            throw new Error(result.error || 'تعذر حذف الفاتورة.');
+        }
+
+        alert(result.message || 'تم حذف الفاتورة بنجاح.');
+
+        const searchInput = document.getElementById(
+            type === 'sales'
+                ? 'acc-sales-search'
+                : 'acc-purchases-search'
+        );
+
+        await loadAccountingInvoices(
+            type,
+            searchInput ? searchInput.value : ''
+        );
+
+        if (typeof renderAdminAccounting === 'function') {
+            await renderAdminAccounting();
+        }
+
+    } catch (error) {
+        console.error('DELETE ACCOUNTING INVOICE ERROR:', error);
+        alert(error.message || 'حدث خطأ أثناء حذف الفاتورة.');
+    }
+}
+
+// إتاحة الدالة لأزرار onclick الموجودة في الصفحة
+window.deleteAccountingInvoice = deleteAccountingInvoice;
+
 
 // البحث في الفواتير
 function searchAccountingInvoices(event, type) {
