@@ -298,6 +298,46 @@ export default async function handler(req, res) {
                 });
             }
 
+
+            
+            // ==============================================
+            // سجل المصروفات والبحث فيها
+            // GET /api/accounting?action=expenses
+            // ==============================================
+            if (action === 'expenses') {
+                const rows = await readRows('accounting_expenses', {
+                    select: '*',
+                    order: 'expense_date.desc',
+                    limit: 1000
+                });
+
+                const search = text(req.query?.search)
+                    .trim()
+                    .toLowerCase();
+
+                const filtered = search
+                    ? rows.filter(expense => [
+                        expense.recipient,
+                        expense.description,
+                        expense.category,
+                        expense.reference_number,
+                        expense.notes,
+                        expense.payment_method,
+                        expense.expense_date
+                    ].some(value =>
+                        text(value).toLowerCase().includes(search)
+                    ))
+                    : rows;
+
+                return res.status(200).json({
+                    success: true,
+                    expenses: filtered,
+                    count: filtered.length
+                });
+            }
+
+
+            
             // ==============================================
             // قائمة فواتير المبيعات أو المشتريات
             // ==============================================
@@ -882,6 +922,7 @@ if (action === 'update-sales' || action === 'update-purchase') {
                     expense_date: text(body.expense_date) || new Date().toISOString().slice(0, 10),
                     category: text(body.category) || 'other',
                     description,
+                    recipient: text(body.recipient) || null,
                     amount,
                     payment_method: text(body.payment_method) || 'كاش',
                     reference_number: text(body.reference_number) || null,
