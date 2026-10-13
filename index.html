@@ -13817,7 +13817,7 @@ async function loadAccountingExpenses() {
 // =====================================================
 
 
-function filterAccountingExpenses(searchValue) {
+        function filterAccountingExpenses(searchValue) {
     const tbody = document.getElementById('acc-expenses-table-body');
     const count = document.getElementById('acc-expenses-count');
 
@@ -13879,6 +13879,9 @@ function filterAccountingExpenses(searchValue) {
 
         const amount = Number(expense.amount);
 
+        // نتجنب وضع المعرّف الخام داخل كود JavaScript في HTML.
+        const expenseId = String(expense.id ?? '');
+
         return `
             <tr class="border-b border-neutral-800 hover:bg-neutral-800">
                 <td class="p-3 whitespace-nowrap">
@@ -13912,19 +13915,30 @@ function filterAccountingExpenses(searchValue) {
                 </td>
 
                 <td class="p-3 whitespace-nowrap">
-                    <button
-                        type="button"
-                        onclick="editAccountingExpense('${escapeAccountingExpenseHtml(expense.id)}')"
-                        class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-sm">
-                        <i class="fas fa-edit ml-1"></i>
-                        تعديل
-                    </button>
+                    <div class="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            data-expense-id="${escapeAccountingExpenseHtml(expenseId)}"
+                            onclick="editAccountingExpense(this.dataset.expenseId)"
+                            class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-sm">
+                            <i class="fas fa-edit ml-1"></i>
+                            تعديل
+                        </button>
+
+                        <button
+                            type="button"
+                            data-expense-id="${escapeAccountingExpenseHtml(expenseId)}"
+                            onclick="deleteAccountingExpense(this.dataset.expenseId)"
+                            class="bg-red-700 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm">
+                            <i class="fas fa-trash ml-1"></i>
+                            حذف
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
     }).join('');
 }
-
 
 // =====================================================
 // حماية النصوص المعروضة في جدول المصروفات
@@ -14156,9 +14170,7 @@ async function loadAccountingInvoices(type, search = '') {
 
     const list = document.getElementById(listId);
 
-    if (!list) {
-        return;
-    }
+    if (!list) return;
 
     list.innerHTML =
         '<tr><td colspan="5" class="p-4 text-gray-400">جارٍ تحميل الفواتير...</td></tr>';
@@ -14176,13 +14188,11 @@ async function loadAccountingInvoices(type, search = '') {
             method: 'GET',
             cache: 'no-store',
             headers: {
-                'Authorization': 'Bearer ' + token
+                Authorization: 'Bearer ' + token
             }
         });
 
-        const result = await response.json().catch(function () {
-            return {};
-        });
+        const result = await response.json().catch(() => ({}));
 
         if (!response.ok || result.success === false) {
             throw new Error(result.error || 'تعذر تحميل الفواتير.');
@@ -14202,7 +14212,6 @@ async function loadAccountingInvoices(type, search = '') {
 
         list.innerHTML = invoices.map(function (invoice) {
             const id = accountingEscape(invoice.id);
-
             const number = accountingEscape(invoice.invoice_number || '—');
 
             const name = accountingEscape(
@@ -14212,7 +14221,6 @@ async function loadAccountingInvoices(type, search = '') {
             );
 
             const date = accountingEscape(invoice.invoice_date || '—');
-
             const total = accountingMoney(invoice.total);
 
             return `
@@ -14222,22 +14230,28 @@ async function loadAccountingInvoices(type, search = '') {
                     <td class="p-3">${date}</td>
                     <td class="p-3 whitespace-nowrap">${accountingEscape(total)}</td>
                     <td class="p-3">
-                        
-<div class="flex flex-wrap gap-2">
-    <button
-        type="button"
-        onclick="viewAccountingInvoice('${id}', '${type}')"
-        class="bg-amber-600 hover:bg-amber-500 text-black px-3 py-2 rounded-lg">
-        التفاصيل
-    </button>
+                        <div class="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onclick="viewAccountingInvoice('${id}', '${type}')"
+                                class="bg-amber-600 hover:bg-amber-500 text-black px-3 py-2 rounded-lg">
+                                التفاصيل
+                            </button>
 
-    <button
-        type="button"
-        onclick="editAccountingInvoice('${id}', '${type}')"
-        class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg">
-        تعديل
-    </button>
-</div>
+                            <button
+                                type="button"
+                                onclick="editAccountingInvoice('${id}', '${type}')"
+                                class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg">
+                                تعديل
+                            </button>
+
+                            <button
+                                type="button"
+                                onclick="deleteAccountingInvoice('${id}', '${type}')"
+                                class="bg-red-700 hover:bg-red-600 text-white px-3 py-2 rounded-lg">
+                                حذف
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
