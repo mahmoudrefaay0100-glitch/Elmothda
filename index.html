@@ -14293,6 +14293,7 @@ function showAccountingPanel(panelName) {
 // عرض فواتير البيع والشراء
 // =====================================================
 
+
 async function loadAccountingInvoices(type, search = '') {
     if (!['sales', 'purchases'].includes(type)) {
         return;
@@ -14308,8 +14309,13 @@ async function loadAccountingInvoices(type, search = '') {
 
     if (!list) return;
 
-    list.innerHTML =
-        '<tr><td colspan="5" class="p-4 text-gray-400">جارٍ تحميل الفواتير...</td></tr>';
+    list.innerHTML = `
+        <tr>
+            <td colspan="5" class="p-4 text-gray-400">
+                جارٍ تحميل الفواتير...
+            </td>
+        </tr>
+    `;
 
     try {
         const query =
@@ -14341,52 +14347,90 @@ async function loadAccountingInvoices(type, search = '') {
             [];
 
         if (!Array.isArray(invoices) || invoices.length === 0) {
-            list.innerHTML =
-                '<tr><td colspan="5" class="p-4 text-gray-400">لا توجد فواتير مسجلة.</td></tr>';
+            list.innerHTML = `
+                <tr>
+                    <td colspan="5" class="p-4 text-gray-400">
+                        لا توجد فواتير مسجلة.
+                    </td>
+                </tr>
+            `;
             return;
         }
 
         list.innerHTML = invoices.map(function (invoice) {
-            const id = accountingEscape(invoice.id);
-            const number = accountingEscape(invoice.invoice_number || '—');
+            const id = String(invoice.id ?? '');
+            const safeId = accountingEscape(id);
+            const safeType = accountingEscape(type);
+
+            const number = accountingEscape(
+                invoice.invoice_number || '—'
+            );
 
             const name = accountingEscape(
                 type === 'sales'
-                    ? invoice.customer_name
-                    : invoice.supplier_name
+                    ? invoice.customer_name || '—'
+                    : invoice.supplier_name || '—'
             );
 
-            const date = accountingEscape(invoice.invoice_date || '—');
-            const total = accountingMoney(invoice.total);
+            const date = accountingEscape(
+                invoice.invoice_date || '—'
+            );
+
+            const total = accountingEscape(
+                accountingMoney(Number(invoice.total) || 0)
+            );
+
+            if (!id) {
+                return `
+                    <tr class="border-b border-neutral-800">
+                        <td class="p-3">${number}</td>
+                        <td class="p-3">${name}</td>
+                        <td class="p-3">${date}</td>
+                        <td class="p-3">${total}</td>
+                        <td class="p-3 text-red-400">
+                            رقم الفاتورة غير موجود
+                        </td>
+                    </tr>
+                `;
+            }
 
             return `
                 <tr class="border-b border-neutral-800 hover:bg-neutral-800/50">
                     <td class="p-3">${number}</td>
                     <td class="p-3">${name}</td>
                     <td class="p-3">${date}</td>
-                    <td class="p-3 whitespace-nowrap">${accountingEscape(total)}</td>
+                    <td class="p-3 whitespace-nowrap">${total}</td>
+
                     <td class="p-3">
                         <div class="flex flex-wrap gap-2">
+
                             <button
                                 type="button"
-                                onclick="viewAccountingInvoice('${id}', '${type}')"
+                                data-invoice-id="${safeId}"
+                                data-invoice-type="${safeType}"
+                                onclick="viewAccountingInvoice(this.dataset.invoiceId, this.dataset.invoiceType)"
                                 class="bg-amber-600 hover:bg-amber-500 text-black px-3 py-2 rounded-lg">
                                 التفاصيل
                             </button>
 
                             <button
                                 type="button"
-                                onclick="editAccountingInvoice('${id}', '${type}')"
+                                data-invoice-id="${safeId}"
+                                data-invoice-type="${safeType}"
+                                onclick="editAccountingInvoice(this.dataset.invoiceId, this.dataset.invoiceType)"
                                 class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg">
                                 تعديل
                             </button>
 
                             <button
                                 type="button"
-                                onclick="deleteAccountingInvoice('${id}', '${type}')"
+                                data-invoice-id="${safeId}"
+                                data-invoice-type="${safeType}"
+                                onclick="deleteAccountingInvoice(this.dataset.invoiceId, this.dataset.invoiceType)"
                                 class="bg-red-700 hover:bg-red-600 text-white px-3 py-2 rounded-lg">
                                 حذف
                             </button>
+
                         </div>
                     </td>
                 </tr>
@@ -14396,12 +14440,18 @@ async function loadAccountingInvoices(type, search = '') {
     } catch (error) {
         console.error('ACCOUNTING INVOICES ERROR:', error);
 
-        list.innerHTML =
-            '<tr><td colspan="5" class="p-4 text-red-300">' +
-            accountingEscape(error.message) +
-            '</td></tr>';
+        list.innerHTML = `
+            <tr>
+                <td colspan="5" class="p-4 text-red-300">
+                    ${accountingEscape(
+                        error.message || 'حدث خطأ أثناء تحميل الفواتير.'
+                    )}
+                </td>
+            </tr>
+        `;
     }
 }
+
 
 // البحث في الفواتير
 function searchAccountingInvoices(event, type) {
