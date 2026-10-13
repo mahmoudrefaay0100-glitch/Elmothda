@@ -1714,6 +1714,7 @@
     ></textarea>
 </div>
 
+
 <div class="md:col-span-2">
     <button
         type="submit"
@@ -1724,12 +1725,60 @@
     </button>
 </div>
 
-    <!-- مساحة تفاصيل الفاتورة -->
-    <div id="acc-invoice-details"
-         class="hidden bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-4">
+</form>
+
+<!-- سجل المصروفات -->
+<div class="mt-8 border-t border-neutral-700 pt-6 space-y-4">
+
+    <h4 class="text-lg font-bold text-white">
+        سجل المصروفات
+    </h4>
+
+    <input
+        id="acc-expenses-search"
+        type="search"
+        placeholder="ابحث باسم المستلم أو الوصف أو التصنيف أو التاريخ..."
+        oninput="filterAccountingExpenses(this.value)"
+        class="w-full bg-black border border-neutral-700 rounded-xl p-3 text-white"
+    >
+
+    <div id="acc-expenses-count" class="text-gray-400 text-sm">
+        جارٍ تحميل المصروفات...
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-right text-white">
+            <thead class="bg-black text-gray-300">
+                <tr>
+                    <th class="p-3">التاريخ</th>
+                    <th class="p-3">المستلم</th>
+                    <th class="p-3">التصنيف</th>
+                    <th class="p-3">الوصف</th>
+                    <th class="p-3">طريقة الدفع</th>
+                    <th class="p-3">المبلغ</th>
+                    <th class="p-3">ملاحظات</th>
+                </tr>
+            </thead>
+
+            <tbody id="acc-expenses-table-body">
+                <tr>
+                    <td colspan="7" class="p-4 text-center text-gray-400">
+                        جارٍ تحميل المصروفات...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
 </div>
+
+</div>
+
+<!-- مساحة تفاصيل الفاتورة -->
+<div id="acc-invoice-details"
+     class="hidden bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-4">
+</div>
+
 <!-- END ACCOUNTING TAB -->
 
         
