@@ -911,6 +911,9 @@ if (action === 'update-sales' || action === 'update-purchase') {
                 });
             }
 
+                      // =====================================================
+            // تسجيل مصروف جديد
+            // =====================================================
             if (action === 'expense') {
                 const description = text(body.description);
                 const amount = money(body.amount);
@@ -932,8 +935,7 @@ if (action === 'update-sales' || action === 'update-purchase') {
                     recipient: text(body.recipient) || null,
                     amount,
                     payment_method: text(body.payment_method) || 'كاش',
-                    reference_number:
-                        text(body.reference_number) || null,
+                    reference_number: text(body.reference_number) || null,
                     notes: text(body.notes) || null
                 });
 
@@ -944,6 +946,9 @@ if (action === 'update-sales' || action === 'update-purchase') {
                 });
             }
 
+            // =====================================================
+            // تعديل مصروف موجود
+            // =====================================================
             if (action === 'update-expense') {
                 const id = text(body.id);
                 const description = text(body.description);
@@ -993,7 +998,8 @@ if (action === 'update-sales' || action === 'update-purchase') {
                         description,
                         recipient: text(body.recipient) || null,
                         amount,
-                        payment_method: text(body.payment_method) || 'كاش',
+                        payment_method:
+                            text(body.payment_method) || 'كاش',
                         reference_number:
                             text(body.reference_number) || null,
                         notes: text(body.notes) || null
@@ -1002,7 +1008,7 @@ if (action === 'update-sales' || action === 'update-purchase') {
 
                 if (
                     !Array.isArray(updatedRows) ||
-                    !updatedRows.length
+                    updatedRows.length === 0
                 ) {
                     fail('لم يتم تأكيد تعديل المصروف.');
                 }
@@ -1013,7 +1019,52 @@ if (action === 'update-sales' || action === 'update-purchase') {
                     expense: updatedRows[0]
                 });
             }
-        }
+
+            // =====================================================
+            // حذف مصروف موجود
+            // =====================================================
+            if (action === 'delete-expense') {
+                const id = text(body.id);
+
+                if (!id) {
+                    fail('رقم المصروف مطلوب للحذف.');
+                }
+
+                const existing = await readRows(
+                    'accounting_expenses',
+                    {
+                        select: 'id,description,amount',
+                        id: `eq.${id}`,
+                        limit: 1
+                    }
+                );
+
+                if (!existing.length) {
+                    fail('المصروف المطلوب حذفه غير موجود.', 404);
+                }
+
+                const deletedRows = await db(
+                    'accounting_expenses',
+                    'DELETE',
+                    { id: `eq.${id}` }
+                );
+
+                if (
+                    !Array.isArray(deletedRows) ||
+                    deletedRows.length === 0
+                ) {
+                    fail(
+                        'لم يتم تأكيد حذف المصروف. تحقق من صلاحيات قاعدة البيانات.'
+                    );
+                }
+
+                return res.status(200).json({
+                    success: true,
+                    message: 'تم حذف المصروف بنجاح.',
+                    deletedExpense: deletedRows[0]
+                });
+            }
+                    }
 
         return res.status(405).json({
             success: false,
