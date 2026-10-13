@@ -13926,18 +13926,23 @@ async function loadAccountingExpenses() {
 
 
       
-function filterAccountingExpenses(searchValue) {
+
+function filterAccountingExpenses(searchValue = '') {
     const tbody = document.getElementById('acc-expenses-table-body');
     const count = document.getElementById('acc-expenses-count');
 
-    if (!tbody) return;
+    if (!tbody) {
+        console.error('لم يتم العثور على جدول المصروفات.');
+        return;
+    }
+
+    const expenses = Array.isArray(accountingExpensesCache)
+        ? accountingExpensesCache
+        : [];
 
     const search = String(searchValue || '').trim().toLowerCase();
 
-    const filtered = (Array.isArray(accountingExpensesCache)
-        ? accountingExpensesCache
-        : []
-    ).filter(function (expense) {
+    const filtered = expenses.filter(function (expense) {
         const values = [
             expense.id,
             expense.recipient,
@@ -13957,14 +13962,16 @@ function filterAccountingExpenses(searchValue) {
 
     if (count) {
         count.textContent =
-            `عدد المصروفات المعروضة: ${filtered.length} من ${accountingExpensesCache.length}`;
+            `عدد المصروفات المعروضة: ${filtered.length} من ${expenses.length}`;
     }
 
     if (!filtered.length) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="8" class="p-4 text-center text-gray-400">
-                    لا توجد مصروفات مطابقة للبحث.
+                    ${expenses.length
+                        ? 'لا توجد مصروفات مطابقة للبحث.'
+                        : 'لا توجد مصروفات مسجلة.'}
                 </td>
             </tr>
         `;
@@ -13990,10 +13997,13 @@ function filterAccountingExpenses(searchValue) {
             categories[expense.category] || expense.category || '—';
 
         const amount = Number(expense.amount);
-        const expenseId = String(expense.id ?? '');
+        const expenseId = String(expense.id ?? '').trim();
+
+        const safeId = escapeAccountingExpenseHtml(expenseId);
 
         return `
             <tr class="border-b border-neutral-800 hover:bg-neutral-800">
+
                 <td class="p-3 whitespace-nowrap">
                     ${escapeAccountingExpenseHtml(expense.expense_date || '—')}
                 </td>
@@ -14027,26 +14037,39 @@ function filterAccountingExpenses(searchValue) {
                 </td>
 
                 <td class="p-3 whitespace-nowrap">
-                    <div class="flex flex-wrap gap-2">
-                        <button
-                            type="button"
-                            data-expense-id="${escapeAccountingExpenseHtml(expenseId)}"
-                            onclick="editAccountingExpense(this.dataset.expenseId)"
-                            class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-sm">
-                            <i class="fas fa-edit ml-1"></i>
-                            تعديل
-                        </button>
+                    <div class="flex flex-wrap items-center gap-2">
 
-                        <button
-                            type="button"
-                            data-expense-id="${escapeAccountingExpenseHtml(expenseId)}"
-                            onclick="deleteAccountingExpense(this.dataset.expenseId)"
-                            class="bg-red-700 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm">
-                            <i class="fas fa-trash ml-1"></i>
-                            حذف
-                        </button>
+                        ${
+                            expenseId
+                                ? `
+                                    <button
+                                        type="button"
+                                        data-expense-id="${safeId}"
+                                        onclick="editAccountingExpense(this.dataset.expenseId)"
+                                        class="inline-flex items-center justify-center gap-1 bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-sm transition">
+                                        <i class="fas fa-edit"></i>
+                                        <span>تعديل</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        data-expense-id="${safeId}"
+                                        onclick="deleteAccountingExpense(this.dataset.expenseId)"
+                                        class="inline-flex items-center justify-center gap-1 bg-red-700 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm transition">
+                                        <i class="fas fa-trash"></i>
+                                        <span>حذف</span>
+                                    </button>
+                                `
+                                : `
+                                    <span class="text-red-400 text-xs">
+                                        رقم المصروف غير موجود
+                                    </span>
+                                `
+                        }
+
                     </div>
                 </td>
+
             </tr>
         `;
     }).join('');
