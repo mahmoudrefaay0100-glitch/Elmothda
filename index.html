@@ -16162,19 +16162,20 @@ function printAccountingExpenses() {
         </html>
     `;
 
-   
+     
     printWindow.document.open();
     printWindow.document.write(printHtml);
     printWindow.document.close();
 
-    printWindow.onload = function () {
-        printWindow.focus();
+    printWindow.focus();
+
+    setTimeout(function () {
         printWindow.print();
-    };
+    }, 500);
 }
 
-        </script>
 
+</script>
 
 <!-- PRODUCT DETAIL & CUSTOMIZER MODAL -->
 <div id="product-detail-modal"
