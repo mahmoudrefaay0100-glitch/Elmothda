@@ -339,8 +339,11 @@
         // قراءة آخر طلب
         // =====================================
 
-        const rawOrder =
-            sessionStorage.getItem('lastOrder');
+      
+const rawOrder =
+    sessionStorage.getItem('lastOrder') ||
+    localStorage.getItem('lastOrder');
+
 
 
         if (!rawOrder) {
