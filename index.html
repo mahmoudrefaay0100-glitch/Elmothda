@@ -2539,84 +2539,30 @@ categories: [
     }
 }
 
+
 async function saveSunbrellaRate() {
+    showToast(
+        'تم إيقاف السعر الموحد القديم. عدّل رسوم صن بيدج من بيانات المنتج نفسه.',
+        'info'
+    );
+
     const input = document.getElementById('sunbrella-rate-input');
 
-    if (!input) {
-        showToast('مش لاقي خانة سعر Sunbrella في الصفحة', 'error');
-        return;
+    if (input) {
+        input.value = '';
+        input.disabled = true;
     }
 
     const tag = document.getElementById('current-sunbrella-rate-tag');
-    const token = sessionStorage.getItem('OSCAR_ADMIN_ACCESS_TOKEN');
 
-    if (!token) {
-        showToast('انتهت جلسة الدخول. سجل دخول لوحة التحكم مرة أخرى.', 'error');
-        switchView('admin-login');
-        return;
+    if (tag) {
+        tag.textContent = 'يُحدد السعر لكل منتج';
     }
 
-    const rate = Number(input.value);
-
-    if (!Number.isFinite(rate) || rate < 0 || rate > 100000) {
-        showToast('أدخل سعرًا صحيحًا بين 0 و100000 جنيه', 'error');
-        return;
-    }
-
-    const oldValue = appState.sunbrellaRate ?? 200;
-    input.disabled = true;
-
-    try {
-        const response = await fetch('/api/store', {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
-            },
-            body: JSON.stringify({
-                sunbrellaRate: rate
-            })
-        });
-
-        const responseText = await response.text();
-        let data = {};
-
-        try {
-            data = responseText ? JSON.parse(responseText) : {};
-        } catch {
-            data = { error: responseText };
-        }
-
-        if (!response.ok || !data.success) {
-            throw new Error(data.error || 'فشل حفظ سعر Sunbrella');
-        }
-
-        appState.sunbrellaRate = Number(data.sunbrellaRate ?? rate);
-
-        if (tag) {
-            tag.textContent = appState.sunbrellaRate + ' ج.م / كرسي';
-        }
-
-        input.value = appState.sunbrellaRate;
-
-        saveState();
-
-        showToast('تم حفظ سعر Sunbrella بنجاح ✅', 'success');
-
-    } catch (error) {
-        console.error('SAVE SUNBRELLA RATE ERROR:', error);
-
-        appState.sunbrellaRate = oldValue;
-        input.value = oldValue;
-
-        showToast(
-            error?.message || 'حدث خطأ أثناء حفظ سعر Sunbrella',
-            'error'
-        );
-    } finally {
-        input.disabled = false;
-    }
+    // لا نرسل sunbrellaRate إلى /api/store
+    // ولا نغيّر رسوم المنتجات المحفوظة في قاعدة البيانات.
 }
+
         
      
 function switchView(viewName) {
