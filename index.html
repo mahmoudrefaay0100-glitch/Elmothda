@@ -14334,54 +14334,6 @@ function escapeAccountingExpenseHtml(value) {
     });
 }
 
-
-        async function loadAccountingExpenses() {
-    const tbody = document.getElementById('acc-expenses-table-body');
-    const count = document.getElementById('acc-expenses-count');
-
-    if (tbody) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" class="p-4 text-center text-gray-400">
-                    جارٍ تحميل المصروفات...
-                </td>
-            </tr>
-        `;
-    }
-
-    try {
-        const result = await accountingRequest('expenses');
-
-        accountingExpensesCache = Array.isArray(result.expenses)
-            ? result.expenses
-            : [];
-
-        const searchInput = document.getElementById('acc-expenses-search');
-
-        filterAccountingExpenses(searchInput ? searchInput.value : '');
-
-    } catch (error) {
-        console.error('LOAD ACCOUNTING EXPENSES ERROR:', error);
-
-        if (count) {
-            count.textContent = 'تعذر تحميل سجل المصروفات.';
-        }
-
-        if (tbody) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="7" class="p-4 text-center text-red-400">
-                        ${escapeAccountingExpenseHtml(
-                            error.message || 'حدث خطأ أثناء تحميل المصروفات.'
-                        )}
-                    </td>
-                </tr>
-            `;
-        }
-    }
-}
-
-
         function filterAccountingExpenses(searchValue) {
     const tbody = document.getElementById('acc-expenses-table-body');
     const count = document.getElementById('acc-expenses-count');
