@@ -15645,7 +15645,7 @@ async function saveAccountingInvoice(event, type) {
         return;
     }
 
-    // منع تكرار إرسال نفس النموذج أثناء الحفظ
+    // منع إرسال النموذج أكثر من مرة أثناء الحفظ
     if (form.dataset.submitting === 'true') {
         return;
     }
@@ -15670,6 +15670,10 @@ async function saveAccountingInvoice(event, type) {
             throw new Error('دالة الاتصال بالحسابات غير موجودة.');
         }
 
+        if (typeof calculateAccountingInvoice !== 'function') {
+            throw new Error('دالة حساب إجمالي الفاتورة غير موجودة.');
+        }
+
         if (!form.reportValidity()) {
             return;
         }
@@ -15682,33 +15686,39 @@ async function saveAccountingInvoice(event, type) {
             throw new Error('أضف صنفًا واحدًا على الأقل.');
         }
 
-        const items = rows.map(row => ({
-            name: String(
-                row.querySelector('[name="item_name"]')?.value || ''
-            ).trim(),
+        const items = rows.map(function (row) {
+            return {
+                name: String(
+                    row.querySelector('[name="item_name"]')?.value || ''
+                ).trim(),
 
-            category:
-                row.querySelector('[name="category"]')?.value || 'أخرى',
+                category:
+                    row.querySelector('[name="category"]')?.value || 'أخرى',
 
-            unit:
-                row.querySelector('[name="unit"]')?.value || 'قطعة',
+                unit:
+                    row.querySelector('[name="unit"]')?.value || 'قطعة',
 
-            quantity: Number(
-                row.querySelector('[name="quantity"]')?.value
-            ),
+                quantity: Number(
+                    row.querySelector('[name="quantity"]')?.value
+                ),
 
-            unit_price: Number(
-                row.querySelector('[name="unit_price"]')?.value
-            )
-        }));
+                unit_price: Number(
+                    row.querySelector('[name="unit_price"]')?.value
+                )
+            };
+        });
 
-        if (items.some(item =>
-            !item.name ||
-            !Number.isFinite(item.quantity) ||
-            item.quantity <= 0 ||
-            !Number.isFinite(item.unit_price) ||
-            item.unit_price < 0
-        )) {
+        const invalidItem = items.some(function (item) {
+            return (
+                !item.name ||
+                !Number.isFinite(item.quantity) ||
+                item.quantity <= 0 ||
+                !Number.isFinite(item.unit_price) ||
+                item.unit_price < 0
+            );
+        });
+
+        if (invalidItem) {
             throw new Error('راجع أسماء الأصناف والكميات والأسعار.');
         }
 
@@ -15716,6 +15726,15 @@ async function saveAccountingInvoice(event, type) {
 
         if (!totals) {
             throw new Error('تعذر حساب إجمالي الفاتورة.');
+        }
+
+        if (
+            !Number.isFinite(Number(totals.subtotal)) ||
+            !Number.isFinite(Number(totals.total)) ||
+            !Number.isFinite(Number(totals.discount)) ||
+            !Number.isFinite(Number(totals.extra))
+        ) {
+            throw new Error('توجد قيم غير صحيحة في حساب إجمالي الفاتورة.');
         }
 
         if (
@@ -15730,8 +15749,10 @@ async function saveAccountingInvoice(event, type) {
 
         if (isEditing) {
             const detail = await accountingRequest(
-                'action=get&type=' + encodeURIComponent(type) +
-                '&id=' + encodeURIComponent(editingInvoiceId)
+                'action=get&type=' +
+                encodeURIComponent(type) +
+                '&id=' +
+                encodeURIComponent(editingInvoiceId)
             );
 
             paid = Number(detail.paid || 0);
@@ -15748,7 +15769,7 @@ async function saveAccountingInvoice(event, type) {
                 );
             }
         } else {
-            paid = totals.paid;
+            paid = Number(totals.paid || 0);
 
             if (
                 !Number.isFinite(paid) ||
@@ -15770,9 +15791,9 @@ async function saveAccountingInvoice(event, type) {
 
             invoice_date: data.get('invoice_date'),
 
-            items,
+            items: items,
 
-            discount: totals.discount,
+            discount: Number(totals.discount),
 
             notes: String(
                 data.get('notes') || ''
@@ -15788,7 +15809,8 @@ async function saveAccountingInvoice(event, type) {
                 data.get('payment_method') || 'كاش';
 
             payload.payment_date =
-                data.get('payment_date') || data.get('invoice_date');
+                data.get('payment_date') ||
+                data.get('invoice_date');
 
             payload.reference_number = String(
                 data.get('reference_number') || ''
@@ -15804,7 +15826,7 @@ async function saveAccountingInvoice(event, type) {
                 data.get('customer_phone') || ''
             ).trim();
 
-            payload.shipping_cost = totals.extra;
+            payload.shipping_cost = Number(totals.extra);
         } else {
             payload.supplier_name = String(
                 data.get('supplier_name') || ''
@@ -15814,11 +15836,12 @@ async function saveAccountingInvoice(event, type) {
                 data.get('supplier_invoice_number') || ''
             ).trim();
 
-            payload.additional_cost = totals.extra;
+            payload.additional_cost = Number(totals.extra);
         }
 
         if (submitButton) {
             submitButton.disabled = true;
+
             submitButton.textContent = isEditing
                 ? 'جارٍ حفظ التعديلات...'
                 : 'جارٍ حفظ الفاتورة...';
@@ -15872,9 +15895,14 @@ async function saveAccountingInvoice(event, type) {
         }
 
         calculateAccountingInvoice(type);
-        hideAccountingInvoiceForm(type);
 
-        await loadAccountingInvoices(type);
+        if (typeof hideAccountingInvoiceForm === 'function') {
+            hideAccountingInvoiceForm(type);
+        }
+
+        if (typeof loadAccountingInvoices === 'function') {
+            await loadAccountingInvoices(type);
+        }
 
         if (typeof renderAdminAccounting === 'function') {
             await renderAdminAccounting();
@@ -15884,8 +15912,9 @@ async function saveAccountingInvoice(event, type) {
         console.error('SAVE ACCOUNTING INVOICE ERROR:', error);
 
         alert(
-            error.message ||
-            'تعذر حفظ الفاتورة.'
+            error && error.message
+                ? error.message
+                : 'تعذر حفظ الفاتورة.'
         );
 
     } finally {
@@ -15909,12 +15938,17 @@ async function enableAdminOrderNotifications() {
         return;
     }
 
-    const permission = await Notification.requestPermission();
+    try {
+        const permission = await Notification.requestPermission();
 
-    if (permission === 'granted') {
-        alert('تم السماح بإشعارات الطلبات الجديدة.');
-    } else {
-        alert('لم يتم السماح بإشعارات المتصفح.');
+        if (permission === 'granted') {
+            alert('تم السماح بإشعارات الطلبات الجديدة.');
+        } else {
+            alert('لم يتم السماح بإشعارات المتصفح.');
+        }
+    } catch (error) {
+        console.error('ADMIN NOTIFICATION ERROR:', error);
+        alert('تعذر تفعيل إشعارات المتصفح.');
     }
 }
 
@@ -15924,9 +15958,16 @@ window.enableAdminOrderNotifications =
 
 function printAccountingExpenses() {
     const searchInput = document.getElementById('acc-expenses-search');
-    const search = searchInput ? searchInput.value.trim().toLowerCase() : '';
 
-    const expenses = (accountingExpensesCache || []).filter(function (expense) {
+    const search = searchInput
+        ? searchInput.value.trim().toLowerCase()
+        : '';
+
+    const sourceExpenses = Array.isArray(accountingExpensesCache)
+        ? accountingExpensesCache
+        : [];
+
+    const expenses = sourceExpenses.filter(function (expense) {
         const values = [
             expense.recipient,
             expense.description,
@@ -15962,7 +16003,7 @@ function printAccountingExpenses() {
         umbrella_labor: 'مصنعية شماسي'
     };
 
-    const escape = function (value) {
+    function escapeHtml(value) {
         return String(value ?? '—').replace(/[&<>"']/g, function (char) {
             return {
                 '&': '&amp;',
@@ -15972,27 +16013,45 @@ function printAccountingExpenses() {
                 "'": '&#39;'
             }[char];
         });
-    };
+    }
+
+    function formatAmount(value) {
+        const amount = Number(value);
+        return (Number.isFinite(amount) ? amount : 0).toLocaleString(
+            'en-US',
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        );
+    }
 
     const total = expenses.reduce(function (sum, expense) {
         const amount = Number(expense.amount);
-        return sum + (Number.isFinite(amount) ? amount : 0);
+
+        return sum + (
+            Number.isFinite(amount)
+                ? amount
+                : 0
+        );
     }, 0);
 
     const rows = expenses.map(function (expense) {
+        const categoryName =
+            categories[expense.category] ||
+            expense.category ||
+            'أخرى';
+
         return `
             <tr>
-                <td>${escape(expense.expense_date)}</td>
-                <td>${escape(expense.recipient || '—')}</td>
-                <td>${escape(categories[expense.category] || expense.category || 'أخرى')}</td>
-                <td>${escape(expense.description)}</td>
-                <td>${escape(expense.payment_method || '—')}</td>
-                <td>${escape(expense.reference_number || '—')}</td>
-                <td>${escape(expense.notes || '—')}</td>
-                <td class="amount">${(Number(expense.amount) || 0).toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                })} ج.م</td>
+                <td>${escapeHtml(expense.expense_date)}</td>
+                <td>${escapeHtml(expense.recipient || '—')}</td>
+                <td>${escapeHtml(categoryName)}</td>
+                <td>${escapeHtml(expense.description)}</td>
+                <td>${escapeHtml(expense.payment_method || '—')}</td>
+                <td>${escapeHtml(expense.reference_number || '—')}</td>
+                <td>${escapeHtml(expense.notes || '—')}</td>
+                <td class="amount">${formatAmount(expense.amount)} ج.م</td>
             </tr>
         `;
     }).join('');
@@ -16000,15 +16059,22 @@ function printAccountingExpenses() {
     const printWindow = window.open('', '_blank');
 
     if (!printWindow) {
-        alert('المتصفح منع نافذة الطباعة. اسمح بالنوافذ المنبثقة للموقع ثم حاول مرة أخرى.');
+        alert(
+            'المتصفح منع نافذة الطباعة. اسمح بالنوافذ المنبثقة للموقع ثم حاول مرة أخرى.'
+        );
         return;
     }
 
-    printWindow.document.write(`
+    const printDate = escapeHtml(
+        new Date().toLocaleDateString('ar-EG')
+    );
+
+    const printHtml = `
         <!DOCTYPE html>
         <html lang="ar" dir="rtl">
         <head>
             <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
             <title>سجل مصروفات المتحدة للرتان والأثاث</title>
             <style>
                 body {
@@ -16016,40 +16082,60 @@ function printAccountingExpenses() {
                     color: #111;
                     margin: 24px;
                 }
-                h2, p { text-align: center; }
+
+                h2, p {
+                    text-align: center;
+                }
+
                 table {
                     width: 100%;
                     border-collapse: collapse;
                     margin-top: 20px;
                 }
+
                 th, td {
                     border: 1px solid #999;
                     padding: 8px;
                     text-align: right;
                     font-size: 12px;
+                    overflow-wrap: anywhere;
                 }
+
                 th {
                     background: #eee;
                 }
+
                 .amount {
                     white-space: nowrap;
                     font-weight: bold;
                 }
+
                 .total {
                     margin-top: 18px;
                     font-size: 18px;
                     font-weight: bold;
                 }
+
                 @media print {
-                    body { margin: 8mm; }
-                    tr { page-break-inside: avoid; }
+                    body {
+                        margin: 8mm;
+                    }
+
+                    tr {
+                        page-break-inside: avoid;
+                    }
+
+                    thead {
+                        display: table-header-group;
+                    }
                 }
             </style>
         </head>
         <body>
             <h2>المتحدة للرتان والأثاث</h2>
             <p>سجل المصروفات</p>
-            <p>تاريخ الطباعة: ${escape(new Date().toLocaleDateString('ar-EG'))}</p>
+            <p>تاريخ الطباعة: ${printDate}</p>
+
             <table>
                 <thead>
                     <tr>
@@ -16063,28 +16149,32 @@ function printAccountingExpenses() {
                         <th>المبلغ</th>
                     </tr>
                 </thead>
-                <tbody>${rows}</tbody>
+                <tbody>
+                    ${rows}
+                </tbody>
             </table>
+
             <div class="total">
                 إجمالي المصروفات المعروضة:
-                ${total.toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                })} ج.م
+                ${formatAmount(total)} ج.م
             </div>
-            <script>
-                window.onload = function () {
-                    window.print();
-                };
-            <\/script>
         </body>
         </html>
-    `);
+    `;
 
+   
+    printWindow.document.open();
+    printWindow.document.write(printHtml);
     printWindow.document.close();
+
+    printWindow.onload = function () {
+        printWindow.focus();
+        printWindow.print();
+    };
 }
-     
-</script>
+
+        </script>
+
 
 <!-- PRODUCT DETAIL & CUSTOMIZER MODAL -->
 <div id="product-detail-modal"
@@ -16106,6 +16196,7 @@ function printAccountingExpenses() {
         document.body.appendChild(modal);
     }
 })();
+        
 </script>
 
 </body>
