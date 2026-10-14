@@ -975,6 +975,16 @@
                         <i class="fas fa-sliders-h ml-1.5"></i> نصوص وهوية الموقع
                     </button>
                    
+<button
+    id="tab-btn-whatsapp-notifications"
+    type="button"
+    onclick="switchAdminTab('whatsapp-notifications')"
+    class="bg-neutral-900 text-gray-300 px-4 py-3 rounded-xl"
+>
+    <i class="fab fa-whatsapp ml-1"></i>
+    إشعارات واتساب
+</button>
+
                 <!-- الفواتير والحسابات -->
                 <button onclick="switchAdminTab('accounting')" id="tab-btn-accounting" class="px-4 py-2.5 rounded-xl bg-neutral-900 text-gray-300 hover:text-white">
                     <i class="fas fa-file-invoice-dollar ml-1.5"></i> الفواتير والحسابات
@@ -1207,6 +1217,79 @@
                         </form>
                     </div>
                 </div>
+
+<!-- WHATSAPP NOTIFICATIONS TAB -->
+<div id="admin-tab-whatsapp-notifications"
+     class="hidden space-y-6">
+
+    <div class="bg-neutral-900 border border-neutral-800 p-6 rounded-2xl space-y-5">
+
+        <div>
+            <h4 class="text-lg font-bold text-white">
+                <i class="fab fa-whatsapp text-green-500 ml-2"></i>
+                إعدادات إشعارات واتساب
+            </h4>
+            <p class="text-sm text-gray-400 mt-2">
+                تحكم في أنواع الإشعارات التي يسمح الموقع بإرسالها.
+            </p>
+        </div>
+
+        <label class="flex items-center justify-between gap-4 border-b border-neutral-800 pb-4">
+            <span>
+                <span class="block text-white font-bold">إشعار الطلب الجديد</span>
+                <span class="block text-gray-400 text-xs mt-1">إرسال تنبيه عند تسجيل طلب جديد.</span>
+            </span>
+            <input id="wa-notify-new-order" type="checkbox"
+                   class="w-5 h-5 accent-green-500">
+        </label>
+
+        <label class="flex items-center justify-between gap-4 border-b border-neutral-800 pb-4">
+            <span>
+                <span class="block text-white font-bold">تغيير حالة الطلب</span>
+                <span class="block text-gray-400 text-xs mt-1">التأكيد والشحن والتسليم والإلغاء.</span>
+            </span>
+            <input id="wa-notify-order-status" type="checkbox"
+                   class="w-5 h-5 accent-green-500">
+        </label>
+
+        <label class="flex items-center justify-between gap-4 border-b border-neutral-800 pb-4">
+            <span>
+                <span class="block text-white font-bold">تحديث حالة الدفع</span>
+                <span class="block text-gray-400 text-xs mt-1">العربون والمدفوع والمتبقي وتحديثات الدفع.</span>
+            </span>
+            <input id="wa-notify-payment-status" type="checkbox"
+                   class="w-5 h-5 accent-green-500">
+        </label>
+
+        <label class="flex items-center justify-between gap-4 pb-2">
+            <span>
+                <span class="block text-white font-bold">إرسال الإشعارات للعميل</span>
+                <span class="block text-gray-400 text-xs mt-1">لا تفعّله قبل تجهيز قوالب Meta والموافقة المطلوبة.</span>
+            </span>
+            <input id="wa-notify-customer" type="checkbox"
+                   class="w-5 h-5 accent-green-500">
+        </label>
+
+        <div class="flex flex-wrap gap-3 pt-2">
+            <button type="button"
+                    onclick="saveWhatsAppNotificationSettings()"
+                    class="wine-gradient text-white font-bold px-6 py-3 rounded-xl">
+                <i class="fas fa-save ml-1"></i>
+                حفظ إعدادات واتساب
+            </button>
+
+            <button type="button"
+                    onclick="loadWhatsAppNotificationSettings()"
+                    class="bg-neutral-800 text-white px-6 py-3 rounded-xl">
+                إعادة تحميل الإعدادات
+            </button>
+        </div>
+
+        <p id="wa-settings-message"
+           role="status"
+           class="text-sm text-gray-300"></p>
+    </div>
+</div>
 
                 <!-- SECURITY TAB -->
                 <div id="admin-tab-security" class="hidden space-y-6">
@@ -3764,6 +3847,97 @@ initializeStore();
             document.getElementById('floating-whatsapp-btn').href = waUrl;
         }
 
+async function loadWhatsAppNotificationSettings() {
+    const message = document.getElementById('wa-settings-message');
+
+    try {
+        if (message) message.textContent = 'جارٍ تحميل الإعدادات...';
+
+        const response = await fetch('/api/store', {
+            method: 'GET',
+            cache: 'no-store'
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'تعذر تحميل الإعدادات');
+        }
+
+        const settings = data.siteSettings || {};
+
+        document.getElementById('wa-notify-new-order').checked =
+            settings.whatsapp_notify_new_order !== false;
+
+        document.getElementById('wa-notify-order-status').checked =
+            settings.whatsapp_notify_order_status !== false;
+
+        document.getElementById('wa-notify-payment-status').checked =
+            settings.whatsapp_notify_payment_status !== false;
+
+        document.getElementById('wa-notify-customer').checked =
+            settings.whatsapp_notify_customer === true;
+
+        if (message) message.textContent = 'تم تحميل الإعدادات المحفوظة.';
+    } catch (error) {
+        if (message) {
+            message.textContent = 'فشل التحميل: ' + error.message;
+        }
+    }
+}
+
+async function saveWhatsAppNotificationSettings() {
+    const message = document.getElementById('wa-settings-message');
+    const button = document.querySelector(
+        '#admin-tab-whatsapp-notifications button[onclick="saveWhatsAppNotificationSettings()"]'
+    );
+
+    try {
+        if (button) button.disabled = true;
+        if (message) message.textContent = 'جارٍ حفظ الإعدادات...';
+
+        const payload = {
+            whatsappNotifyNewOrder:
+                document.getElementById('wa-notify-new-order').checked,
+
+            whatsappNotifyOrderStatus:
+                document.getElementById('wa-notify-order-status').checked,
+
+            whatsappNotifyPaymentStatus:
+                document.getElementById('wa-notify-payment-status').checked,
+
+            whatsappNotifyCustomer:
+                document.getElementById('wa-notify-customer').checked
+        };
+
+        const response = await fetch('/api/store', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache'
+            },
+            body: JSON.stringify(payload),
+            cache: 'no-store'
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'تعذر حفظ الإعدادات');
+        }
+
+        if (message) {
+            message.textContent = 'تم حفظ إعدادات واتساب بنجاح.';
+        }
+    } catch (error) {
+        if (message) {
+            message.textContent = 'فشل الحفظ: ' + error.message;
+        }
+    } finally {
+        if (button) button.disabled = false;
+    }
+}
+        
         function renderCategoriesGrid() {
             const container = document.getElementById('categories-grid-container');
             const pillsBar = document.getElementById('category-pills-bar');
@@ -7467,6 +7641,7 @@ function switchAdminTab(tabName) {
         'site-settings',
         'security',
         'accounting'
+        'whatsapp-notifications',
     ];
 
     tabs.forEach(function (tab) {
@@ -7506,6 +7681,13 @@ function switchAdminTab(tabName) {
     }
 }
 
+
+if (
+    tabName === 'whatsapp-notifications' &&
+    typeof loadWhatsAppNotificationSettings === 'function'
+) {
+    loadWhatsAppNotificationSettings();
+}
 
     function renderAdminDashboard() {
     renderAdminOrders();
