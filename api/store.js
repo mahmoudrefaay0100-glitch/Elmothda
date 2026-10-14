@@ -112,155 +112,131 @@ module.exports = async function handler(req, res) {    // منع تخزين بي
         // PUT: SAVE STORE SETTINGS
         // =====================================================
 
-        if (req.method === 'PUT') {
-            const body = req.body || {};
+    
+if (req.method === 'PUT') {
+    const body = req.body || {};
 
-            const hasDepositPercent =
-                body.depositPercent !== undefined;
+    const allowedFields = {
+        depositPercent: {
+            column: 'deposit_percent',
+            validate: value =>
+                Number.isFinite(Number(value)) &&
+                Number(value) >= 0 &&
+                Number(value) <= 100,
+            error: 'نسبة العربون يجب أن تكون بين 0% و100%'
+        },
+        sunbadgeOrderFee: {
+            column: 'sunbadge_order_fee',
+            validate: value =>
+                Number.isFinite(Number(value)) &&
+                Number(value) >= 0 &&
+                Number(value) <= 100000,
+            error: 'رسوم صن بيدج يجب أن تكون بين 0 و100000 جنيه'
+        },
+        sunbrellaRate: {
+            column: 'sunbrella_rate',
+            validate: value =>
+                Number.isFinite(Number(value)) &&
+                Number(value) >= 0 &&
+                Number(value) <= 100000,
+            error: 'سعر صن بريلا يجب أن يكون بين 0 و100000 جنيه'
+        },
+        whatsappNotifyNewOrder: {
+            column: 'whatsapp_notify_new_order',
+            validate: value => typeof value === 'boolean',
+            error: 'قيمة إشعار الطلب الجديد غير صحيحة'
+        },
+        whatsappNotifyOrderStatus: {
+            column: 'whatsapp_notify_order_status',
+            validate: value => typeof value === 'boolean',
+            error: 'قيمة إشعارات حالة الطلب غير صحيحة'
+        },
+        whatsappNotifyPaymentStatus: {
+            column: 'whatsapp_notify_payment_status',
+            validate: value => typeof value === 'boolean',
+            error: 'قيمة إشعارات حالة الدفع غير صحيحة'
+        },
+        whatsappNotifyCustomer: {
+            column: 'whatsapp_notify_customer',
+            validate: value => typeof value === 'boolean',
+            error: 'قيمة إشعارات العميل غير صحيحة'
+        }
+    };
 
-            const hasSunbadgeOrderFee =
-                body.sunbadgeOrderFee !== undefined;
+    const updateData = {};
 
-            const hasSunbrellaRate =
-                body.sunbrellaRate !== undefined;
+    for (const [field, config] of Object.entries(allowedFields)) {
+        if (body[field] === undefined) continue;
 
-            if (
-                !hasDepositPercent &&
-                !hasSunbadgeOrderFee &&
-                !hasSunbrellaRate
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'لم يتم إرسال أي إعداد للحفظ'
-                });
-            }
-
-            const updateData = {};
-
-            // نسبة العربون
-            if (hasDepositPercent) {
-                const depositPercent =
-                    Number(body.depositPercent);
-
-                if (
-                    !Number.isFinite(depositPercent) ||
-                    depositPercent < 0 ||
-                    depositPercent > 100
-                ) {
-                    return res.status(400).json({
-                        success: false,
-                        error:
-                            'نسبة العربون يجب أن تكون بين 0% و100%'
-                    });
-                }
-
-                updateData.deposit_percent =
-                    depositPercent;
-            }
-
-            // رسوم صن بيدج العامة
-            // منفصلة عن رسوم صن بيدج الخاصة بكل منتج.
-            if (hasSunbadgeOrderFee) {
-                const sunbadgeOrderFee =
-                    Number(body.sunbadgeOrderFee);
-
-                if (
-                    !Number.isFinite(sunbadgeOrderFee) ||
-                    sunbadgeOrderFee < 0 ||
-                    sunbadgeOrderFee > 100000
-                ) {
-                    return res.status(400).json({
-                        success: false,
-                        error:
-                            'رسوم صن بيدج يجب أن تكون بين 0 و100000 جنيه'
-                    });
-                }
-
-                updateData.sunbadge_order_fee =
-                    sunbadgeOrderFee;
-            }
-
-            // سعر صن بريلا
-            if (hasSunbrellaRate) {
-                const sunbrellaRate =
-                    Number(body.sunbrellaRate);
-
-                if (
-                    !Number.isFinite(sunbrellaRate) ||
-                    sunbrellaRate < 0 ||
-                    sunbrellaRate > 100000
-                ) {
-                    return res.status(400).json({
-                        success: false,
-                        error:
-                            'سعر صن بريلا يجب أن يكون بين 0 و100000 جنيه'
-                    });
-                }
-
-                updateData.sunbrella_rate =
-                    sunbrellaRate;
-            }
-
-            // جلب سجل الإعدادات الحالي
-            const existingSettings =
-                await supabaseRequest(
-                    'site_settings',
-                    'GET',
-                    'select=*&limit=1'
-                );
-
-            let savedSettings;
-
-            if (
-                Array.isArray(existingSettings) &&
-                existingSettings.length > 0
-            ) {
-                const existingId =
-                    existingSettings[0].id;
-
-                savedSettings =
-                    await supabaseRequest(
-                        'site_settings',
-                        'PATCH',
-                        `id=eq.${encodeURIComponent(existingId)}`,
-                        updateData
-                    );
-            } else {
-                savedSettings =
-                    await supabaseRequest(
-                        'site_settings',
-                        'POST',
-                        '',
-                        {
-                            deposit_percent: 30,
-                            sunbadge_order_fee: 0,
-                            sunbrella_rate: 200,
-                            ...updateData
-                        }
-                    );
-            }
-
-            const saved =
-                Array.isArray(savedSettings)
-                    ? savedSettings[0] || {}
-                    : {};
-
-            return res.status(200).json({
-                success: true,
-                message: 'تم حفظ إعدادات المتجر بنجاح',
-
-                depositPercent:
-                    safeNumber(saved.deposit_percent, 30),
-
-                sunbadgeOrderFee:
-                    safeNumber(saved.sunbadge_order_fee, 0),
-
-                sunbrellaRate:
-                    safeNumber(saved.sunbrella_rate, 200),
-
-                siteSettings: saved
+        if (!config.validate(body[field])) {
+            return res.status(400).json({
+                success: false,
+                error: config.error
             });
         }
+
+        updateData[config.column] =
+            typeof body[field] === 'boolean'
+                ? body[field]
+                : Number(body[field]);
+    }
+
+    if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({
+            success: false,
+            error: 'لم يتم إرسال أي إعداد للحفظ'
+        });
+    }
+
+    const existingSettings = await supabaseRequest(
+        'site_settings',
+        'GET',
+        'select=*&limit=1'
+    );
+
+    let savedSettings;
+
+    if (
+        Array.isArray(existingSettings) &&
+        existingSettings.length > 0
+    ) {
+        savedSettings = await supabaseRequest(
+            'site_settings',
+            'PATCH',
+            `id=eq.${encodeURIComponent(existingSettings[0].id)}`,
+            updateData
+        );
+    } else {
+        savedSettings = await supabaseRequest(
+            'site_settings',
+            'POST',
+            '',
+            {
+                deposit_percent: 30,
+                sunbadge_order_fee: 0,
+                sunbrella_rate: 200,
+                whatsapp_notify_new_order: true,
+                whatsapp_notify_order_status: true,
+                whatsapp_notify_payment_status: true,
+                whatsapp_notify_customer: false,
+                ...updateData
+            }
+        );
+    }
+
+    const saved = Array.isArray(savedSettings)
+        ? savedSettings[0] || {}
+        : {};
+
+    return res.status(200).json({
+        success: true,
+        message: 'تم حفظ إعدادات المتجر بنجاح',
+        depositPercent: safeNumber(saved.deposit_percent, 30),
+        sunbadgeOrderFee: safeNumber(saved.sunbadge_order_fee, 0),
+        sunbrellaRate: safeNumber(saved.sunbrella_rate, 200),
+        siteSettings: saved
+    });
+}
 
        
         // =====================================================
