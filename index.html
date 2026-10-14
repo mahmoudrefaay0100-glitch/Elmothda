@@ -7631,6 +7631,7 @@ setTimeout(() => {
 
    
 
+
 function switchAdminTab(tabName) {
     const tabs = [
         'orders',
@@ -7642,10 +7643,10 @@ function switchAdminTab(tabName) {
         'site-settings',
         'security',
         'accounting',
-        'whatsapp-notifications',
+        'whatsapp-notifications'
     ];
 
-
+    // إخفاء جميع التبويبات وإلغاء تمييز أزرارها
     tabs.forEach(function (tab) {
         const panel = document.getElementById('admin-tab-' + tab);
         const button = document.getElementById('tab-btn-' + tab);
@@ -7660,36 +7661,56 @@ function switchAdminTab(tabName) {
         }
     });
 
-    const selectedPanel = document.getElementById('admin-tab-' + tabName);
-    const selectedButton = document.getElementById('tab-btn-' + tabName);
+    // إظهار التبويب المختار
+    const selectedPanel = document.getElementById(
+        'admin-tab-' + tabName
+    );
+
+    const selectedButton = document.getElementById(
+        'tab-btn-' + tabName
+    );
 
     if (selectedPanel) {
         selectedPanel.classList.remove('hidden');
     }
 
     if (selectedButton) {
-        selectedButton.classList.remove('bg-neutral-900', 'text-gray-300');
-        selectedButton.classList.add('bg-red-900', 'text-white');
+        selectedButton.classList.remove(
+            'bg-neutral-900',
+            'text-gray-300'
+        );
+
+        selectedButton.classList.add(
+            'bg-red-900',
+            'text-white'
+        );
     }
 
-    if (tabName === 'offers' &&
-        typeof renderAdminOffers === 'function') {
+    // تحديث العروض عند فتح تبويبها
+    if (
+        tabName === 'offers' &&
+        typeof renderAdminOffers === 'function'
+    ) {
         renderAdminOffers();
     }
 
-    if (tabName === 'accounting' &&
-        typeof renderAdminAccounting === 'function') {
+    // تحديث الحسابات عند فتح تبويبها
+    if (
+        tabName === 'accounting' &&
+        typeof renderAdminAccounting === 'function'
+    ) {
         renderAdminAccounting();
+    }
+
+    // تحميل إعدادات إشعارات واتساب عند فتح تبويبها
+    if (
+        tabName === 'whatsapp-notifications' &&
+        typeof loadWhatsAppNotificationSettings === 'function'
+    ) {
+        loadWhatsAppNotificationSettings();
     }
 }
 
-
-if (
-    tabName === 'whatsapp-notifications' &&
-    typeof loadWhatsAppNotificationSettings === 'function'
-) {
-    loadWhatsAppNotificationSettings();
-}
 
     function renderAdminDashboard() {
     renderAdminOrders();
