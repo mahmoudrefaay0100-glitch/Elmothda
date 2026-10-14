@@ -3829,23 +3829,89 @@ async function initializeStore() {
 }
         
 initializeStore();
-        function renderSiteSettings() {
-            const s = appState.siteSettings;
-            document.getElementById('site-title-text').innerText = s.title;
-            document.getElementById('site-logo-img').src = s.logoUrl;
-            document.getElementById('hero-title-text').innerHTML = s.heroTitle;
-            document.getElementById('hero-subtitle-text').innerText = s.heroSubtitle;
-            document.getElementById('top-phone').innerHTML = `<i class="fas fa-phone ml-1"></i> ${s.phone}`;
-            document.getElementById('factory-address-text').innerText = s.factoryAddress;
-            document.getElementById('top-announcement-text').innerText = s.topAnnouncement;
-            document.getElementById('footer-site-name').innerText = s.title;
-            document.getElementById('footer-about-text').innerText = s.footerAbout || s.heroSubtitle;
-            document.getElementById('hero-banner-img').src = s.heroImage || 'hero-furniture.jpg';
-            document.title = `${s.title} | أثاث الرتان والأثاث الخارجي`;
-            const waUrl = `https://wa.me/20${s.whatsapp.replace(/^0/, '')}`;
-            document.getElementById('hero-whatsapp-btn').href = waUrl;
-            document.getElementById('floating-whatsapp-btn').href = waUrl;
-        }
+       
+       
+function renderSiteSettings() {
+    const s = appState.siteSettings || {};
+
+    // قيم احتياطية لحماية الموقع من الحقول الفارغة
+    const title = s.title || 'المتحدة للرتان والأثاث';
+    const logoUrl = s.logoUrl || s.logo_url || 'united-logo.jpg';
+    const heroTitle = s.heroTitle || s.hero_title || 'أثاث الرتان والأثاث الخارجي';
+    const heroSubtitle = s.heroSubtitle || s.hero_subtitle || '';
+    const phone = s.phone || '01042056121';
+    const whatsapp = s.whatsapp || '01042056121';
+    const factoryAddress =
+        s.factoryAddress ||
+        s.factory_address ||
+        'جمهورية مصر العربية - محافظة المنوفية - مركز أشمون';
+    const topAnnouncement =
+        s.topAnnouncement || s.top_announcement || '';
+    const footerAbout =
+        s.footerAbout || s.footer_about || heroSubtitle;
+    const heroImage =
+        s.heroImage || s.hero_image || 'hero-furniture.jpg';
+
+    const setText = (id, value) => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = value;
+    };
+
+    const logo = document.getElementById('site-logo-img');
+    if (logo) logo.src = logoUrl;
+
+    setText('site-title-text', title);
+
+    const heroTitleElement =
+        document.getElementById('hero-title-text');
+
+    if (heroTitleElement) {
+        heroTitleElement.textContent = heroTitle;
+    }
+
+    setText('hero-subtitle-text', heroSubtitle);
+
+    const phoneElement = document.getElementById('top-phone');
+
+    if (phoneElement) {
+        phoneElement.textContent = phone;
+        phoneElement.href = 'tel:' + phone.replace(/[^\d+]/g, '');
+    }
+
+    setText('factory-address-text', factoryAddress);
+    setText('top-announcement-text', topAnnouncement);
+    setText('footer-site-name', title);
+    setText('footer-about-text', footerAbout);
+
+    const heroBanner = document.getElementById('hero-banner-img');
+    if (heroBanner) heroBanner.src = heroImage;
+
+    document.title = title + ' | أثاث الرتان والأثاث الخارجي';
+
+    // توحيد رقم واتساب مع صيغة مصر الدولية
+    let cleanWhatsApp = String(whatsapp).replace(/\D/g, '');
+
+    if (cleanWhatsApp.startsWith('0020')) {
+        cleanWhatsApp = cleanWhatsApp.substring(2);
+    } else if (cleanWhatsApp.startsWith('0')) {
+        cleanWhatsApp = '20' + cleanWhatsApp.substring(1);
+    } else if (!cleanWhatsApp.startsWith('20')) {
+        cleanWhatsApp = '20' + cleanWhatsApp;
+    }
+
+    const waUrl = 'https://wa.me/' + cleanWhatsApp;
+
+    const heroWhatsApp =
+        document.getElementById('hero-whatsapp-btn');
+
+    if (heroWhatsApp) heroWhatsApp.href = waUrl;
+
+    const floatingWhatsApp =
+        document.getElementById('floating-whatsapp-btn');
+
+    if (floatingWhatsApp) floatingWhatsApp.href = waUrl;
+}
+
 
 async function loadWhatsAppNotificationSettings() {
     const message = document.getElementById('wa-settings-message');
