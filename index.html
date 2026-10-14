@@ -1873,16 +1873,6 @@
 <!-- END ACCOUNTING TAB -->
 
         
-    <!-- PRODUCT DETAIL & CUSTOMIZER MODAL -->
-    <div id="product-detail-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-neutral-900 border border-neutral-800 rounded-3xl max-w-3xl w-full p-6 space-y-6 max-h-[90vh] overflow-y-auto relative text-right shadow-2xl">
-            <button onclick="closeProductModal()" class="absolute left-4 top-4 text-gray-400 hover:text-white bg-neutral-800 w-8 h-8 rounded-full flex items-center justify-center">
-                <i class="fas fa-times"></i>
-            </button>
-            <div id="modal-product-content"></div>
-        </div>
-    </div>
-
     <!-- CART DRAWER -->
     <div id="cart-drawer-overlay" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden transition-opacity" onclick="toggleCartDrawer(false)"></div>
     <div id="cart-drawer" class="fixed top-0 left-0 bottom-0 z-50 w-full max-w-md bg-neutral-900 border-r border-neutral-800 transform -translate-x-full transition-transform duration-300 flex flex-col justify-between">
@@ -4090,8 +4080,8 @@ showToast('تم إضافة القسم بنجاح ✅');
 }
         
      
+
 function openCustomizerModal(productId) {
-    // البحث عن المنتج داخل بيانات المتجر الحالية
     const product = appState.products.find(
         p => String(p.id) === String(productId)
     );
@@ -4102,51 +4092,67 @@ function openCustomizerModal(productId) {
         return;
     }
 
-    // قراءة الرسوم من بيانات المنتج نفسه
     const rawFee =
         product.sunbadge_fee ??
         product.sunbadgeFee ??
         0;
 
     const sunbadgeFee = Number(rawFee);
+    const validFee =
+        Number.isFinite(sunbadgeFee) && sunbadgeFee >= 0
+            ? sunbadgeFee
+            : 0;
 
-    // الاحتفاظ ببيانات المنتج كاملة مع توحيد أسماء الرسوم
     activeCustomizerProduct = {
         ...product,
-        sunbadge_fee:
-            Number.isFinite(sunbadgeFee) && sunbadgeFee >= 0
-                ? sunbadgeFee
-                : 0,
-        sunbadgeFee:
-            Number.isFinite(sunbadgeFee) && sunbadgeFee >= 0
-                ? sunbadgeFee
-                : 0
+        sunbadge_fee: validFee,
+        sunbadgeFee: validFee
     };
 
-       console.log('CUSTOMIZER PRODUCT:', {
-        id: activeCustomizerProduct.id,
-        name: activeCustomizerProduct.name ?? activeCustomizerProduct.title,
-        sunbadge_fee: activeCustomizerProduct.sunbadge_fee
-    });
-
     selectedUpholsteryId =
-        appState.upholsteryTypes[0]?.id ?? null;
+        appState.upholsteryTypes?.[0]?.id ?? null;
 
     selectedCushionColor =
-        appState.cushionColors[0]?.name || '';
+        appState.cushionColors?.[0]?.name || '';
 
     selectedWickerColor =
-        appState.wickerColors[0]?.name || '';
+        appState.wickerColors?.[0]?.name || '';
 
     sunbrellaChecked = false;
     customizerQty = 1;
 
-    renderCustomizerModalContent();
-
     const modal = document.getElementById('product-detail-modal');
+    const container = document.getElementById('modal-product-content');
 
-    if (modal) {
+    console.log('CUSTOMIZER DEBUG:', {
+        productId: activeCustomizerProduct.id,
+        modalExists: !!modal,
+        contentExists: !!container,
+        renderFunctionExists:
+            typeof renderCustomizerModalContent === 'function'
+    });
+
+    if (!modal || !container) {
+        console.error('CUSTOMIZER ELEMENT MISSING:', {
+            modalExists: !!modal,
+            contentExists: !!container
+        });
+
+        alert('تعذر العثور على نافذة التخصيص أو محتواها في الصفحة.');
+        return;
+    }
+
+    try {
+        renderCustomizerModalContent();
+
         modal.classList.remove('hidden');
+        modal.style.display = '';
+        modal.setAttribute('aria-hidden', 'false');
+
+        console.log('CUSTOMIZER MODAL OPENED');
+    } catch (error) {
+        console.error('CUSTOMIZER RENDER ERROR:', error);
+        alert('حدث خطأ أثناء فتح التخصيص. راجع Console.');
     }
 }
 
@@ -16133,6 +16139,22 @@ function printAccountingExpenses() {
 
         
 </script>
+
+<!-- PRODUCT DETAIL & CUSTOMIZER MODAL -->
+<div id="product-detail-modal"
+     class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4 overflow-y-auto">
+
+    <div class="bg-neutral-900 border border-neutral-800 rounded-3xl max-w-3xl w-full p-6 space-y-6 max-h-[90vh] overflow-y-auto relative text-right shadow-2xl">
+
+        <button onclick="closeProductModal()"
+                class="absolute left-4 top-4 text-gray-400 hover:text-white bg-neutral-800 w-8 h-8 rounded-full flex items-center justify-center">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <div id="modal-product-content"></div>
+
+    </div>
+</div>
 
 </body>
 </html>
