@@ -163,17 +163,18 @@ module.exports = async function handler(req, res) {
                 }
             );
 
-            const result = await response.json().catch(() => ({}));
+           const result = await response.json().catch(() => ({}));
 
-            if (!response.ok) {
-                console.error(
-                    'WHATSAPP SEND ERROR:',
-                    response.status,
-                    result
-                );
+if (!response.ok) {
+    console.error('WHATSAPP SEND ERROR:', {
+        status: response.status,
+        error: result.error || result,
+        recipient: recipient,
+        phoneNumberIdLast4: String(phoneNumberId).slice(-4)
+    });
 
-                return false;
-            }
+    return false;
+}
 
             return true;
         }
