@@ -4123,9 +4123,9 @@ function openCustomizerModal(productId) {
                 : 0
     };
 
-    console.log('CUSTOMIZER PRODUCT:', {
+       console.log('CUSTOMIZER PRODUCT:', {
         id: activeCustomizerProduct.id,
-        name: activeCustomizerProduct.name,
+        name: activeCustomizerProduct.name ?? activeCustomizerProduct.title,
         sunbadge_fee: activeCustomizerProduct.sunbadge_fee
     });
 
@@ -12338,40 +12338,62 @@ appState.products = (data.products || []).map(p => {
         // إعادة رسم الموقع بالكامل
         // =====================================================
 
-        renderAllViews();
-        
-        // فتح تخصيص المنتج القادم من صفحة التفاصيل مرة واحدة
-        const pageParams = new URLSearchParams(window.location.search);
-        const customizeProductId = pageParams.get('customize');
+      
+renderAllViews();
 
-        if (customizeProductId) {
-            // إزالة المعامل حتى لا تتكرر نافذة التخصيص عند إعادة تحميل البيانات
-            pageParams.delete('customize');
+// فتح تخصيص المنتج القادم من صفحة التفاصيل بعد التأكد من تحميله
+(async function openRequestedProductCustomizer() {
+    const pageParams = new URLSearchParams(window.location.search);
+    const customizeProductId = pageParams.get('customize');
 
-            const remainingQuery = pageParams.toString();
-            const cleanUrl =
-                window.location.pathname +
-                (remainingQuery ? '?' + remainingQuery : '') +
-                window.location.hash;
+    if (!customizeProductId) return;
 
-            window.history.replaceState({}, document.title, cleanUrl);
+    // إزالة المعامل من الرابط لمنع تكرار فتح نافذة التخصيص
+    pageParams.delete('customize');
 
-            // فتح نافذة التخصيص بعد تحميل المنتجات ورسم الموقع
-            if (
-                Array.isArray(appState.products) &&
-                appState.products.some(
-                    p => String(p.id) === String(customizeProductId)
-                ) &&
-                typeof openCustomizerModal === 'function'
-            ) {
+    const remainingQuery = pageParams.toString();
+    const cleanUrl =
+        window.location.pathname +
+        (remainingQuery ? '?' + remainingQuery : '') +
+        window.location.hash;
+
+    window.history.replaceState({}, document.title, cleanUrl);
+
+    // المحاولة لفترة قصيرة حتى تكتمل عملية تحميل المنتجات
+    const maxAttempts = 40;
+    const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const products = appState && appState.products;
+
+        if (
+            Array.isArray(products) &&
+            products.some(
+                p => String(p.id) === String(customizeProductId)
+            ) &&
+            typeof openCustomizerModal === 'function'
+        ) {
+            try {
                 openCustomizerModal(customizeProductId);
-            } else {
-                console.error(
-                    'CUSTOMIZE PRODUCT NOT FOUND:',
-                    customizeProductId
-                );
+                return;
+            } catch (error) {
+                console.error('CUSTOMIZER OPEN ERROR:', error);
+                alert('تعذر فتح تخصيص المنتج. حاول مرة أخرى.');
+                return;
             }
         }
+
+        await delay(250);
+    }
+
+    console.error(
+        'CUSTOMIZE PRODUCT NOT FOUND OR NOT LOADED:',
+        customizeProductId
+    );
+
+    alert('المنتج لم يتم تحميله في المتجر. حدّث الصفحة وحاول مرة أخرى.');
+})();
+
         
 
         // =====================================================
