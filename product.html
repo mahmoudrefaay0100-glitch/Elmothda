@@ -109,7 +109,7 @@
 
         mainImage.src = image;
 
-        thumbnails.querySelectorAll('button').forEach((button, i) => {
+        thumbnails.querySelectorAll('button').forEach(function(button, i) {
             button.classList.toggle('border-amber-500', i === index);
             button.classList.toggle('border-neutral-700', i !== index);
             button.setAttribute('aria-pressed', String(i === index));
@@ -118,8 +118,7 @@
 
 
     // ==========================================
-    // فتح التخصيص في نافذة فوق صفحة المنتج
-    // يعتمد على نظام التخصيص الأصلي في index.html
+    // فتح التخصيص باستخدام النظام الأصلي للمتجر
     // ==========================================
 
     function openCustomizerOnProductPage(product) {
@@ -187,11 +186,12 @@
                     throw new Error('تعذر الوصول إلى صفحة المتجر.');
                 }
 
-                // نقل نوافذ التخصيص والسلة والدفع إلى body
-                // حتى يمكن عرضها بشكل مستقل عن محتوى الرئيسية.
+                // نقل نوافذ المتجر المطلوبة فقط إلى body.
+                // نضيف طبقة السلة الخلفية حتى تعمل مع نظامها الأصلي.
                 const modalIds = [
                     'product-detail-modal',
                     'checkout-modal',
+                    'cart-drawer-overlay',
                     'cart-drawer'
                 ];
 
@@ -203,8 +203,9 @@
                     }
                 });
 
-                // إخفاء محتويات الرئيسية داخل الإطار مع الإبقاء
-                // على نوافذ التخصيص والسلة وإتمام الطلب.
+                // تهيئة CSS مرة واحدة.
+                // نخفي محتويات الصفحة الرئيسية داخل الإطار،
+                // ونُبقي نوافذ التخصيص والدفع والسلة متاحة.
                 let style = doc.getElementById('product-page-embed-style');
 
                 if (!style) {
@@ -225,18 +226,37 @@
                             display: none !important;
                         }
 
+                        /* نافذة تخصيص المنتج */
                         body > #product-detail-modal,
-                        body > #checkout-modal,
-                        body > #cart-drawer {
+                        body > #checkout-modal {
                             display: flex !important;
                             position: fixed !important;
                             inset: 0 !important;
                             z-index: 2147483000 !important;
                         }
 
+                        /* السلة: لا نفرض عليها ملء الشاشة،
+                           ونحافظ على موضعها وحركتها الأصليين */
+                        body > #cart-drawer {
+                            display: flex !important;
+                            z-index: 2147482000 !important;
+                        }
+
+                        /* طبقة خلفية السلة */
+                        body > #cart-drawer-overlay {
+                            display: block !important;
+                            z-index: 2147481999 !important;
+                        }
+
+                        /* احترام حالة الإخفاء الأصلية */
                         #product-detail-modal.hidden,
                         #checkout-modal.hidden,
-                        #cart-drawer.hidden {
+                        #cart-drawer.hidden,
+                        #cart-drawer-overlay.hidden,
+                        #product-detail-modal[hidden],
+                        #checkout-modal[hidden],
+                        #cart-drawer[hidden],
+                        #cart-drawer-overlay[hidden] {
                             display: none !important;
                         }
                     `;
