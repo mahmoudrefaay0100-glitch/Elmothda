@@ -1,5 +1,5 @@
-
-module.exports = async function handler(req, res) {    try {
+module.exports = async function handler(req, res) {
+    try {
         const SUPABASE_URL =
             'https://kxtiqtcxkcwdvljiadfn.supabase.co';
 
@@ -76,6 +76,203 @@ module.exports = async function handler(req, res) {    try {
             };
         }
 
+        // =====================================================
+        // WHATSAPP NOTIFICATIONS
+        // إشعارات الإدارة فقط
+        // =====================================================
+
+        async function getWhatsAppNotificationSettings() {
+            const { response, data } = await getSupabaseJson(
+                `${SUPABASE_URL}/rest/v1/site_settings` +
+                '?select=whatsapp_notify_new_order,' +
+                'whatsapp_notify_order_status,' +
+                'whatsapp_notify_payment_status,' +
+                'whatsapp_notify_customer&limit=1'
+            );
+
+            if (!response.ok) {
+                console.error(
+                    'WHATSAPP SETTINGS ERROR:',
+                    response.status,
+                    data
+                );
+
+                return null;
+            }
+
+            return Array.isArray(data) && data.length
+                ? data[0]
+                : null;
+        }
+
+        async function sendWhatsAppText(message) {
+            const accessToken =
+                process.env.WHATSAPP_ACCESS_TOKEN;
+
+            const phoneNumberId =
+                process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+            if (!accessToken || !phoneNumberId) {
+                console.error(
+                    'WhatsApp credentials are missing.'
+                );
+
+                return false;
+            }
+
+            // رقم استقبال إشعارات الإدارة الحالي.
+            const recipient = '201042056121';
+
+            const response = await fetch(
+                `https://graph.facebook.com/v23.0/${phoneNumberId}/messages`,
+                {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        messaging_product: 'whatsapp',
+                        recipient_type: 'individual',
+                        to: recipient,
+                        type: 'text',
+                        text: {
+                            preview_url: false,
+                            body: message
+                        }
+                    })
+                }
+            );
+
+            const result = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                console.error(
+                    'WHATSAPP SEND ERROR:',
+                    response.status,
+                    result
+                );
+
+                return false;
+            }
+
+            return true;
+        }
+
+        async function notifyWhatsAppOrder(event, order) {
+            try {
+                const settings =
+                    await getWhatsAppNotificationSettings();
+
+                // لا نرسل إذا تعذر تحميل إعدادات الإشعارات.
+                if (!settings) return false;
+
+                if (
+                    event === 'new_order' &&
+                    settings.whatsapp_notify_new_order !== true
+                ) {
+                    return false;
+                }
+
+                if (
+                    event === 'order_status' &&
+                    settings.whatsapp_notify_order_status !== true
+                ) {
+                    return false;
+                }
+
+                if (
+                    event === 'payment_status' &&
+                    settings.whatsapp_notify_payment_status !== true
+                ) {
+                    return false;
+                }
+
+                const orderNumber =
+                    order.order_number || order.id || 'غير متاح';
+
+                const customerName =
+                    order.customer_name || order.name || 'غير متاح';
+
+                const customerPhone =
+                    order.phone || order.customer_phone || 'غير متاح';
+
+                const status = order.status || 'New';
+
+                const paymentStatus =
+                    order.payment_status ||
+                    order.paymentStatus ||
+                    'Pending';
+
+                let message = '';
+
+                if (event === 'new_order') {
+                    const items = Array.isArray(order.items)
+                        ? order.items.map(item => {
+                            const name =
+                                item.title ||
+                                item.name ||
+                                item.productName ||
+                                'منتج';
+
+                            const qty =
+                                item.qty || item.quantity || 1;
+
+                            return `• ${name} × ${qty}`;
+                        }).join('\n')
+                        : 'لا توجد تفاصيل منتجات';
+
+                    message =
+                        `🛒 طلب جديد - المتحدة للرتان والأثاث\n\n` +
+                        `رقم الطلب: ${orderNumber}\n` +
+                        `العميل: ${customerName}\n` +
+                        `الهاتف: ${customerPhone}\n` +
+                        `المحافظة: ${order.governorate || ''}\n` +
+                        `المدينة: ${order.city || ''}\n` +
+                        `العنوان: ${order.address || ''}\n\n` +
+                        `المنتجات:\n${items}\n\n` +
+                        `الإجمالي: ${Number(order.total || 0)} جنيه\n` +
+                        `العربون: ${Number(order.deposit_amount || 0)} جنيه\n` +
+                        `المتبقي: ${Number(order.remaining_amount || 0)} جنيه\n` +
+                        `حالة الطلب: ${status}\n` +
+                        `حالة الدفع: ${paymentStatus}`;
+                } else if (event === 'order_status') {
+                    message =
+                        `📦 تحديث حالة طلب - المتحدة للرتان والأثاث\n\n` +
+                        `رقم الطلب: ${orderNumber}\n` +
+                        `العميل: ${customerName}\n` +
+                        `الهاتف: ${customerPhone}\n` +
+                        `الحالة الجديدة: ${status}`;
+                } else if (event === 'payment_status') {
+                    message =
+                        `💳 تحديث حالة الدفع - المتحدة للرتان والأثاث\n\n` +
+                        `رقم الطلب: ${orderNumber}\n` +
+                        `العميل: ${customerName}\n` +
+                        `الهاتف: ${customerPhone}\n` +
+                        `حالة الدفع الجديدة: ${paymentStatus}\n` +
+                        `الإجمالي: ${Number(order.total || 0)} جنيه\n` +
+                        `العربون: ${Number(order.deposit_amount || 0)} جنيه\n` +
+                        `المتبقي: ${Number(order.remaining_amount || 0)} جنيه`;
+                } else {
+                    return false;
+                }
+
+                return await sendWhatsAppText(message);
+            } catch (error) {
+                // فشل واتساب لا يلغي حفظ الطلب أو تحديثه.
+                console.error(
+                    'WHATSAPP NOTIFICATION FAILED:',
+                    error
+                );
+
+                return false;
+            }
+        }
+
+        // =====================================================
+        // PRODUCT HELPERS
+        // =====================================================
+
         function getProductId(item) {
             return String(
                 item?.productId ??
@@ -127,11 +324,9 @@ module.exports = async function handler(req, res) {    try {
             );
         }
 
-
         // =====================================================
         // PUBLIC ORDER TRACKING
         // GET /api/orders?track=ORDER_ID
-        // البحث باستخدام id أو order_number
         // =====================================================
 
         if (
@@ -147,57 +342,54 @@ module.exports = async function handler(req, res) {    try {
                 });
             }
 
-         
+            const encodedTrackId = encodeURIComponent(trackId);
 
-const encodedTrackId = encodeURIComponent(trackId);
+            let {
+                response,
+                data: orders,
+                text
+            } = await getSupabaseJson(
+                `${SUPABASE_URL}/rest/v1/orders` +
+                `?select=*` +
+                `&order_number=eq.${encodedTrackId}` +
+                `&limit=1`
+            );
 
-// البحث أولاً برقم الطلب كما أدخله العميل
-let {
-    response,
-    data: orders,
-    text
-} = await getSupabaseJson(
-    `${SUPABASE_URL}/rest/v1/orders` +
-    `?select=*` +
-    `&order_number=eq.${encodedTrackId}` +
-    `&limit=1`
-);
+            // البحث بالمعرف الداخلي إذا لم يوجد رقم الطلب.
+            if (
+                response.ok &&
+                Array.isArray(orders) &&
+                orders.length === 0
+            ) {
+                const fallback = await getSupabaseJson(
+                    `${SUPABASE_URL}/rest/v1/orders` +
+                    `?select=*` +
+                    `&id=eq.${encodedTrackId}` +
+                    `&limit=1`
+                );
 
-// لو لم يوجد، جرّب الرقم الداخلي للطلب
-if (
-    response.ok &&
-    Array.isArray(orders) &&
-    orders.length === 0
-) {
-    const fallback = await getSupabaseJson(
-        `${SUPABASE_URL}/rest/v1/orders` +
-        `?select=*` +
-        `&id=eq.${encodedTrackId}` +
-        `&limit=1`
-    );
+                response = fallback.response;
+                orders = fallback.data;
+                text = fallback.text;
+            }
 
-    response = fallback.response;
-    orders = fallback.data;
-    text = fallback.text;
-}
+            // البحث دون حساسية لحالة الأحرف.
+            if (
+                response.ok &&
+                Array.isArray(orders) &&
+                orders.length === 0
+            ) {
+                const insensitive = await getSupabaseJson(
+                    `${SUPABASE_URL}/rest/v1/orders` +
+                    `?select=*` +
+                    `&order_number=ilike.${encodedTrackId}` +
+                    `&limit=1`
+                );
 
-// لو لم يوجد بعد ذلك، جرّب مطابقة رقم الطلب دون حساسية لحالة الأحرف
-if (
-    response.ok &&
-    Array.isArray(orders) &&
-    orders.length === 0
-) {
-    const insensitive = await getSupabaseJson(
-        `${SUPABASE_URL}/rest/v1/orders` +
-        `?select=*` +
-        `&order_number=ilike.${encodedTrackId}` +
-        `&limit=1`
-    );
-
-    response = insensitive.response;
-    orders = insensitive.data;
-    text = insensitive.text;
-}
+                response = insensitive.response;
+                orders = insensitive.data;
+                text = insensitive.text;
+            }
 
             if (!response.ok) {
                 console.error(
@@ -226,6 +418,7 @@ if (
 
             const publicOrder = {
                 id: order.id,
+
                 order_number:
                     order.order_number || order.id,
 
@@ -300,13 +493,9 @@ if (
             });
         }
 
-
         // =====================================================
         // CREATE NEW ORDER
         // POST /api/orders
-        //
-        // الأسعار والرسوم يؤخذان من قاعدة البيانات.
-        // رسوم صن بيدج = رسوم القطعة الواحدة × كمية السطر.
         // =====================================================
 
         if (req.method === 'POST') {
@@ -343,10 +532,7 @@ if (
                 });
             }
 
-            // ---------------------------------------------
-            // جلب السعر ورسوم صن بيدج من قاعدة البيانات
-            // ---------------------------------------------
-
+            // جلب الأسعار ورسوم صن بيدج من قاعدة البيانات.
             const productsById = new Map();
 
             for (const productId of productIds) {
@@ -405,10 +591,7 @@ if (
                 });
             }
 
-            // ---------------------------------------------
-            // حساب أسعار المنتجات ورسوم صن بيدج
-            // ---------------------------------------------
-
+            // حساب إجمالي المنتجات ورسوم صن بيدج.
             let subtotal = 0;
             let totalSunBadgeFee = 0;
 
@@ -434,10 +617,7 @@ if (
                     });
                 }
 
-                // السعر الأساسي للقطعة، من قاعدة البيانات.
                 const unitPrice = product.price;
-
-                // إجمالي أسعار المنتجات في هذا السطر.
                 const itemSubtotal = unitPrice * qty;
 
                 if (
@@ -450,13 +630,12 @@ if (
                     });
                 }
 
-                // رسوم صن بيدج لا تُطبق على جاكوار.
+                // رسوم صن بيدج لا تطبق على جاكوار.
                 const sunbadgeUnitFee =
                     isSunBadgeItem(item)
                         ? product.sunbadgeFee
                         : 0;
 
-                // الرسوم لكل قطعة مضروبة في كمية هذا السطر.
                 const sunbadgeLineFee =
                     sunbadgeUnitFee * qty;
 
@@ -484,24 +663,18 @@ if (
                     qty,
                     quantity: qty,
 
-                    // السعر الأساسي دون رسوم صن بيدج.
                     unitPrice,
                     price: unitPrice,
-
-                    // مجموع سعر المنتجات في السطر.
                     itemSubtotal,
 
-                    // رسوم القطعة الواحدة.
                     sunbadgeUnitFee,
                     sunbadge_unit_fee: sunbadgeUnitFee,
 
-                    // إجمالي رسوم هذا السطر حسب الكمية.
                     sunbadgeFee: sunbadgeLineFee,
                     sunbadge_fee: sunbadgeLineFee,
                     sunbadgeLineFee,
                     sunbadge_line_fee: sunbadgeLineFee,
 
-                    // إجمالي السطر شامل الرسوم.
                     lineTotal: itemSubtotal + sunbadgeLineFee,
 
                     upholsteryExtraType:
@@ -514,10 +687,7 @@ if (
                 });
             }
 
-            // ---------------------------------------------
-            // الشحن والخصم والإجمالي النهائي
-            // ---------------------------------------------
-
+            // الشحن والخصم والإجمالي النهائي.
             const shippingCost = toNonNegativeNumber(
                 order.shippingCost ??
                 order.shipping_cost,
@@ -572,10 +742,7 @@ if (
                 total - depositAmount
             );
 
-            // ---------------------------------------------
-            // بيانات العميل
-            // ---------------------------------------------
-
+            // بيانات العميل.
             const customer = order.customer || {};
 
             const customerName = String(
@@ -631,13 +798,9 @@ if (
                 });
             }
 
-            // ---------------------------------------------
-            // تجهيز الطلب للحفظ
-            // ---------------------------------------------
-
+            // تجهيز الطلب للحفظ.
             const insertPayload = {
-    // قاعدة البيانات ستولّد نفس الرقم في id و order_number
-    order_number: null,
+                order_number: null,
 
                 customer_name: customerName,
                 phone: customerPhone,
@@ -648,19 +811,12 @@ if (
                 address: customerAddress,
 
                 location: '',
-
                 items: savedItems,
 
-                // مجموع المنتجات دون رسوم صن بيدج.
                 subtotal,
-
-                // مجموع رسوم صن بيدج لكل القطع.
                 sunbadge_fee: totalSunBadgeFee,
-
                 shipping_cost: shippingCost,
                 discount,
-
-                // الإجمالي النهائي بعد الشحن والخصم.
                 total,
 
                 shipping_method:
@@ -719,45 +875,39 @@ if (
                 });
             }
 
-          
-const savedOrder = Array.isArray(insertedData)
-    ? insertedData[0]
-    : insertedData;
+            const savedOrder = Array.isArray(insertedData)
+                ? insertedData[0]
+                : insertedData;
 
-if (!savedOrder?.id) {
-    return res.status(500).json({
-        success: false,
-        error: 'لم تصل بيانات الطلب المحفوظ من قاعدة البيانات.'
-    });
-}
+            if (!savedOrder?.id) {
+                return res.status(500).json({
+                    success: false,
+                    error:
+                        'لم تصل بيانات الطلب المحفوظ من قاعدة البيانات.'
+                });
+            }
 
-const finalOrder = {
-    ...savedOrder,
-    order_number: savedOrder.order_number
-        ? String(savedOrder.order_number).replace(/^ORD-/, '')
-        : null
-};
+            const finalOrder = {
+                ...savedOrder,
+                order_number: savedOrder.order_number
+                    ? String(savedOrder.order_number).replace(/^ORD-/, '')
+                    : null
+            };
 
+            // إشعار الإدارة بعد نجاح حفظ الطلب.
+            await notifyWhatsAppOrder('new_order', finalOrder);
 
-return res.status(201).json({
-    success: true,
-    order: finalOrder
-});
-
-} // نهاية شرط إنشاء الطلب POST
-
-// =====================================================
-// ADMIN OPERATIONS
-// =====================================================
+            return res.status(201).json({
+                success: true,
+                order: finalOrder
+            });
+        }
 
         // =====================================================
         // ADMIN OPERATIONS
         // =====================================================
 
-        // ملاحظة أمنية:
-        // وجود token وحده لا يثبت صحته.
-        // يجب التحقق من التوكن باستخدام آلية المصادقة الفعلية
-        // قبل السماح بعمليات GET وPUT وDELETE الخاصة بالأدمن.
+        // هذا يتحقق من وجود التوكن فقط، وليس صحته.
         if (!token) {
             return res.status(401).json({
                 success: false,
@@ -925,6 +1075,31 @@ return res.status(201).json({
                 });
             }
 
+            // قراءة الحالة القديمة لمعرفة ما إذا حدث تغيير فعلي.
+            const oldOrderResult = await getSupabaseJson(
+                `${SUPABASE_URL}/rest/v1/orders` +
+                `?id=eq.${encodeURIComponent(orderId)}` +
+                '&select=*&limit=1'
+            );
+
+            if (
+                !oldOrderResult.response.ok ||
+                !Array.isArray(oldOrderResult.data) ||
+                oldOrderResult.data.length === 0
+            ) {
+                console.error(
+                    'SUPABASE GET ORDER BEFORE UPDATE ERROR:',
+                    oldOrderResult.data
+                );
+
+                return res.status(404).json({
+                    success: false,
+                    error: 'الطلب غير موجود في قاعدة البيانات.'
+                });
+            }
+
+            const oldOrder = oldOrderResult.data[0];
+
             const {
                 response,
                 data
@@ -961,9 +1136,33 @@ return res.status(201).json({
                 });
             }
 
+            const updatedOrder = data[0];
+
+            // إشعار عند تغيير حالة الطلب فعليًا.
+            if (
+                updateData.status !== undefined &&
+                updateData.status !== oldOrder.status
+            ) {
+                await notifyWhatsAppOrder(
+                    'order_status',
+                    updatedOrder
+                );
+            }
+
+            // إشعار عند تغيير حالة الدفع فعليًا.
+            if (
+                updateData.payment_status !== undefined &&
+                updateData.payment_status !== oldOrder.payment_status
+            ) {
+                await notifyWhatsAppOrder(
+                    'payment_status',
+                    updatedOrder
+                );
+            }
+
             return res.status(200).json({
                 success: true,
-                order: data[0]
+                order: updatedOrder
             });
         }
 
@@ -982,4 +1181,4 @@ return res.status(201).json({
                 'حدث خطأ في نظام الطلبات.'
         });
     }
-}
+};
