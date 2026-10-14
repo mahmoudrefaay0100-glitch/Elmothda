@@ -290,11 +290,139 @@
                 `);
             }
 
-            document.getElementById('customize-product').addEventListener('click', () => {
-                location.href = '/?customize=' + encodeURIComponent(product.id);
+           
+
+
+document.getElementById('customize-product').addEventListener('click', () => {
+    const button = document.getElementById('customize-product');
+
+    if (!product || !product.id) {
+        alert('تعذر تحديد المنتج. حدّث الصفحة وحاول مرة أخرى.');
+        return;
+    }
+
+    if (document.getElementById('product-customizer-overlay')) {
+        return;
+    }
+
+    const oldOverflow = document.body.style.overflow;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'product-customizer-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
+        background: #111;
+    `;
+
+    const frame = document.createElement('iframe');
+    frame.title = 'تخصيص المنتج وإتمام الطلب';
+frame.src = '/?customize=' + encodeURIComponent(String(product.id)) + '&embedCustomizer=1';    frame.style.cssText = `
+        width: 100%;
+        height: 100%;
+        border: 0;
+        display: block;
+        opacity: 0;
+    `;
+
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.textContent = '✕ إغلاق';
+    closeButton.style.cssText = `
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 2147483647;
+        padding: 10px 16px;
+        border: 0;
+        border-radius: 10px;
+        background: #8B1E2B;
+        color: white;
+        font-size: 15px;
+        cursor: pointer;
+    `;
+
+    function closeOverlay() {
+        overlay.remove();
+        document.body.style.overflow = oldOverflow;
+        button.disabled = false;
+        button.textContent = 'تخصيص المنتج';
+    }
+
+    closeButton.addEventListener('click', closeOverlay);
+
+    frame.addEventListener('load', () => {
+        try {
+            const doc = frame.contentDocument;
+
+            if (!doc) {
+                throw new Error('تعذر الوصول إلى نافذة التخصيص');
+            }
+
+            const modalIds = [
+                'product-detail-modal',
+                'checkout-modal',
+                'cart-drawer'
+            ];
+
+            modalIds.forEach(id => {
+                const element = doc.getElementById(id);
+                if (element && element.parentElement !== doc.body) {
+                    doc.body.appendChild(element);
+                }
             });
 
-            document.title = product.title + ' | المتحدة للرتان والأثاث';
+            const style = doc.createElement('style');
+            style.textContent = `
+                html, body {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    min-height: 100% !important;
+                    background: #111 !important;
+                    overflow: hidden !important;
+                }
+
+                body > * {
+                    display: none !important;
+                }
+
+                body > #product-detail-modal,
+                body > #checkout-modal,
+                body > #cart-drawer {
+                    display: flex !important;
+                    position: fixed !important;
+                    inset: 0 !important;
+                    z-index: 2147483000 !important;
+                }
+
+                #product-detail-modal.hidden,
+                #checkout-modal.hidden,
+                #cart-drawer.hidden {
+                    display: none !important;
+                }
+            `;
+
+            doc.head.appendChild(style);
+            frame.style.opacity = '1';
+        } catch (error) {
+            console.error('Product customizer error:', error);
+            closeOverlay();
+            alert('تعذر فتح التخصيص. تأكد من أن صفحة المتجر الرئيسية تعمل بشكل صحيح.');
+        }
+    });
+
+    overlay.appendChild(frame);
+    overlay.appendChild(closeButton);
+
+    document.body.style.overflow = 'hidden';
+    document.body.appendChild(overlay);
+
+    button.disabled = true;
+    button.textContent = 'جاري فتح التخصيص...';
+});
+
+   document.title = product.title + ' | المتحدة للرتان والأثاث';
 
         } catch (error) {
             console.error('PRODUCT PAGE ERROR:', error);
