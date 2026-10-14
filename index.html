@@ -15412,16 +15412,18 @@ async function printAccountingInvoice(invoiceId, type) {
             </html>
         `);
 
-        printWindow.document.close();
+              printWindow.document.close();
 
     } catch (error) {
         console.error('PRINT ACCOUNTING INVOICE ERROR:', error);
-        accountingMessage(error.message, true);
+        accountingMessage(
+            error.message || 'حدث خطأ أثناء طباعة الفاتورة.',
+            true
+        );
     }
 }
 
 // نهاية نظام الحسابات
-
 
 /* =========================================
    UNITED ACCOUNTING - INVOICE FORMS
@@ -16167,14 +16169,12 @@ function printAccountingExpenses() {
     printWindow.document.write(printHtml);
     printWindow.document.close();
 
-    printWindow.focus();
+       printWindow.focus();
 
     setTimeout(function () {
         printWindow.print();
     }, 500);
 }
-
-
 </script>
 
 <!-- PRODUCT DETAIL & CUSTOMIZER MODAL -->
