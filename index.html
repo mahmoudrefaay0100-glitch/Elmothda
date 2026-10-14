@@ -16136,8 +16136,7 @@ function printAccountingExpenses() {
 
     printWindow.document.close();
 }
-
-        
+     
 </script>
 
 <!-- PRODUCT DETAIL & CUSTOMIZER MODAL -->
@@ -16151,6 +16150,16 @@ function printAccountingExpenses() {
         <div id="modal-product-content"></div>
     </div>
 </div>
+
+<script>
+(function moveCustomizerModalToBody() {
+    const modal = document.getElementById('product-detail-modal');
+
+    if (modal && modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+    }
+})();
+</script>
 
 </body>
 </html>
