@@ -5894,32 +5894,27 @@ const confirmedOrder = {
             );
         }
 
-        // حفظ نفس الطلب المعتمد لصفحة الشكر
-        sessionStorage.setItem(
-            'lastOrder',
-            JSON.stringify(confirmedOrder)
-        );
+       
+        // حفظ الطلب المعتمد لصفحة الشكر
+        const orderData = JSON.stringify(confirmedOrder);
+
+        // localStorage مشترك بين الصفحة الرئيسية والـ iframe
+        localStorage.setItem('lastOrder', orderData);
+
+        // الاحتفاظ بنسخة sessionStorage للتوافق مع الكود القديم
+        sessionStorage.setItem('lastOrder', orderData);
 
         // تفريغ السلة بعد نجاح حفظ الطلب
         currentCart = [];
         localStorage.removeItem('cart');
 
-        window.location.href = '/thank-you.html';
+        // فتح صفحة الشكر في الصفحة الرئيسية، وليس داخل iframe
+        if (window.top && window.top !== window.self) {
+            window.top.location.href = '/thank-you.html';
+        } else {
+            window.location.href = '/thank-you.html';
+        }
 
-    } catch (error) {
-        console.error(
-            'SUBMIT DEPOSIT ORDER ERROR:',
-            error
-        );
-
-        alert(
-            'حدث خطأ أثناء تسجيل الطلب:\n' +
-            (error?.message || 'خطأ غير معروف')
-        );
-    }
-}
-
-window.submitDepositOrder = submitDepositOrder;
      
 function closeCheckoutModal() {
     document
