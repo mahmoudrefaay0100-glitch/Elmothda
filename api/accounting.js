@@ -1,3 +1,4 @@
+
 export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store, max-age=0');
 
@@ -13,8 +14,10 @@ export default async function handler(req, res) {
         });
     }
 
+    // قراءة آمنة للقيم القادمة من قاعدة البيانات.
     const money = value => {
-        const n = Number(value ?? 0);
+        if (value === null || value === undefined || value === '') return 0;
+        const n = Number(value);
         return Number.isFinite(n) ? n : 0;
     };
 
@@ -26,8 +29,30 @@ export default async function handler(req, res) {
         throw error;
     };
 
+    // التحقق من القيم المالية القادمة من المستخدم دون تحويل النصوص غير الصحيحة إلى صفر.
+    const inputMoney = (value, label) => {
+        if (
+            value === null ||
+            value === undefined ||
+            (typeof value === 'string' && value.trim() === '')
+        ) {
+            return 0;
+        }
+
+        const n = Number(value);
+
+        if (!Number.isFinite(n)) {
+            fail(`${label} غير صحيح.`);
+        }
+
+        return n;
+    };
+
+    const roundMoney = value =>
+        Math.round((value + Number.EPSILON) * 100) / 100;
+
     try {
-        // التحقق من جلسة الأدمن
+        // التحقق من جلسة الأدمن.
         const authHeader = req.headers.authorization || '';
         const token = authHeader.replace(/^Bearer\s+/i, '').trim();
 
@@ -43,7 +68,8 @@ export default async function handler(req, res) {
                 apikey: SUPABASE_ANON_KEY,
                 Authorization: `Bearer ${token}`
             },
-            cache: 'no-store'
+            cache: 'no-store',
+            signal: AbortSignal.timeout(10000)
         });
 
         if (!authResponse.ok) {
@@ -65,7 +91,7 @@ export default async function handler(req, res) {
             });
         }
 
-        // عمليات قاعدة البيانات من الخادم فقط
+        // عمليات قاعدة البيانات من الخادم فقط.
         async function db(table, method = 'GET', query = {}, body = null) {
             const params = new URLSearchParams();
 
@@ -92,7 +118,8 @@ export default async function handler(req, res) {
                 method,
                 headers,
                 ...(body !== null ? { body: JSON.stringify(body) } : {}),
-                cache: 'no-store'
+                cache: 'no-store',
+                signal: AbortSignal.timeout(15000)
             });
 
             const raw = await response.text();
@@ -113,10 +140,16 @@ export default async function handler(req, res) {
                     data
                 );
 
+                const message =
+                    data?.message ||
+                    data?.hint ||
+                    data?.details ||
+                    `تعذر تنفيذ العملية على ${table}.`;
+
                 fail(
-                    data?.message || data?.hint ||
-                    `تعذر تنفيذ العملية على ${table}.`,
-                    response.status >= 500 ? 500 : 400
+                    message,
+                    response.status >= 500 ? 500 :
+                        response.status === 404 ? 404 : 400
                 );
             }
 
@@ -138,6 +171,29 @@ export default async function handler(req, res) {
             return Array.isArray(result) ? result : [];
         }
 
+        // قراءة الصفوف على دفعات لتجنب الاقتصار على أول 1000 سجل.
+        async function readAllRows(table, query = {}) {
+            const pageSize = 1000;
+            const rows = [];
+            let offset = 0;
+
+            while (true) {
+                const page = await readRows(table, {
+                    ...query,
+                    limit: pageSize,
+                    offset
+                });
+
+                rows.push(...page);
+
+                if (page.length < pageSize) break;
+
+                offset += pageSize;
+            }
+
+            return rows;
+        }
+
         const action = text(req.query?.action || '');
         const body = req.body && typeof req.body === 'object' ? req.body : {};
 
@@ -154,16 +210,13 @@ export default async function handler(req, res) {
                     supplierPayments,
                     expenses
                 ] = await Promise.all([
-                    readRows('accounting_sales_invoices'),
-                    readRows('accounting_purchase_invoices'),
-                    readRows('accounting_order_costs'),
-                    readRows('accounting_customer_receipts'),
-                    readRows('accounting_supplier_payments'),
-                    readRows('accounting_expenses')
+                    readAllRows('accounting_sales_invoices'),
+                    readAllRows('accounting_purchase_invoices'),
+                    readAllRows('accounting_order_costs'),
+                    readAllRows('accounting_customer_receipts'),
+                    readAllRows('accounting_supplier_payments'),
+                    readAllRows('accounting_expenses')
                 ]);
-
-                const roundMoney = value =>
-                    Math.round((value + Number.EPSILON) * 100) / 100;
 
                 const confirmedSales = salesInvoices.filter(
                     invoice =>
@@ -219,7 +272,7 @@ export default async function handler(req, res) {
                     Math.max(0, totalPurchases - totalSupplierPayments)
                 );
 
-                // صافي الربح التقديري لا يخصم الدفعات والتحصيلات مرة ثانية
+                // الحفاظ على معادلة صافي الربح الحالية دون تغيير.
                 const netProfit = roundMoney(
                     totalSales - totalPurchases - totalExpenses
                 );
@@ -248,12 +301,11 @@ export default async function handler(req, res) {
                 });
             }
 
-            // سجل المصروفات
+            // سجل المصروفات.
             if (action === 'expenses') {
-                const rows = await readRows('accounting_expenses', {
+                const rows = await readAllRows('accounting_expenses', {
                     select: '*',
-                    order: 'expense_date.desc',
-                    limit: 1000
+                    order: 'expense_date.desc'
                 });
 
                 const search = text(req.query?.search).toLowerCase();
@@ -277,7 +329,7 @@ export default async function handler(req, res) {
                 });
             }
 
-            // قائمة فواتير المبيعات والمشتريات
+            // قائمة فواتير المبيعات والمشتريات.
             if (action === 'list') {
                 const type = text(req.query?.type);
 
@@ -289,10 +341,9 @@ export default async function handler(req, res) {
                     ? 'accounting_sales_invoices'
                     : 'accounting_purchase_invoices';
 
-                const rows = await readRows(table, {
+                const rows = await readAllRows(table, {
                     select: '*',
-                    order: 'invoice_date.desc,created_at.desc',
-                    limit: 500
+                    order: 'invoice_date.desc,created_at.desc'
                 });
 
                 const search = text(req.query?.search).toLowerCase();
@@ -313,7 +364,7 @@ export default async function handler(req, res) {
                 });
             }
 
-            // تفاصيل فاتورة
+            // تفاصيل فاتورة.
             if (action === 'get') {
                 const type = text(req.query?.type);
                 const id = text(req.query?.id);
@@ -341,7 +392,7 @@ export default async function handler(req, res) {
                 const invoice = invoiceRows[0];
 
                 const [items, payments] = await Promise.all([
-                    readRows(
+                    readAllRows(
                         isSales
                             ? 'accounting_sales_invoice_items'
                             : 'accounting_purchase_invoice_items',
@@ -351,7 +402,7 @@ export default async function handler(req, res) {
                             order: 'created_at.asc'
                         }
                     ),
-                    readRows(
+                    readAllRows(
                         isSales
                             ? 'accounting_customer_receipts'
                             : 'accounting_supplier_payments',
@@ -365,9 +416,6 @@ export default async function handler(req, res) {
                         }
                     )
                 ]);
-
-                const roundMoney = value =>
-                    Math.round((value + Number.EPSILON) * 100) / 100;
 
                 const paid = roundMoney(
                     payments.reduce(
@@ -400,141 +448,131 @@ export default async function handler(req, res) {
         if (req.method === 'POST') {
 
             // ==================================================
-           
-            // ==================================================
             // حذف فاتورة مبيعات أو مشتريات
-            // POST /api/accounting?action=delete-invoice
             // ==================================================
-          
-if (action === 'delete-invoice') {
-    const id = text(body.id);
-    const type = text(body.type);
-    const confirmDeleteLinkedPayments =
-        body.confirmDeleteLinkedPayments === true;
+            if (action === 'delete-invoice') {
+                const id = text(body.id);
+                const type = text(body.type);
+                const confirmDeleteLinkedPayments =
+                    body.confirmDeleteLinkedPayments === true;
 
-    if (!id || !['sales', 'purchases'].includes(type)) {
-        fail('رقم الفاتورة أو نوعها غير صحيح.');
-    }
+                if (!id || !['sales', 'purchases'].includes(type)) {
+                    fail('رقم الفاتورة أو نوعها غير صحيح.');
+                }
 
-    const isSales = type === 'sales';
+                const isSales = type === 'sales';
 
-    const invoiceTable = isSales
-        ? 'accounting_sales_invoices'
-        : 'accounting_purchase_invoices';
+                const invoiceTable = isSales
+                    ? 'accounting_sales_invoices'
+                    : 'accounting_purchase_invoices';
 
-    const itemsTable = isSales
-        ? 'accounting_sales_invoice_items'
-        : 'accounting_purchase_invoice_items';
+                const itemsTable = isSales
+                    ? 'accounting_sales_invoice_items'
+                    : 'accounting_purchase_invoice_items';
 
-    const paymentsTable = isSales
-        ? 'accounting_customer_receipts'
-        : 'accounting_supplier_payments';
+                const paymentsTable = isSales
+                    ? 'accounting_customer_receipts'
+                    : 'accounting_supplier_payments';
 
-    const paymentForeignKey = isSales
-        ? 'sales_invoice_id'
-        : 'purchase_invoice_id';
+                const paymentForeignKey = isSales
+                    ? 'sales_invoice_id'
+                    : 'purchase_invoice_id';
 
-    const invoices = await readRows(invoiceTable, {
-        select: 'id,invoice_number,total',
-        id: `eq.${id}`,
-        limit: 1
-    });
+                const invoices = await readRows(invoiceTable, {
+                    select: 'id,invoice_number,total',
+                    id: `eq.${id}`,
+                    limit: 1
+                });
 
-    if (!invoices.length) {
-        fail('الفاتورة المطلوب حذفها غير موجودة.', 404);
-    }
+                if (!invoices.length) {
+                    fail('الفاتورة المطلوب حذفها غير موجودة.', 404);
+                }
 
-    const invoice = invoices[0];
+                const invoice = invoices[0];
 
-    const payments = await readRows(paymentsTable, {
-        select: 'id,amount',
-        [paymentForeignKey]: `eq.${id}`,
-        limit: 100
-    });
+                const payments = await readAllRows(paymentsTable, {
+                    select: 'id,amount',
+                    [paymentForeignKey]: `eq.${id}`
+                });
 
-    // لا نسمح بحذف أي حركة مالية إلا بتأكيد صريح من الواجهة.
-    if (payments.length > 0 && !confirmDeleteLinkedPayments) {
-        return res.status(409).json({
-            success: false,
-            code: 'INVOICE_HAS_LINKED_PAYMENTS',
-            error: 'الفاتورة مرتبطة بحركات مالية. يلزم تأكيد مراجعتها قبل الحذف.',
-            invoice: {
-                id: invoice.id,
-                invoice_number: invoice.invoice_number,
-                total: invoice.total,
-                type
-            },
-            linkedPayments: payments.map(payment => ({
-                id: payment.id,
-                amount: payment.amount
-            }))
-        });
-    }
+                if (payments.length > 0 && !confirmDeleteLinkedPayments) {
+                    return res.status(409).json({
+                        success: false,
+                        code: 'INVOICE_HAS_LINKED_PAYMENTS',
+                        error: 'الفاتورة مرتبطة بحركات مالية. يلزم تأكيد مراجعتها قبل الحذف.',
+                        invoice: {
+                            id: invoice.id,
+                            invoice_number: invoice.invoice_number,
+                            total: invoice.total,
+                            type
+                        },
+                        linkedPayments: payments.map(payment => ({
+                            id: payment.id,
+                            amount: payment.amount
+                        }))
+                    });
+                }
 
-    // حماية إضافية: السماح بالحذف المشترك لهذه الفاتورة التجريبية
-    // فقط، وعدم تعميم حذف التحصيلات على فواتير أخرى.
-    const allowedTestInvoice =
-        type === 'sales' &&
-        id === '77c65f9b-ae6d-4900-9679-81464510ba1a' &&
-        invoice.invoice_number === 'SAL-1791849285494';
+                // الإبقاء على القيد الأصلي الخاص بالفاتورة التجريبية.
+                const allowedTestInvoice =
+                    type === 'sales' &&
+                    id === '77c65f9b-ae6d-4900-9679-81464510ba1a' &&
+                    invoice.invoice_number === 'SAL-1791849285494';
 
-    if (payments.length > 0 && !allowedTestInvoice) {
-        fail(
-            'لا يمكن حذف الحركات المالية المرتبطة بهذه الفاتورة من هذا الإجراء.',
-            409
-        );
-    }
+                if (payments.length > 0 && !allowedTestInvoice) {
+                    fail(
+                        'لا يمكن حذف الحركات المالية المرتبطة بهذه الفاتورة من هذا الإجراء.',
+                        409
+                    );
+                }
 
-    // حذف التحصيلات المرتبطة بعد التأكيد، لهذه الفاتورة المحددة فقط.
-    if (payments.length > 0) {
-        const deletedPayments = await db(
-            paymentsTable,
-            'DELETE',
-            {
-                [paymentForeignKey]: `eq.${id}`
+                if (payments.length > 0) {
+                    const deletedPayments = await db(
+                        paymentsTable,
+                        'DELETE',
+                        {
+                            [paymentForeignKey]: `eq.${id}`
+                        }
+                    );
+
+                    if (
+                        !Array.isArray(deletedPayments) ||
+                        deletedPayments.length !== payments.length
+                    ) {
+                        fail(
+                            'تعذر التأكد من حذف جميع التحصيلات. راجع قاعدة البيانات قبل إعادة المحاولة.'
+                        );
+                    }
+                }
+
+                await db(itemsTable, 'DELETE', {
+                    invoice_id: `eq.${id}`
+                });
+
+                const deletedInvoices = await db(
+                    invoiceTable,
+                    'DELETE',
+                    { id: `eq.${id}` }
+                );
+
+                if (
+                    !Array.isArray(deletedInvoices) ||
+                    deletedInvoices.length === 0
+                ) {
+                    fail(
+                        'لم يتم تأكيد حذف الفاتورة. راجع قاعدة البيانات قبل إعادة المحاولة.'
+                    );
+                }
+
+                return res.status(200).json({
+                    success: true,
+                    message: allowedTestInvoice
+                        ? 'تم حذف الفاتورة التجريبية والحركات المرتبطة بها.'
+                        : 'تم حذف الفاتورة بنجاح.',
+                    deletedInvoice: deletedInvoices[0],
+                    deletedPaymentsCount: payments.length
+                });
             }
-        );
-
-        if (
-            !Array.isArray(deletedPayments) ||
-            deletedPayments.length !== payments.length
-        ) {
-            fail(
-                'تعذر التأكد من حذف جميع التحصيلات. راجع قاعدة البيانات قبل إعادة المحاولة.'
-            );
-        }
-    }
-
-    // حذف بنود الفاتورة أولاً.
-    await db(itemsTable, 'DELETE', {
-        invoice_id: `eq.${id}`
-    });
-
-    // حذف سجل الفاتورة.
-    const deletedInvoices = await db(
-        invoiceTable,
-        'DELETE',
-        { id: `eq.${id}` }
-    );
-
-    if (
-        !Array.isArray(deletedInvoices) ||
-        deletedInvoices.length === 0
-    ) {
-        fail(
-            'لم يتم تأكيد حذف الفاتورة. راجع قاعدة البيانات قبل إعادة المحاولة.'
-        );
-    }
-
-    return res.status(200).json({
-        success: true,
-        message: 'تم حذف الفاتورة التجريبية والحركات المرتبطة بها.',
-        deletedInvoice: deletedInvoices[0],
-        deletedPaymentsCount: payments.length
-    });
-}
-
-
 
             // ==================================================
             // تعديل فاتورة مبيعات أو مشتريات
@@ -561,8 +599,9 @@ if (action === 'delete-invoice') {
                     const itemName = text(
                         item.item_name || item.product_name || item.name
                     );
-                    const quantity = money(item.quantity);
-                    const unitPrice = money(item.unit_price);
+
+                    const quantity = inputMoney(item.quantity, 'الكمية');
+                    const unitPrice = inputMoney(item.unit_price, 'سعر الوحدة');
 
                     if (!itemName || quantity <= 0 || unitPrice < 0) {
                         fail('راجع أسماء الأصناف والكميات والأسعار.');
@@ -576,26 +615,24 @@ if (action === 'delete-invoice') {
                     };
                 });
 
-                const round = value =>
-                    Math.round((value + Number.EPSILON) * 100) / 100;
-
-                const subtotal = round(
+                const subtotal = roundMoney(
                     normalizedItems.reduce(
                         (sum, item) => sum + item.quantity * item.unit_price,
                         0
                     )
                 );
 
-                const discount = money(body.discount);
-                const extra = money(
-                    isSales ? body.shipping_cost : body.additional_cost
+                const discount = inputMoney(body.discount, 'الخصم');
+                const extra = inputMoney(
+                    isSales ? body.shipping_cost : body.additional_cost,
+                    'المصاريف الإضافية'
                 );
 
                 if (discount < 0 || extra < 0 || discount > subtotal) {
                     fail('راجع الخصم والمصاريف الإضافية.');
                 }
 
-                const total = round(subtotal - discount + extra);
+                const total = roundMoney(subtotal - discount + extra);
 
                 const invoiceTable = isSales
                     ? 'accounting_sales_invoices'
@@ -623,12 +660,12 @@ if (action === 'delete-invoice') {
                     fail('الفاتورة المطلوب تعديلها غير موجودة.', 404);
                 }
 
-                const payments = await readRows(paymentTable, {
+                const payments = await readAllRows(paymentTable, {
                     select: 'amount',
                     [paymentForeignKey]: `eq.${id}`
                 });
 
-                const paid = round(
+                const paid = roundMoney(
                     payments.reduce(
                         (sum, payment) => sum + money(payment.amount), 0
                     )
@@ -670,7 +707,7 @@ if (action === 'delete-invoice') {
                         invoice_id: id,
                         quantity: item.quantity,
                         unit_price: item.unit_price,
-                        line_total: round(item.quantity * item.unit_price),
+                        line_total: roundMoney(item.quantity * item.unit_price),
                         notes: text(item.notes) || null,
                         unit: text(item.unit) || 'قطعة',
                         category: text(item.category) || 'أخرى'
@@ -686,6 +723,7 @@ if (action === 'delete-invoice') {
                     return row;
                 });
 
+                // حفظ الأصناف الجديدة قبل حذف القديمة، لتقليل احتمال فقدان البنود.
                 const insertedItems = await db(itemsTable, 'POST', {}, newRows);
 
                 if (
@@ -709,7 +747,7 @@ if (action === 'delete-invoice') {
                         fail('لم يتم تأكيد تعديل بيانات الفاتورة.');
                     }
 
-                    const oldItems = await readRows(itemsTable, {
+                    const oldItems = await readAllRows(itemsTable, {
                         select: 'id',
                         invoice_id: `eq.${id}`
                     });
@@ -730,8 +768,9 @@ if (action === 'delete-invoice') {
                     }
                 } catch (error) {
                     console.error('ACCOUNTING INVOICE UPDATE ERROR:', error);
+
                     throw new Error(
-                        'تعذر إكمال تعديل الفاتورة. راجع الفاتورة وأصنافها في قاعدة البيانات قبل إعادة المحاولة.'
+                        'تعذر إكمال تعديل الفاتورة. قد تكون بعض الخطوات قد حُفظت بالفعل؛ راجع بيانات الفاتورة وأصنافها في قاعدة البيانات قبل إعادة المحاولة.'
                     );
                 }
 
@@ -744,7 +783,7 @@ if (action === 'delete-invoice') {
                     extra,
                     total,
                     paid,
-                    remaining: round(total - paid)
+                    remaining: roundMoney(total - paid)
                 });
             }
 
@@ -770,8 +809,9 @@ if (action === 'delete-invoice') {
                     const itemName = text(
                         item.item_name || item.product_name || item.name
                     );
-                    const quantity = money(item.quantity);
-                    const unitPrice = money(item.unit_price);
+
+                    const quantity = inputMoney(item.quantity, 'الكمية');
+                    const unitPrice = inputMoney(item.unit_price, 'سعر الوحدة');
 
                     if (!itemName || quantity <= 0 || unitPrice < 0) {
                         fail('راجع أسماء الأصناف والكميات والأسعار.');
@@ -785,27 +825,25 @@ if (action === 'delete-invoice') {
                     };
                 });
 
-                const subtotal = Math.round(
+                const subtotal = roundMoney(
                     normalizedItems.reduce(
                         (sum, item) => sum + item.quantity * item.unit_price,
                         0
-                    ) * 100
-                ) / 100;
+                    )
+                );
 
-                const discount = money(body.discount);
-                const extra = money(
-                    isSales ? body.shipping_cost : body.additional_cost
+                const discount = inputMoney(body.discount, 'الخصم');
+                const extra = inputMoney(
+                    isSales ? body.shipping_cost : body.additional_cost,
+                    'المصاريف الإضافية'
                 );
 
                 if (discount < 0 || extra < 0 || discount > subtotal) {
                     fail('راجع قيمة الخصم والمصاريف الإضافية.');
                 }
 
-                const total = Math.round(
-                    (subtotal - discount + extra) * 100
-                ) / 100;
-
-                const initialPaid = money(body.initial_paid);
+                const total = roundMoney(subtotal - discount + extra);
+                const initialPaid = inputMoney(body.initial_paid, 'المبلغ المدفوع');
 
                 if (initialPaid < 0 || initialPaid > total) {
                     fail('المبلغ المدفوع غير صحيح.');
@@ -860,9 +898,9 @@ if (action === 'delete-invoice') {
                             invoice_id: invoice.id,
                             quantity: item.quantity,
                             unit_price: item.unit_price,
-                            line_total: Math.round(
-                                item.quantity * item.unit_price * 100
-                            ) / 100,
+                            line_total: roundMoney(
+                                item.quantity * item.unit_price
+                            ),
                             notes: text(item.notes) || null,
                             unit: text(item.unit) || 'قطعة',
                             category: text(item.category) || 'أخرى'
@@ -878,7 +916,14 @@ if (action === 'delete-invoice') {
                         return row;
                     });
 
-                    await db(itemsTable, 'POST', {}, rows);
+                    const savedItems = await db(itemsTable, 'POST', {}, rows);
+
+                    if (
+                        !Array.isArray(savedItems) ||
+                        savedItems.length !== rows.length
+                    ) {
+                        fail('لم يتم تأكيد حفظ جميع أصناف الفاتورة.');
+                    }
 
                     if (initialPaid > 0) {
                         const paymentMethod = text(body.payment_method) || 'كاش';
@@ -912,6 +957,7 @@ if (action === 'delete-invoice') {
                     }
                 } catch (saveError) {
                     console.error('INVOICE ITEMS/PAYMENT SAVE ERROR', saveError);
+
                     throw new Error(
                         'تم إنشاء سجل الفاتورة، لكن تعذر تأكيد حفظ كل الأصناف أو الدفعة. راجع الفاتورة في Supabase قبل إعادة المحاولة.'
                     );
@@ -926,7 +972,7 @@ if (action === 'delete-invoice') {
                     extra,
                     total,
                     paid: initialPaid,
-                    remaining: total - initialPaid
+                    remaining: roundMoney(total - initialPaid)
                 });
             }
 
@@ -935,7 +981,7 @@ if (action === 'delete-invoice') {
             // ==================================================
             if (action === 'receipt' || action === 'supplier-payment') {
                 const isReceipt = action === 'receipt';
-                const amount = money(body.amount);
+                const amount = inputMoney(body.amount, 'المبلغ');
                 const name = text(
                     isReceipt ? body.customer_name : body.supplier_name
                 );
@@ -969,16 +1015,18 @@ if (action === 'delete-invoice') {
                     ? 'sales_invoice_id'
                     : 'purchase_invoice_id';
 
-                const existingPayments = await readRows(paymentTable, {
+                const existingPayments = await readAllRows(paymentTable, {
                     select: 'amount',
                     [foreignKey]: `eq.${invoiceId}`
                 });
 
-                const alreadyPaid = existingPayments.reduce(
-                    (sum, payment) => sum + money(payment.amount), 0
+                const alreadyPaid = roundMoney(
+                    existingPayments.reduce(
+                        (sum, payment) => sum + money(payment.amount), 0
+                    )
                 );
 
-                const remaining = money(invoice.total) - alreadyPaid;
+                const remaining = roundMoney(money(invoice.total) - alreadyPaid);
 
                 if (amount > remaining + 0.001) {
                     fail(
@@ -1019,10 +1067,10 @@ if (action === 'delete-invoice') {
                     success: true,
                     message: 'تم تسجيل الدفعة.',
                     payment: saved,
-                    paid: alreadyPaid + amount,
+                    paid: roundMoney(alreadyPaid + amount),
                     remaining: Math.max(
                         0,
-                        money(invoice.total) - alreadyPaid - amount
+                        roundMoney(money(invoice.total) - alreadyPaid - amount)
                     )
                 });
             }
@@ -1032,7 +1080,7 @@ if (action === 'delete-invoice') {
             // ==================================================
             if (action === 'expense') {
                 const description = text(body.description);
-                const amount = money(body.amount);
+                const amount = inputMoney(body.amount, 'قيمة المصروف');
 
                 if (!description) fail('وصف المصروف مطلوب.');
                 if (amount <= 0) {
@@ -1064,7 +1112,7 @@ if (action === 'delete-invoice') {
             if (action === 'update-expense') {
                 const id = text(body.id);
                 const description = text(body.description);
-                const amount = money(body.amount);
+                const amount = inputMoney(body.amount, 'قيمة المصروف');
                 const expenseDate = text(body.expense_date);
                 const category = text(body.category) || 'other';
 
