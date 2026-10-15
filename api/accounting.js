@@ -14,7 +14,6 @@ export default async function handler(req, res) {
         });
     }
 
-    // قراءة آمنة للقيم القادمة من قاعدة البيانات.
     const money = value => {
         if (value === null || value === undefined || value === '') return 0;
         const n = Number(value);
@@ -29,7 +28,6 @@ export default async function handler(req, res) {
         throw error;
     };
 
-    // التحقق من القيم المالية القادمة من المستخدم دون تحويل النصوص غير الصحيحة إلى صفر.
     const inputMoney = (value, label) => {
         if (
             value === null ||
@@ -52,7 +50,6 @@ export default async function handler(req, res) {
         Math.round((value + Number.EPSILON) * 100) / 100;
 
     try {
-        // التحقق من جلسة الأدمن.
         const authHeader = req.headers.authorization || '';
         const token = authHeader.replace(/^Bearer\s+/i, '').trim();
 
@@ -91,7 +88,6 @@ export default async function handler(req, res) {
             });
         }
 
-        // عمليات قاعدة البيانات من الخادم فقط.
         async function db(table, method = 'GET', query = {}, body = null) {
             const params = new URLSearchParams();
 
@@ -171,7 +167,6 @@ export default async function handler(req, res) {
             return Array.isArray(result) ? result : [];
         }
 
-        // قراءة الصفوف على دفعات لتجنب الاقتصار على أول 1000 سجل.
         async function readAllRows(table, query = {}) {
             const pageSize = 1000;
             const rows = [];
@@ -198,8 +193,146 @@ export default async function handler(req, res) {
         const body = req.body && typeof req.body === 'object' ? req.body : {};
 
         // ==================================================
+        // التحقق من بيانات مصمم معاينة الطقم
+        // ==================================================
+
+        function validateDesignImageUrl(value) {
+            if (typeof value !== 'string' || !value.trim()) {
+                return null;
+            }
+
+            let parsed;
+            let base;
+
+            try {
+                parsed = new URL(value.trim());
+                base = new URL(SUPABASE_URL);
+            } catch {
+                fail('رابط صورة المعاينة غير صحيح.');
+            }
+
+            if (
+                parsed.protocol !== 'https:' ||
+                parsed.origin !== base.origin ||
+                !parsed.pathname.startsWith(
+                    '/storage/v1/object/public/product-images/design-previews/'
+                )
+            ) {
+                fail(
+                    'رابط المعاينة يجب أن يكون لصورة مرفوعة في مجلد تصميمات الفواتير.'
+                );
+            }
+
+            return parsed.href;
+        }
+
+        function validateDesignSpecs(value) {
+            if (
+                value === undefined ||
+                value === null ||
+                typeof value !== 'object' ||
+                Array.isArray(value)
+            ) {
+                if (value === undefined || value === null) {
+                    return {
+                        version: 1,
+                        notes: '',
+                        images: [],
+                        components: []
+                    };
+                }
+
+                fail('بيانات مواصفات التصميم غير صحيحة.');
+            }
+
+            let serialized;
+
+            try {
+                serialized = JSON.stringify(value);
+            } catch {
+                fail('تعذر قراءة بيانات مواصفات التصميم.');
+            }
+
+            if (serialized.length > 50000) {
+                fail('بيانات التصميم كبيرة جدًا. قلل الملاحظات أو عدد العناصر.');
+            }
+
+            const notes = text(value.notes);
+
+            if (notes.length > 5000) {
+                fail('ملاحظات التصميم تتجاوز الحد المسموح.');
+            }
+
+            const rawImages = Array.isArray(value.images)
+                ? value.images
+                : [];
+
+            const rawComponents = Array.isArray(value.components)
+                ? value.components
+                : [];
+
+            if (rawImages.length > 30) {
+                fail('الحد الأقصى لصور المعاينة هو 30 صورة.');
+            }
+
+            if (rawComponents.length > 100) {
+                fail('الحد الأقصى لمكونات الطقم هو 100 قطعة.');
+            }
+
+            const images = rawImages.map(image => {
+                if (!image || typeof image !== 'object') {
+                    fail('بيانات إحدى صور المعاينة غير صحيحة.');
+                }
+
+                const name = text(image.name).slice(0, 200);
+                const url = validateDesignImageUrl(image.url);
+
+                if (!url) {
+                    fail('يوجد رابط صورة فارغ أو غير صحيح في المعاينة.');
+                }
+
+                return { name, url };
+            });
+
+            const components = rawComponents.map(component => {
+                if (!component || typeof component !== 'object') {
+                    fail('بيانات إحدى قطع الطقم غير صحيحة.');
+                }
+
+                const name = text(component.name);
+                const quantity = Number(component.quantity);
+
+                if (
+                    !name ||
+                    name.length > 200 ||
+                    !Number.isInteger(quantity) ||
+                    quantity < 1 ||
+                    quantity > 100000
+                ) {
+                    fail('راجع اسم وعدد كل قطعة في مواصفات التصميم.');
+                }
+
+                return {
+                    name,
+                    quantity,
+                    color: text(component.color).slice(0, 200),
+                    dimensions: text(component.dimensions).slice(0, 500),
+                    notes: text(component.notes).slice(0, 2000)
+                };
+            });
+
+            return {
+                version: 1,
+                notes,
+                images,
+                components
+            };
+        }
+
+        // ==================================================
         // GET: ملخص الحسابات
         // ==================================================
+
         if (req.method === 'GET') {
             if (!action || action === 'dashboard') {
                 const [
@@ -272,7 +405,6 @@ export default async function handler(req, res) {
                     Math.max(0, totalPurchases - totalSupplierPayments)
                 );
 
-                // الحفاظ على معادلة صافي الربح الحالية دون تغيير.
                 const netProfit = roundMoney(
                     totalSales - totalPurchases - totalExpenses
                 );
@@ -301,7 +433,6 @@ export default async function handler(req, res) {
                 });
             }
 
-            // سجل المصروفات.
             if (action === 'expenses') {
                 const rows = await readAllRows('accounting_expenses', {
                     select: '*',
@@ -329,7 +460,6 @@ export default async function handler(req, res) {
                 });
             }
 
-            // قائمة فواتير المبيعات والمشتريات.
             if (action === 'list') {
                 const type = text(req.query?.type);
 
@@ -364,7 +494,6 @@ export default async function handler(req, res) {
                 });
             }
 
-            // تفاصيل فاتورة.
             if (action === 'get') {
                 const type = text(req.query?.type);
                 const id = text(req.query?.id);
@@ -445,11 +574,10 @@ export default async function handler(req, res) {
         // ==================================================
         // POST: العمليات التي تغيّر البيانات
         // ==================================================
+
         if (req.method === 'POST') {
 
-            // ==================================================
             // حذف فاتورة مبيعات أو مشتريات
-            // ==================================================
             if (action === 'delete-invoice') {
                 const id = text(body.id);
                 const type = text(body.type);
@@ -513,7 +641,6 @@ export default async function handler(req, res) {
                     });
                 }
 
-                // الإبقاء على القيد الأصلي الخاص بالفاتورة التجريبية.
                 const allowedTestInvoice =
                     type === 'sales' &&
                     id === '77c65f9b-ae6d-4900-9679-81464510ba1a' &&
@@ -577,6 +704,7 @@ export default async function handler(req, res) {
             // ==================================================
             // تعديل فاتورة مبيعات أو مشتريات
             // ==================================================
+
             if (action === 'update-sales' || action === 'update-purchase') {
                 const isSales = action === 'update-sales';
                 const id = text(body.id);
@@ -677,6 +805,56 @@ export default async function handler(req, res) {
                     );
                 }
 
+                // إعداد حقول التصميم لفواتير البيع فقط.
+                // لا يتم تعديل حقول التصميم في فواتير المشتريات.
+                const designFields = {};
+
+                if (isSales) {
+                    const existingInvoice = invoices[0];
+
+                    const hasDesignUrl =
+                        Object.prototype.hasOwnProperty.call(
+                            body,
+                            'design_preview_url'
+                        );
+
+                    const hasDesignSpecs =
+                        Object.prototype.hasOwnProperty.call(
+                            body,
+                            'design_specs'
+                        );
+
+                    if (hasDesignUrl) {
+                        const incomingUrl = body.design_preview_url;
+
+                        designFields.design_preview_url =
+                            incomingUrl === null || text(incomingUrl) === ''
+                                ? existingInvoice.design_preview_url || null
+                                : validateDesignImageUrl(incomingUrl);
+                    }
+
+                    if (hasDesignSpecs) {
+                        const incomingSpecs = validateDesignSpecs(
+                            body.design_specs
+                        );
+
+                        const hasActualDesign =
+                            Boolean(incomingSpecs.notes) ||
+                            incomingSpecs.images.length > 0 ||
+                            incomingSpecs.components.length > 0;
+
+                        designFields.design_specs =
+                            hasActualDesign || body.clear_design === true
+                                ? incomingSpecs
+                                : (
+                                    existingInvoice.design_specs &&
+                                    typeof existingInvoice.design_specs === 'object'
+                                )
+                                    ? existingInvoice.design_specs
+                                    : incomingSpecs;
+                    }
+                }
+
                 const header = isSales
                     ? {
                         customer_name: name,
@@ -687,7 +865,22 @@ export default async function handler(req, res) {
                         discount,
                         shipping_cost: extra,
                         total,
-                        notes: text(body.notes) || null
+                        notes: text(body.notes) || null,
+
+                        ...(Object.prototype.hasOwnProperty.call(
+                            designFields,
+                            'design_preview_url'
+                        ) ? {
+                            design_preview_url:
+                                designFields.design_preview_url
+                        } : {}),
+
+                        ...(Object.prototype.hasOwnProperty.call(
+                            designFields,
+                            'design_specs'
+                        ) ? {
+                            design_specs: designFields.design_specs
+                        } : {})
                     }
                     : {
                         supplier_name: name,
@@ -723,7 +916,6 @@ export default async function handler(req, res) {
                     return row;
                 });
 
-                // حفظ الأصناف الجديدة قبل حذف القديمة، لتقليل احتمال فقدان البنود.
                 const insertedItems = await db(itemsTable, 'POST', {}, newRows);
 
                 if (
@@ -790,9 +982,11 @@ export default async function handler(req, res) {
             // ==================================================
             // إنشاء فاتورة مبيعات أو مشتريات
             // ==================================================
+
             if (action === 'create-sales' || action === 'create-purchase') {
                 const isSales = action === 'create-sales';
                 const items = body.items;
+
                 const name = text(
                     isSales ? body.customer_name : body.supplier_name
                 );
@@ -855,6 +1049,19 @@ export default async function handler(req, res) {
                 const invoiceDate = text(body.invoice_date) ||
                     new Date().toISOString().slice(0, 10);
 
+                // تجهيز بيانات التصميم عند إنشاء فاتورة البيع فقط.
+                const designFields = {};
+
+                if (isSales) {
+                    designFields.design_preview_url =
+                        body.design_preview_url
+                            ? validateDesignImageUrl(body.design_preview_url)
+                            : null;
+
+                    designFields.design_specs =
+                        validateDesignSpecs(body.design_specs);
+                }
+
                 const header = isSales
                     ? {
                         invoice_number: invoiceNumber,
@@ -866,6 +1073,10 @@ export default async function handler(req, res) {
                         shipping_cost: extra,
                         total,
                         notes: text(body.notes) || null,
+                        design_preview_url:
+                            designFields.design_preview_url,
+                        design_specs:
+                            designFields.design_specs,
                         status: 'confirmed'
                     }
                     : {
@@ -979,12 +1190,15 @@ export default async function handler(req, res) {
             // ==================================================
             // تحصيل من عميل أو دفعة لمورد
             // ==================================================
+
             if (action === 'receipt' || action === 'supplier-payment') {
                 const isReceipt = action === 'receipt';
                 const amount = inputMoney(body.amount, 'المبلغ');
+
                 const name = text(
                     isReceipt ? body.customer_name : body.supplier_name
                 );
+
                 const invoiceId = text(body.invoice_id);
 
                 if (!name) fail('اسم العميل أو المورد مطلوب.');
@@ -1078,11 +1292,13 @@ export default async function handler(req, res) {
             // ==================================================
             // تسجيل مصروف
             // ==================================================
+
             if (action === 'expense') {
                 const description = text(body.description);
                 const amount = inputMoney(body.amount, 'قيمة المصروف');
 
                 if (!description) fail('وصف المصروف مطلوب.');
+
                 if (amount <= 0) {
                     fail('قيمة المصروف يجب أن تكون أكبر من صفر.');
                 }
@@ -1106,9 +1322,7 @@ export default async function handler(req, res) {
                 });
             }
 
-            // ==================================================
             // تعديل مصروف
-            // ==================================================
             if (action === 'update-expense') {
                 const id = text(body.id);
                 const description = text(body.description);
@@ -1118,6 +1332,7 @@ export default async function handler(req, res) {
 
                 if (!id) fail('رقم المصروف مطلوب للتعديل.');
                 if (!description) fail('وصف المصروف مطلوب.');
+
                 if (amount <= 0) {
                     fail('قيمة المصروف يجب أن تكون أكبر من صفر.');
                 }
@@ -1150,7 +1365,8 @@ export default async function handler(req, res) {
                         recipient: text(body.recipient) || null,
                         amount,
                         payment_method: text(body.payment_method) || 'كاش',
-                        reference_number: text(body.reference_number) || null,
+                        reference_number:
+                            text(body.reference_number) || null,
                         notes: text(body.notes) || null
                     }
                 );
@@ -1166,9 +1382,7 @@ export default async function handler(req, res) {
                 });
             }
 
-            // ==================================================
             // حذف مصروف
-            // ==================================================
             if (action === 'delete-expense') {
                 const id = text(body.id);
 
