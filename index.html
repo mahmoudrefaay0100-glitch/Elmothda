@@ -4580,8 +4580,18 @@ const grandTotal = productsTotal + sunBadgeTotal;
         function selectWickerColor(name) { selectedWickerColor = name; renderCustomizerModalContent(); }
         function toggleSunbrella(checked) { sunbrellaChecked = checked; renderCustomizerModalContent(); }
         function changeCustomizerQty(delta) { customizerQty = Math.max(1, customizerQty + delta); renderCustomizerModalContent(); }
-        function closeProductModal() { document.getElementById('product-detail-modal').classList.add('hidden'); }
+function closeProductModal() {
+    const modal = document.getElementById('product-detail-modal');
 
+    if (!modal) {
+        console.warn('CUSTOMIZER: product-detail-modal not found.');
+        return;
+    }
+
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+}
   
 
 
