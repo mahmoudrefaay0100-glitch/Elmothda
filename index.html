@@ -5641,8 +5641,10 @@ window.updateTransferAmount = updateTransferAmount;
         0
     );
 
-    const formatMoney = value =>
-        `${value.toLocaleString('ar-EG')} ج.م`;
+    const formatNumber = (value) =>
+    Number(value || 0).toLocaleString('en-US', {
+        maximumFractionDigits: 3
+    });
 
     const totalElement =
         document.getElementById('deposit-total-amount');
@@ -14015,14 +14017,16 @@ const accountingState = {
 };
 
 // تنسيق المبالغ بالجنيه المصري
+
 function accountingMoney(value) {
     const amount = Number(value || 0);
 
-    return amount.toLocaleString('ar-EG', {
+    return amount.toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     }) + ' ج.م';
 }
+
 
 // حماية النصوص عند عرض بيانات قاعدة البيانات داخل HTML
 function accountingEscape(value) {
@@ -15671,10 +15675,20 @@ async function saveAccountingExpense(event) {
 }
 
 
+        
+function accountingEnglishNumbers(value) {
+    const arabicDigits = '٠١٢٣٤٥٦٧٨٩';
+    const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+
+    return String(value ?? '')
+        .replace(/[٠-٩]/g, digit => arabicDigits.indexOf(digit))
+        .replace(/[۰-۹]/g, digit => persianDigits.indexOf(digit));
+}
+
+
 // =====================================================
 // طباعة تفاصيل الفاتورة
 // =====================================================
-
 
 
 
@@ -15698,8 +15712,18 @@ async function printAccountingInvoice(invoiceId, type) {
             );
         }
 
+        // تحويل الأرقام العربية والفارسية إلى أرقام إنجليزية
+        const englishNumbers = (value) =>
+            String(value ?? '')
+                .replace(/[٠-٩]/g, digit =>
+                    '٠١٢٣٤٥٦٧٨٩'.indexOf(digit)
+                )
+                .replace(/[۰-۹]/g, digit =>
+                    '۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)
+                );
+
         const escape = (value) =>
-            accountingEscape(String(value ?? ''));
+            accountingEscape(englishNumbers(value));
 
         const name = type === 'sales'
             ? invoice.customer_name
@@ -15787,11 +15811,19 @@ async function printAccountingInvoice(invoiceId, type) {
             }
         })();
 
+        
+        // تنسيق المبالغ بأرقام إنجليزية
         const formatMoney = (value) =>
-            accountingMoney(Number(value || 0));
+            accountingEnglishNumbers(
+                accountingMoney(Number(value || 0))
+            );
 
+        // تنسيق الكميات بأرقام إنجليزية
         const formatNumber = (value) =>
-            Number(value || 0).toLocaleString('ar-EG');
+            Number(value || 0).toLocaleString('en-US', {
+                maximumFractionDigits: 3
+            });
+
 
         const rows = items.length
             ? items.map((item, index) => {
@@ -15805,6 +15837,7 @@ async function printAccountingInvoice(invoiceId, type) {
                 return `
                     <tr>
                         <td class="number-cell">${index + 1}</td>
+
                         <td class="product-cell">
                             <strong>
                                 ${escape(
@@ -15824,7 +15857,8 @@ async function printAccountingInvoice(invoiceId, type) {
                                     : ''
                             }
                         </td>
-                        <td class="center">${escape(formatNumber(quantity))}</td>
+
+                        <td class="center">${formatNumber(quantity)}</td>
                         <td class="center">${escape(item.unit || 'قطعة')}</td>
                         <td class="money">${escape(formatMoney(unitPrice))}</td>
                         <td class="money total-cell">${escape(formatMoney(lineTotal))}</td>
@@ -15875,12 +15909,13 @@ async function printAccountingInvoice(invoiceId, type) {
             <html lang="ar" dir="rtl">
             <head>
                 <meta charset="UTF-8">
+
                 <meta
                     name="viewport"
                     content="width=device-width, initial-scale=1"
                 >
 
-                <title>${printTitle} - ${escape(invoiceNumber)}</title>
+                <title>${escape(printTitle)} - ${escape(invoiceNumber)}</title>
 
                 <style>
                     * {
@@ -15892,10 +15927,13 @@ async function printAccountingInvoice(invoiceId, type) {
                         margin: 0;
                         padding: 24px;
                         background: #fff;
-                        color: #292929;
+                        color: #111 !important;
                         font-family: Tahoma, Arial, sans-serif;
                         font-size: 12px;
                         line-height: 1.7;
+                        font-weight: 500;
+                        -webkit-print-color-adjust: economy;
+                        print-color-adjust: economy;
                     }
 
                     .invoice {
@@ -15909,7 +15947,7 @@ async function printAccountingInvoice(invoiceId, type) {
                         justify-content: space-between;
                         gap: 18px;
                         padding: 0 0 18px;
-                        border-bottom: 3px solid #8B1E2B;
+                        border-bottom: 2px solid #333;
                     }
 
                     .company {
@@ -15939,21 +15977,22 @@ async function printAccountingInvoice(invoiceId, type) {
                         margin: 0 0 6px;
                         font-size: 23px;
                         font-weight: 900;
-                        color: #8B1E2B;
+                        color: #111 !important;
                     }
 
                     .company-line {
                         margin: 3px 0;
-                        color: #555;
+                        color: #222 !important;
                         font-size: 11px;
+                        font-weight: 600;
                     }
 
                     .company-phone {
                         direction: ltr;
                         unicode-bidi: embed;
                         display: inline-block;
-                        color: #8B1E2B;
-                        font-weight: bold;
+                        color: #111 !important;
+                        font-weight: 800;
                     }
 
                     .invoice-heading {
@@ -15963,45 +16002,48 @@ async function printAccountingInvoice(invoiceId, type) {
 
                     .invoice-label {
                         display: inline-block;
-                        background: #8B1E2B;
-                        color: #fff;
-                        padding: 8px 17px;
-                        border-radius: 5px;
+                        background: #fff;
+                        color: #111 !important;
+                        border: 2px solid #333;
+                        padding: 6px 14px;
+                        border-radius: 3px;
                         font-size: 18px;
-                        font-weight: bold;
+                        font-weight: 900;
                     }
 
                     .invoice-number {
                         margin-top: 10px;
                         font-size: 12px;
-                        font-weight: bold;
+                        font-weight: 800;
+                        color: #111 !important;
                     }
 
                     .invoice-date {
                         margin-top: 4px;
-                        color: #666;
+                        color: #222 !important;
+                        font-weight: 600;
                     }
 
                     .gold-line {
-                        height: 3px;
+                        height: 0;
                         width: 100%;
                         margin-top: 3px;
-                        background: #D4AF37;
+                        border-bottom: 1px solid #777;
                     }
 
                     .section-title {
-                        color: #8B1E2B;
+                        color: #111 !important;
                         font-size: 13px;
-                        font-weight: bold;
+                        font-weight: 900;
                         margin: 0 0 10px;
                     }
 
                     .customer-section {
                         margin: 20px 0;
-                        padding: 15px;
-                        border: 1px solid #e3e3e3;
-                        border-radius: 6px;
-                        background: #fdfdfd;
+                        padding: 13px;
+                        border: 1px solid #777;
+                        border-radius: 3px;
+                        background: #fff;
                     }
 
                     .customer-grid {
@@ -16016,27 +16058,28 @@ async function printAccountingInvoice(invoiceId, type) {
                     }
 
                     .field-label {
-                        color: #777;
+                        color: #222 !important;
                         margin-left: 5px;
+                        font-weight: 600;
                     }
 
                     .field-value {
-                        color: #222;
-                        font-weight: bold;
+                        color: #111 !important;
+                        font-weight: 800;
                     }
 
                     .status-pill {
                         display: inline-block;
-                        border: 1px solid #ddd;
-                        border-radius: 4px;
+                        border: 1px solid #777;
+                        border-radius: 3px;
                         padding: 1px 9px;
                     }
 
                     .items-title {
                         margin: 20px 0 8px;
-                        color: #8B1E2B;
+                        color: #111 !important;
                         font-size: 14px;
-                        font-weight: bold;
+                        font-weight: 900;
                     }
 
                     table {
@@ -16055,32 +16098,41 @@ async function printAccountingInvoice(invoiceId, type) {
                     }
 
                     th {
-                        background: #8B1E2B;
-                        color: #fff;
-                        padding: 10px 6px;
-                        border: 1px solid #8B1E2B;
+                        background: #eee !important;
+                        color: #111 !important;
+                        padding: 8px 6px;
+                        border: 1px solid #555;
                         font-size: 11px;
+                        font-weight: 900;
                         text-align: center;
                     }
 
                     td {
-                        border: 1px solid #ddd;
-                        padding: 9px 7px;
+                        color: #111 !important;
+                        border: 1px solid #777;
+                        padding: 8px 7px;
                         vertical-align: top;
                         overflow-wrap: anywhere;
+                        font-weight: 500;
                     }
 
                     tbody tr:nth-child(even) {
-                        background: #faf7f7;
+                        background: #fff !important;
                     }
 
                     .number-cell {
                         width: 6%;
                         text-align: center;
+                        font-weight: 700;
                     }
 
                     .product-cell {
                         width: 34%;
+                    }
+
+                    .product-cell strong {
+                        color: #111 !important;
+                        font-weight: 900;
                     }
 
                     .center {
@@ -16090,22 +16142,25 @@ async function printAccountingInvoice(invoiceId, type) {
                     .money {
                         text-align: center;
                         direction: rtl;
+                        font-weight: 700;
                     }
 
                     .total-cell {
-                        font-weight: bold;
+                        font-weight: 900 !important;
                     }
 
                     .item-description {
                         margin-top: 3px;
-                        color: #777;
+                        color: #333 !important;
                         font-size: 10px;
+                        font-weight: 500;
                     }
 
                     .empty-items {
                         text-align: center;
                         padding: 25px;
-                        color: #777;
+                        color: #222 !important;
+                        font-weight: 600;
                     }
 
                     .summary-layout {
@@ -16119,16 +16174,22 @@ async function printAccountingInvoice(invoiceId, type) {
                     .notes {
                         flex: 1;
                         min-width: 0;
-                        color: #666;
+                        color: #222 !important;
                         font-size: 11px;
+                        font-weight: 500;
+                    }
+
+                    .notes strong {
+                        color: #111 !important;
+                        font-weight: 900;
                     }
 
                     .totals {
                         width: 320px;
                         max-width: 100%;
-                        border: 1px solid #ddd;
-                        border-radius: 6px;
-                        padding: 12px 15px;
+                        border: 1px solid #555;
+                        border-radius: 3px;
+                        padding: 10px 13px;
                         flex-shrink: 0;
                     }
 
@@ -16138,27 +16199,35 @@ async function printAccountingInvoice(invoiceId, type) {
                         justify-content: space-between;
                         gap: 12px;
                         padding: 5px 0;
+                        color: #111 !important;
+                        font-weight: 600;
                     }
 
                     .total-row span:last-child {
-                        font-weight: bold;
+                        font-weight: 800;
                         text-align: left;
+                        color: #111 !important;
                     }
 
                     .grand-total {
-                        margin: 5px -15px;
-                        padding: 10px 15px;
-                        background: #f7eeee;
-                        color: #8B1E2B;
-                        font-size: 16px;
-                        font-weight: 900;
-                        border-top: 1px solid #e7d2d5;
-                        border-bottom: 1px solid #e7d2d5;
+                        margin: 5px -13px;
+                        padding: 9px 13px;
+                        background: #eee !important;
+                        color: #000 !important;
+                        font-size: 15px;
+                        font-weight: 900 !important;
+                        border-top: 1px solid #555;
+                        border-bottom: 1px solid #555;
+                    }
+
+                    .grand-total span {
+                        color: #000 !important;
+                        font-weight: 900 !important;
                     }
 
                     .remaining {
-                        color: #8B1E2B;
-                        font-weight: bold;
+                        color: #111 !important;
+                        font-weight: 900 !important;
                     }
 
                     .signature-area {
@@ -16167,24 +16236,28 @@ async function printAccountingInvoice(invoiceId, type) {
                         gap: 50px;
                         margin-top: 55px;
                         text-align: center;
+                        color: #111 !important;
+                        font-weight: 700;
                     }
 
                     .signature {
                         padding-top: 10px;
-                        border-top: 1px solid #aaa;
+                        border-top: 1px solid #555;
                     }
 
                     .footer {
-                        border-top: 1px solid #ddd;
+                        border-top: 1px solid #777;
                         margin-top: 25px;
                         padding-top: 12px;
                         text-align: center;
-                        color: #777;
+                        color: #222 !important;
                         font-size: 11px;
+                        font-weight: 600;
                     }
 
                     .footer strong {
-                        color: #8B1E2B;
+                        color: #111 !important;
+                        font-weight: 900;
                     }
 
                     @page {
@@ -16195,9 +16268,10 @@ async function printAccountingInvoice(invoiceId, type) {
                     @media print {
                         body {
                             padding: 0;
-                            font-size: 11px;
-                            print-color-adjust: exact;
-                            -webkit-print-color-adjust: exact;
+                            color: #111 !important;
+                            font-weight: 500;
+                            print-color-adjust: economy;
+                            -webkit-print-color-adjust: economy;
                         }
 
                         .invoice {
@@ -16218,9 +16292,15 @@ async function printAccountingInvoice(invoiceId, type) {
                             flex-basis: 85px;
                         }
 
-                        th {
-                            print-color-adjust: exact;
-                            -webkit-print-color-adjust: exact;
+                        * {
+                            text-shadow: none !important;
+                            box-shadow: none !important;
+                        }
+
+                        th,
+                        .grand-total {
+                            print-color-adjust: economy;
+                            -webkit-print-color-adjust: economy;
                         }
                     }
 
@@ -16293,7 +16373,7 @@ async function printAccountingInvoice(invoiceId, type) {
 
                         <div class="invoice-heading">
                             <div class="invoice-label">
-                                ${printTitle}
+                                ${escape(printTitle)}
                             </div>
 
                             <div class="invoice-number">
@@ -16383,7 +16463,11 @@ async function printAccountingInvoice(invoiceId, type) {
                         <div class="notes">
                             <strong>ملاحظات:</strong>
                             <p>
-                                ${escape(invoice.notes || invoice.note || 'شكرًا لتعاملكم مع المتحدة للرتان والأثاث.')}
+                                ${escape(
+                                    invoice.notes ||
+                                    invoice.note ||
+                                    'شكرًا لتعاملكم مع المتحدة للرتان والأثاث.'
+                                )}
                             </p>
                         </div>
 
