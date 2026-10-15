@@ -4596,7 +4596,8 @@ function closeProductModal() {
 
 
 
-        function confirmAddToCart(goToCheckout = false) {
+     
+function confirmAddToCart(goToCheckout = false) {
     const originalProduct = activeCustomizerProduct;
 
     if (!originalProduct) {
@@ -4633,8 +4634,12 @@ function closeProductModal() {
         ? { ...originalProduct, ...storedProduct }
         : originalProduct;
 
-    const selectedUph = (appState.upholsteryTypes || []).find(
-        u => String(u.id) === String(selectedUpholsteryId)
+    const selectedUph = (
+        Array.isArray(appState.upholsteryTypes)
+            ? appState.upholsteryTypes
+            : []
+    ).find(u =>
+        String(u.id) === String(selectedUpholsteryId)
     );
 
     const upholsteryName = String(
@@ -4673,10 +4678,7 @@ function closeProductModal() {
         Math.floor(Number(customizerQty) || 1)
     );
 
-    // الرسوم من بيانات المنتج المحفوظة، للقطعة الواحدة.
     const sunbadgeUnitFee = isSunBadge ? parsedFee : 0;
-
-    // إجمالي الرسوم لكل الكمية.
     const sunbadgeLineFee = sunbadgeUnitFee * qty;
 
     const cartItem = {
@@ -4695,24 +4697,20 @@ function closeProductModal() {
         qty,
         quantity: qty,
 
-        // السعر الأساسي دون رسوم صن بيدج.
         unitPrice: rawPrice,
         price: rawPrice,
 
         upholsteryName,
         upholsteryExtraType: isSunBadge ? 'sunbadge' : 'none',
 
-        // رسوم القطعة الواحدة.
         sunbadgeUnitFee,
         sunbadge_unit_fee: sunbadgeUnitFee,
         sunbadgeFee: sunbadgeUnitFee,
         sunbadge_fee: sunbadgeUnitFee,
 
-        // إجمالي الرسوم للكمية.
         sunbadgeLineFee,
         sunbadge_line_fee: sunbadgeLineFee,
 
-        // إجمالي السطر شامل الرسوم مرة واحدة.
         lineTotal: (rawPrice * qty) + sunbadgeLineFee,
 
         cushionColor: selectedCushionColor,
@@ -4726,28 +4724,42 @@ function closeProductModal() {
         return;
     }
 
+    // إضافة المنتج مرة واحدة فقط.
     currentCart.push(cartItem);
 
-    console.log('تم تجهيز المنتج للسلة:', {
-        productId,
-        upholsteryName,
-        qty,
-        unitPrice: rawPrice,
-        sunbadgeUnitFee,
-        sunbadgeLineFee,
-        lineTotal: cartItem.lineTotal
-    });
+    console.log('تم تجهيز المنتج للطلب:', cartItem);
 
-    closeProductModal();
-    updateCartBadge();
-    renderCartDrawer();
+    // إغلاق نافذة التخصيص إن أمكن.
+    if (typeof window.closeProductModal === 'function') {
+        window.closeProductModal();
+    }
+
+    // تحديث عداد السلة دون فتح درج السلة.
+    if (typeof window.updateCartBadge === 'function') {
+        window.updateCartBadge();
+    }
+
+    // تحديث محتوى السلة دون إجبار العميل على فتحها.
+    if (typeof window.renderCartDrawer === 'function') {
+        window.renderCartDrawer();
+    }
 
     if (goToCheckout) {
-        openCheckoutModal();
+        // الانتقال مباشرة إلى خطوة الشراء.
+        // لا تستدعِ toggleCartDrawer(true) هنا.
+        if (typeof window.openCheckoutModal === 'function') {
+            window.openCheckoutModal();
+        } else {
+            alert('تعذر فتح صفحة الشراء. أعد تحميل الموقع وحاول مرة أخرى.');
+        }
+
         return;
     }
 
-    toggleCartDrawer(true);
+    // زر إضافة للسلة يظل يعمل بالطريقة المعتادة.
+    if (typeof window.toggleCartDrawer === 'function') {
+        window.toggleCartDrawer(true);
+    }
 }
 
 window.confirmAddToCart = confirmAddToCart;
