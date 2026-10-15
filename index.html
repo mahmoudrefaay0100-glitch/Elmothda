@@ -15922,19 +15922,20 @@ async function printAccountingInvoice(invoiceId, type) {
                         box-sizing: border-box;
                     }
 
-                    body {
-                        direction: rtl;
-                        margin: 0;
-                        padding: 24px;
-                        background: #fff;
-                        color: #111 !important;
-                        font-family: Tahoma, Arial, sans-serif;
-                        font-size: 12px;
-                        line-height: 1.7;
-                        font-weight: 500;
-                        -webkit-print-color-adjust: economy;
-                        print-color-adjust: economy;
-                    }
+                   
+body {
+    direction: rtl;
+    margin: 0;
+    padding: 24px;
+    background: #fff;
+    color: #111 !important;
+    font-family: Tahoma, Arial, sans-serif;
+    font-size: 12px;
+    line-height: 1.7;
+    font-weight: 600;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
 
                     .invoice {
                         max-width: 1000px;
@@ -16025,12 +16026,14 @@ async function printAccountingInvoice(invoiceId, type) {
                         font-weight: 600;
                     }
 
-                    .gold-line {
-                        height: 0;
-                        width: 100%;
-                        margin-top: 3px;
-                        border-bottom: 1px solid #777;
-                    }
+                   
+.gold-line {
+    height: 3px;
+    width: 100%;
+    margin-top: 3px;
+    background: #D4AF37;
+}
+
 
                     .section-title {
                         color: #111 !important;
@@ -16098,15 +16101,16 @@ async function printAccountingInvoice(invoiceId, type) {
                         page-break-inside: avoid;
                     }
 
-                    th {
-                        background: #eee !important;
-                        color: #111 !important;
-                        padding: 8px 6px;
-                        border: 1px solid #555;
-                        font-size: 11px;
-                        font-weight: 900;
-                        text-align: center;
-                    }
+                    
+th {
+    background: #8B1E2B !important;
+    color: #fff !important;
+    padding: 10px 6px;
+    border: 1px solid #8B1E2B;
+    font-size: 11px;
+    font-weight: 900;
+    text-align: center;
+}
 
                     td {
                         color: #111 !important;
@@ -16210,21 +16214,23 @@ async function printAccountingInvoice(invoiceId, type) {
                         color: #111 !important;
                     }
 
-                    .grand-total {
-                        margin: 5px -13px;
-                        padding: 9px 13px;
-                        background: #eee !important;
-                        color: #000 !important;
-                        font-size: 15px;
-                        font-weight: 900 !important;
-                        border-top: 1px solid #555;
-                        border-bottom: 1px solid #555;
-                    }
+                   
+.grand-total {
+    margin: 5px -13px;
+    padding: 10px 13px;
+    background: #f7eeee !important;
+    color: #8B1E2B !important;
+    font-size: 16px;
+    font-weight: 900 !important;
+    border-top: 1px solid #8B1E2B;
+    border-bottom: 1px solid #8B1E2B;
+}
 
-                    .grand-total span {
-                        color: #000 !important;
-                        font-weight: 900 !important;
-                    }
+.grand-total span {
+    color: #8B1E2B !important;
+    font-weight: 900 !important;
+}
+
 
                     .remaining {
                         color: #111 !important;
@@ -16266,14 +16272,17 @@ async function printAccountingInvoice(invoiceId, type) {
                         margin: 10mm;
                     }
 
-                    @media print {
-                        body {
-                            padding: 0;
-                            color: #111 !important;
-                            font-weight: 500;
-                            print-color-adjust: economy;
-                            -webkit-print-color-adjust: economy;
-                        }
+                   
+@media print {
+    body {
+        padding: 0;
+        color: #111 !important;
+        font-weight: 500;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+}
+
 
                         .invoice {
                             max-width: none;
@@ -16298,12 +16307,13 @@ async function printAccountingInvoice(invoiceId, type) {
                             box-shadow: none !important;
                         }
 
-                        th,
-                        .grand-total {
-                            print-color-adjust: economy;
-                            -webkit-print-color-adjust: economy;
-                        }
-                    }
+                      
+th,
+.grand-total {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+}
+
 
                     @media screen and (max-width: 600px) {
                         body {
