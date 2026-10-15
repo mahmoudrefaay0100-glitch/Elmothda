@@ -1,4 +1,8 @@
+
 module.exports = async function handler(req, res) {
+    const startedAt = Date.now();
+    const isGet = req.method === 'GET';
+
     // =====================================================
     // HEADERS
     // =====================================================
@@ -10,7 +14,6 @@ module.exports = async function handler(req, res) {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     res.setHeader('X-Content-Type-Options', 'nosniff');
-
     res.setHeader('Allow', 'GET, PUT');
 
     if (req.method !== 'GET' && req.method !== 'PUT') {
@@ -39,10 +42,23 @@ module.exports = async function handler(req, res) {
         if (!SERVICE_KEY) {
             return res.status(500).json({
                 success: false,
-                error:
-                    'SUPABASE_SERVICE_ROLE_KEY is missing'
+                error: 'SUPABASE_SERVICE_ROLE_KEY is missing'
             });
         }
+
+        // =====================================================
+        // TIMEOUTS
+        // =====================================================
+        // Vercel currently terminates this function after 10s.
+        // Keep database requests below that limit.
+        //
+        // These timeouts do not increase Vercel's runtime limit.
+        // They allow the API to return a controlled JSON error
+        // before the runtime terminates the function.
+
+        const GET_TIMEOUT_MS = 5000;
+        const PUT_TIMEOUT_MS = 4500;
+        const AUTH_TIMEOUT_MS = 4500;
 
         // =====================================================
         // HELPERS
@@ -108,6 +124,14 @@ module.exports = async function handler(req, res) {
                 return error;
             }
 
+            if (error?.name === 'TimeoutError') {
+                return 'انتهت مهلة الاتصال';
+            }
+
+            if (error?.name === 'AbortError') {
+                return 'تم إيقاف الاتصال بسبب انتهاء المهلة';
+            }
+
             return (
                 error?.message ||
                 error?.error_description ||
@@ -122,7 +146,7 @@ module.exports = async function handler(req, res) {
                 error: message
             };
 
-            if (details) {
+            if (details !== undefined) {
                 payload.details = details;
             }
 
@@ -192,10 +216,8 @@ module.exports = async function handler(req, res) {
             for (const [key, expectedValue] of Object.entries(
                 expected
             )) {
-                const actualValue = saved[key];
-
                 if (
-                    compareValue(actualValue) !==
+                    compareValue(saved[key]) !==
                     compareValue(expectedValue)
                 ) {
                     return false;
@@ -203,6 +225,21 @@ module.exports = async function handler(req, res) {
             }
 
             return true;
+        }
+
+        function logRequestTiming(table, method, elapsed, success) {
+            const log = {
+                table,
+                method,
+                durationMs: elapsed,
+                success
+            };
+
+            if (elapsed >= 2500 || !success) {
+                console.warn('SUPABASE REQUEST DIAGNOSTICS:', log);
+            } else {
+                console.info('SUPABASE REQUEST:', log);
+            }
         }
 
         // =====================================================
@@ -229,6 +266,14 @@ module.exports = async function handler(req, res) {
                 );
             }
 
+            const requestStartedAt = Date.now();
+
+            const timeoutMs =
+                options.timeoutMs ||
+                (method === 'GET'
+                    ? (isGet ? GET_TIMEOUT_MS : PUT_TIMEOUT_MS)
+                    : PUT_TIMEOUT_MS);
+
             const url =
                 `${SUPABASE_URL}/rest/v1/${table}` +
                 (query ? `?${query}` : '');
@@ -254,6 +299,7 @@ module.exports = async function handler(req, res) {
             }
 
             let response;
+            let responseText;
 
             try {
                 response = await fetch(url, {
@@ -264,21 +310,40 @@ module.exports = async function handler(req, res) {
                             ? JSON.stringify(body)
                             : undefined,
                     cache: 'no-store',
-                    signal: AbortSignal.timeout(15000)
+                    signal: AbortSignal.timeout(timeoutMs)
                 });
+
+                // Read the body while the timeout signal is active.
+                responseText = await response.text();
             } catch (error) {
+                const elapsed =
+                    Date.now() - requestStartedAt;
+
+                logRequestTiming(
+                    table,
+                    method,
+                    elapsed,
+                    false
+                );
+
+                const isTimeout =
+                    error?.name === 'TimeoutError' ||
+                    error?.name === 'AbortError';
+
                 const wrappedError = new Error(
-                    `الاتصال بجدول ${table} فشل: ` +
-                    normalizeError(error)
+                    isTimeout
+                        ? `انتهت مهلة الاتصال بجدول ${table} بعد ${elapsed}ms`
+                        : `الاتصال بجدول ${table} فشل: ${normalizeError(error)}`
                 );
 
                 wrappedError.table = table;
-                wrappedError.status = 502;
+                wrappedError.status = isTimeout ? 504 : 502;
+                wrappedError.code = isTimeout
+                    ? 'SUPABASE_REQUEST_TIMEOUT'
+                    : 'SUPABASE_CONNECTION_ERROR';
 
                 throw wrappedError;
             }
-
-            const responseText = await response.text();
 
             let data = null;
 
@@ -286,18 +351,37 @@ module.exports = async function handler(req, res) {
                 try {
                     data = JSON.parse(responseText);
                 } catch (error) {
+                    logRequestTiming(
+                        table,
+                        method,
+                        Date.now() - requestStartedAt,
+                        false
+                    );
+
                     const wrappedError = new Error(
                         `جدول ${table}: استجابة غير صالحة من Supabase`
                     );
 
                     wrappedError.table = table;
                     wrappedError.status = 502;
+                    wrappedError.code =
+                        'INVALID_SUPABASE_RESPONSE';
 
                     throw wrappedError;
                 }
             }
 
+            const elapsed =
+                Date.now() - requestStartedAt;
+
             if (!response.ok) {
+                logRequestTiming(
+                    table,
+                    method,
+                    elapsed,
+                    false
+                );
+
                 const message =
                     data?.message ||
                     data?.error_description ||
@@ -310,12 +394,24 @@ module.exports = async function handler(req, res) {
                     `جدول ${table}: ${message}`
                 );
 
-                wrappedError.status = response.status;
+                wrappedError.status =
+                    response.status === 408 ||
+                    response.status === 504
+                        ? 503
+                        : response.status;
+
                 wrappedError.table = table;
                 wrappedError.supabaseCode = data?.code;
 
                 throw wrappedError;
             }
+
+            logRequestTiming(
+                table,
+                method,
+                elapsed,
+                true
+            );
 
             return data;
         }
@@ -359,6 +455,7 @@ module.exports = async function handler(req, res) {
             ).trim().toLowerCase();
 
             let response;
+            let responseText;
 
             try {
                 response = await fetch(
@@ -372,20 +469,29 @@ module.exports = async function handler(req, res) {
                             Accept: 'application/json'
                         },
                         cache: 'no-store',
-                        signal: AbortSignal.timeout(10000)
+                        signal: AbortSignal.timeout(
+                            AUTH_TIMEOUT_MS
+                        )
                     }
                 );
+
+                responseText = await response.text();
             } catch (error) {
                 console.error(
                     'ADMIN AUTH CONNECTION ERROR:',
                     normalizeError(error)
                 );
 
+                const timedOut =
+                    error?.name === 'TimeoutError' ||
+                    error?.name === 'AbortError';
+
                 return {
                     valid: false,
-                    status: 503,
-                    error:
-                        'تعذر التحقق من جلسة المدير. حاول مرة أخرى.'
+                    status: timedOut ? 503 : 502,
+                    error: timedOut
+                        ? 'انتهت مهلة التحقق من جلسة المدير'
+                        : 'تعذر الاتصال بخدمة تسجيل الدخول'
                 };
             }
 
@@ -401,11 +507,11 @@ module.exports = async function handler(req, res) {
             let user;
 
             try {
-                user = await response.json();
+                user = JSON.parse(responseText);
             } catch (error) {
                 return {
                     valid: false,
-                    status: 401,
+                    status: 502,
                     error:
                         'تعذر قراءة بيانات جلسة المدير'
                 };
@@ -473,6 +579,11 @@ module.exports = async function handler(req, res) {
                 }
             ];
 
+            console.info('STORE LOAD START:', {
+                tables: tableRequests.length,
+                timestamp: new Date().toISOString()
+            });
+
             const results = await Promise.all(
                 tableRequests.map(async function(request) {
                     try {
@@ -483,9 +594,13 @@ module.exports = async function handler(req, res) {
                         );
 
                         if (!Array.isArray(data)) {
-                            throw new Error(
+                            const error = new Error(
                                 `جدول ${request.table} لم يُرجع قائمة بيانات`
                             );
+
+                            error.table = request.table;
+                            error.status = 502;
+                            throw error;
                         }
 
                         return {
@@ -497,7 +612,14 @@ module.exports = async function handler(req, res) {
                     } catch (error) {
                         console.error(
                             `STORE LOAD ERROR [${request.table}]:`,
-                            normalizeError(error)
+                            {
+                                message: normalizeError(error),
+                                status: error?.status || 500,
+                                code:
+                                    error?.supabaseCode ||
+                                    error?.code ||
+                                    null
+                            }
                         );
 
                         return {
@@ -506,7 +628,10 @@ module.exports = async function handler(req, res) {
                             success: false,
                             error: normalizeError(error),
                             status: error?.status || 500,
-                            code: error?.supabaseCode || null
+                            code:
+                                error?.supabaseCode ||
+                                error?.code ||
+                                null
                         };
                     }
                 })
@@ -517,10 +642,32 @@ module.exports = async function handler(req, res) {
             );
 
             if (failedRequests.length > 0) {
-                return res.status(500).json({
+                const timedOut = failedRequests.some(
+                    result =>
+                        result.status === 504 ||
+                        result.code ===
+                            'SUPABASE_REQUEST_TIMEOUT'
+                );
+
+                const elapsed = Date.now() - startedAt;
+
+                console.error('STORE LOAD FAILED:', {
+                    durationMs: elapsed,
+                    failedTables: failedRequests.map(
+                        result => ({
+                            table: result.table,
+                            status: result.status,
+                            code: result.code
+                        })
+                    )
+                });
+
+                return res.status(timedOut ? 503 : 502).json({
                     success: false,
-                    error:
-                        'تعذر تحميل بيانات المتجر بالكامل',
+                    error: timedOut
+                        ? 'استغرق الاتصال بقاعدة البيانات وقتًا أطول من المسموح'
+                        : 'تعذر تحميل بيانات المتجر بالكامل',
+                    durationMs: elapsed,
                     failedTables: failedRequests.map(
                         result => ({
                             table: result.table,
@@ -598,15 +745,15 @@ module.exports = async function handler(req, res) {
                 0
             );
 
-            // قيمة توافقية للواجهة القديمة.
-            // الرسوم الخاصة بالمنتج تظل من sunbadge_fee.
+            // Compatibility value for the existing frontend.
+            // Per-product Sunbadge fees remain in sunbadge_fee.
             const sunbrellaRate = 200;
 
             // =================================================
             // RESPONSE
             // =================================================
 
-            return res.status(200).json({
+            const payload = {
                 success: true,
 
                 products: normalizedProducts,
@@ -625,7 +772,16 @@ module.exports = async function handler(req, res) {
                 cushionColors,
                 wickerColors,
                 woodColors
+            };
+
+            console.info('STORE LOAD SUCCESS:', {
+                durationMs: Date.now() - startedAt,
+                products: payload.products.length,
+                offers: payload.offers.length,
+                categories: payload.categories.length
             });
+
+            return res.status(200).json(payload);
         }
 
         // =====================================================
@@ -814,7 +970,6 @@ module.exports = async function handler(req, res) {
         } else {
             // =================================================
             // CREATE INITIAL SETTINGS
-            // لا نفترض نوع العمود id ولا نفرض القيمة 1.
             // =================================================
 
             const initialSettings = {
@@ -880,6 +1035,11 @@ module.exports = async function handler(req, res) {
         // SUCCESS
         // =====================================================
 
+        console.info('STORE SETTINGS SAVED:', {
+            durationMs: Date.now() - startedAt,
+            fields: Object.keys(updateData)
+        });
+
         return res.status(200).json({
             success: true,
             message: 'تم حفظ إعدادات المتجر بنجاح',
@@ -899,10 +1059,18 @@ module.exports = async function handler(req, res) {
         });
 
     } catch (error) {
+        const elapsed = Date.now() - startedAt;
+
         console.error('STORE API ERROR:', {
             message: normalizeError(error),
             table: error?.table || null,
-            code: error?.supabaseCode || null
+            code:
+                error?.supabaseCode ||
+                error?.code ||
+                null,
+            status: error?.status || null,
+            durationMs: elapsed,
+            method: req.method
         });
 
         const status =
@@ -916,7 +1084,10 @@ module.exports = async function handler(req, res) {
             success: false,
             error: normalizeError(error),
             table: error?.table || undefined,
-            code: error?.supabaseCode || undefined
+            code:
+                error?.supabaseCode ||
+                error?.code ||
+                undefined
         });
     }
 };
