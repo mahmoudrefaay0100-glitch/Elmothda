@@ -27,14 +27,9 @@ module.exports = async function handler(req, res) {
             req.headers.Authorization ||
             '';
 
-        const adminToken =
-            req.headers['x-admin-token'] || '';
-
         const token =
-            adminToken ||
-            String(authHeader)
-                .replace(/^Bearer\s+/i, '')
-                .trim();
+            req.headers['x-admin-token'] ||
+            String(authHeader).replace(/^Bearer\s+/i, '').trim();
 
         function parseJson(text, fallback = null) {
             try {
@@ -45,11 +40,7 @@ module.exports = async function handler(req, res) {
         }
 
         function toNonNegativeNumber(value, fallback = 0) {
-            if (
-                value === null ||
-                value === undefined ||
-                value === ''
-            ) {
+            if (value === null || value === undefined || value === '') {
                 return fallback;
             }
 
@@ -58,6 +49,222 @@ module.exports = async function handler(req, res) {
             return Number.isFinite(number) && number >= 0
                 ? number
                 : fallback;
+        }
+
+        function firstNonEmpty(...values) {
+            for (const value of values) {
+                if (
+                    value !== undefined &&
+                    value !== null &&
+                    String(value).trim() !== ''
+                ) {
+                    return value;
+                }
+            }
+
+            return '';
+        }
+
+        function getCustomerObjects(order = {}) {
+            const objects = [
+                order.customer,
+                order.customerInfo,
+                order.customer_info,
+                order.customerData,
+                order.customer_data,
+                order.customerDetails,
+                order.customer_details,
+                order.customerDetailsData
+            ];
+
+            return objects.filter(
+                value =>
+                    value &&
+                    typeof value === 'object' &&
+                    !Array.isArray(value)
+            );
+        }
+
+        function getCustomerField(order, ...keys) {
+            const objects = getCustomerObjects(order);
+
+            const values = [];
+
+            for (const key of keys) {
+                values.push(order?.[key]);
+            }
+
+            for (const customer of objects) {
+                for (const key of keys) {
+                    values.push(customer?.[key]);
+                }
+            }
+
+            return firstNonEmpty(...values);
+        }
+
+        function normalizeWhatsAppNumber(value) {
+            let number = String(value || '').replace(/\D/g, '');
+
+            if (!number) return '';
+
+            if (number.startsWith('00')) {
+                number = number.substring(2);
+            }
+
+            if (number.startsWith('0')) {
+                number = '20' + number.substring(1);
+            } else if (!number.startsWith('20')) {
+                number = '20' + number;
+            }
+
+            return number;
+        }
+
+        // توحيد بيانات العميل مهما اختلفت أسماء الحقول.
+        function normalizeOrder(order = {}) {
+            const customers = getCustomerObjects(order);
+
+            const customer = customers.length
+                ? customers.reduce(
+                    (combined, item) => ({ ...combined, ...item }),
+                    {}
+                )
+                : {};
+
+            const customerName = String(firstNonEmpty(
+                order.customer_name,
+                order.customerName,
+                order.customer_full_name,
+                order.customerFullName,
+                order.full_name,
+                order.fullName,
+                order.name,
+                customer.name,
+                customer.customer_name,
+                customer.customerName,
+                customer.full_name,
+                customer.fullName
+            )).trim();
+
+            const phone = String(firstNonEmpty(
+                order.phone,
+                order.customer_phone,
+                order.customerPhone,
+                order.phone_number,
+                order.phoneNumber,
+                order.customer_phone_number,
+                order.customerPhoneNumber,
+                order.mobile,
+                order.mobile_number,
+                order.mobileNumber,
+                order.customer_mobile,
+                order.customerMobile,
+                order.telephone,
+                order.tel,
+                customer.phone,
+                customer.customer_phone,
+                customer.customerPhone,
+                customer.phone_number,
+                customer.phoneNumber,
+                customer.mobile,
+                customer.mobile_number,
+                customer.mobileNumber,
+                customer.telephone,
+                customer.tel
+            )).trim();
+
+            const whatsapp = String(firstNonEmpty(
+                order.whatsapp,
+                order.whats_app,
+                order.whatsapp_number,
+                order.whatsappNumber,
+                order.whatsapp_phone,
+                order.whatsappPhone,
+                order.customer_whatsapp,
+                order.customerWhatsapp,
+                order.customer_whatsapp_number,
+                order.customerWhatsappNumber,
+                customer.whatsapp,
+                customer.whats_app,
+                customer.whatsapp_number,
+                customer.whatsappNumber,
+                customer.whatsapp_phone,
+                customer.whatsappPhone,
+                customer.customer_whatsapp,
+                phone
+            )).trim();
+
+            const governorate = String(firstNonEmpty(
+                order.governorate,
+                order.customer_governorate,
+                order.customerGovernorate,
+                order.gov,
+                customer.governorate,
+                customer.customer_governorate,
+                customer.customerGovernorate,
+                customer.gov
+            )).trim();
+
+            const city = String(firstNonEmpty(
+                order.city,
+                order.customer_city,
+                order.customerCity,
+                customer.city,
+                customer.customer_city,
+                customer.customerCity
+            )).trim();
+
+            const address = String(firstNonEmpty(
+                order.address,
+                order.customer_address,
+                order.customerAddress,
+                customer.address,
+                customer.customer_address,
+                customer.customerAddress
+            )).trim();
+
+            return {
+                ...order,
+
+                customer_name: customerName,
+                customerName,
+                name: customerName,
+
+                phone,
+                customer_phone: phone,
+                customerPhone: phone,
+                phone_number: phone,
+                phoneNumber: phone,
+                customer_phone_number: phone,
+                customerPhoneNumber: phone,
+
+                whatsapp,
+                whatsapp_number: whatsapp,
+                whatsappNumber: whatsapp,
+                customer_whatsapp: whatsapp,
+                customerWhatsapp: whatsapp,
+
+                customer: {
+                    ...customer,
+                    name: customerName,
+                    customer_name: customerName,
+                    phone,
+                    customer_phone: phone,
+                    phone_number: phone,
+                    phoneNumber: phone,
+                    whatsapp,
+                    whatsapp_number: whatsapp,
+                    whatsappNumber: whatsapp,
+                    governorate,
+                    city,
+                    address
+                },
+
+                governorate,
+                city,
+                address
+            };
         }
 
         async function getSupabaseJson(url, options = {}) {
@@ -98,35 +305,12 @@ module.exports = async function handler(req, res) {
                     response.status,
                     data
                 );
-
                 return null;
             }
 
             return Array.isArray(data) && data.length
                 ? data[0]
                 : null;
-        }
-
-        // =====================================================
-        // WHATSAPP NUMBER NORMALIZATION
-        // =====================================================
-
-        function normalizeWhatsAppNumber(value) {
-            let number = String(value || '').replace(/\D/g, '');
-
-            if (!number) return '';
-
-            if (number.startsWith('00')) {
-                number = number.substring(2);
-            }
-
-            if (number.startsWith('0')) {
-                number = '20' + number.substring(1);
-            } else if (!number.startsWith('20')) {
-                number = '20' + number;
-            }
-
-            return number;
         }
 
         // =====================================================
@@ -137,11 +321,8 @@ module.exports = async function handler(req, res) {
             message,
             recipient = '201042056121'
         ) {
-            const accessToken =
-                process.env.WHATSAPP_ACCESS_TOKEN;
-
-            const phoneNumberId =
-                process.env.WHATSAPP_PHONE_NUMBER_ID;
+            const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+            const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
             if (!accessToken || !phoneNumberId || !recipient) {
                 console.error(
@@ -179,22 +360,17 @@ module.exports = async function handler(req, res) {
                     }
                 );
 
-                const result = await response
-                    .json()
-                    .catch(() => ({}));
+                const result = await response.json().catch(() => ({}));
 
                 if (!response.ok) {
                     console.error('WHATSAPP SEND ERROR:', {
                         status: response.status,
-                        error: result.error || result,
-                        recipient: to
+                        error: result.error || result
                     });
-
                     return false;
                 }
 
                 console.log('WHATSAPP TEXT ACCEPTED:', {
-                    recipient: to,
                     messageId: result?.messages?.[0]?.id || null
                 });
 
@@ -204,7 +380,6 @@ module.exports = async function handler(req, res) {
                     'WHATSAPP TEXT REQUEST FAILED:',
                     error?.message || error
                 );
-
                 return false;
             }
         }
@@ -213,17 +388,12 @@ module.exports = async function handler(req, res) {
         // SEND APPROVED ORDER TEMPLATE TO CUSTOMER
         // =====================================================
 
-        async function sendCustomerOrderConfirmation(order) {
+        async function sendCustomerOrderConfirmation(rawOrder) {
             try {
                 const settings =
                     await getWhatsAppNotificationSettings();
 
-                if (!settings) {
-                    console.error(
-                        'Customer WhatsApp settings unavailable.'
-                    );
-                    return false;
-                }
+                if (!settings) return false;
 
                 if (settings.whatsapp_notify_customer !== true) {
                     console.log(
@@ -232,19 +402,12 @@ module.exports = async function handler(req, res) {
                     return false;
                 }
 
-                const accessToken =
-                    process.env.WHATSAPP_ACCESS_TOKEN;
-
-                const phoneNumberId =
-                    process.env.WHATSAPP_PHONE_NUMBER_ID;
-
+                const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+                const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
                 const templateName =
                     process.env.WHATSAPP_ORDER_TEMPLATE_NAME;
-
                 const templateLanguage =
-                    process.env.WHATSAPP_ORDER_TEMPLATE_LANGUAGE ||
-                    'ar';
-
+                    process.env.WHATSAPP_ORDER_TEMPLATE_LANGUAGE || 'ar';
                 const servicePhone =
                     process.env.WHATSAPP_CUSTOMER_SERVICE_PHONE;
 
@@ -260,19 +423,20 @@ module.exports = async function handler(req, res) {
                     return false;
                 }
 
+                const order = normalizeOrder(rawOrder);
+
                 const customerPhone = normalizeWhatsAppNumber(
-                    order.whatsapp ||
-                    order.whatsapp_number ||
-                    order.customer?.whatsapp ||
-                    order.phone ||
-                    order.customer_phone ||
-                    order.customer?.phone ||
-                    ''
+                    order.whatsapp || order.phone
                 );
 
                 if (!customerPhone || customerPhone.length < 10) {
                     console.error(
-                        'Invalid customer WhatsApp number.'
+                        'Invalid customer WhatsApp number.',
+                        {
+                            orderNumber: order.order_number || order.id,
+                            hasPhone: Boolean(order.phone),
+                            hasWhatsApp: Boolean(order.whatsapp)
+                        }
                     );
                     return false;
                 }
@@ -282,10 +446,7 @@ module.exports = async function handler(req, res) {
                 );
 
                 const customerName = String(
-                    order.customer_name ||
-                    order.name ||
-                    order.customer?.name ||
-                    'عميلنا العزيز'
+                    order.customer_name || 'عميلنا العزيز'
                 );
 
                 const items = Array.isArray(order.items)
@@ -296,25 +457,22 @@ module.exports = async function handler(req, res) {
                             item.productName ||
                             'منتج';
 
-                        const quantity =
-                            item.qty || item.quantity || 1;
+                        const quantity = item.qty || item.quantity || 1;
 
                         return `${name} × ${quantity}`;
                     }).join('، ')
                     : 'تفاصيل الطلب متاحة لدى خدمة العملاء';
 
-                const total = String(Number(order.total || 0));
-                const deposit = String(
-                    Number(order.deposit_amount || 0)
-                );
-                const remaining = String(
-                    Number(order.remaining_amount || 0)
-                );
+                const parameters = [
+                    customerName,
+                    orderNumber,
+                    items.substring(0, 900),
+                    String(Number(order.total || 0)),
+                    String(Number(order.deposit_amount || 0)),
+                    String(Number(order.remaining_amount || 0)),
+                    String(servicePhone).trim()
+                ];
 
-                const customerServiceNumber =
-                    String(servicePhone).trim();
-
-                // يجب أن يطابق ترتيب المتغيرات القالب المعتمد في Meta.
                 const response = await fetch(
                     `https://graph.facebook.com/v23.0/${phoneNumberId}/messages`,
                     {
@@ -333,49 +491,19 @@ module.exports = async function handler(req, res) {
                                 language: {
                                     code: templateLanguage
                                 },
-                                components: [
-                                    {
-                                        type: 'body',
-                                        parameters: [
-                                            {
-                                                type: 'text',
-                                                text: customerName
-                                            },
-                                            {
-                                                type: 'text',
-                                                text: orderNumber
-                                            },
-                                            {
-                                                type: 'text',
-                                                text: items.substring(0, 900)
-                                            },
-                                            {
-                                                type: 'text',
-                                                text: total
-                                            },
-                                            {
-                                                type: 'text',
-                                                text: deposit
-                                            },
-                                            {
-                                                type: 'text',
-                                                text: remaining
-                                            },
-                                            {
-                                                type: 'text',
-                                                text: customerServiceNumber
-                                            }
-                                        ]
-                                    }
-                                ]
+                                components: [{
+                                    type: 'body',
+                                    parameters: parameters.map(value => ({
+                                        type: 'text',
+                                        text: String(value)
+                                    }))
+                                }]
                             }
                         })
                     }
                 );
 
-                const result = await response
-                    .json()
-                    .catch(() => ({}));
+                const result = await response.json().catch(() => ({}));
 
                 if (!response.ok) {
                     console.error(
@@ -400,7 +528,6 @@ module.exports = async function handler(req, res) {
                     'CUSTOMER WHATSAPP FAILED:',
                     error?.message || error
                 );
-
                 return false;
             }
         }
@@ -409,7 +536,7 @@ module.exports = async function handler(req, res) {
         // ADMIN WHATSAPP NOTIFICATIONS
         // =====================================================
 
-        async function notifyWhatsAppOrder(event, order) {
+        async function notifyWhatsAppOrder(event, rawOrder) {
             try {
                 const settings =
                     await getWhatsAppNotificationSettings();
@@ -419,41 +546,27 @@ module.exports = async function handler(req, res) {
                 if (
                     event === 'new_order' &&
                     settings.whatsapp_notify_new_order !== true
-                ) {
-                    return false;
-                }
+                ) return false;
 
                 if (
                     event === 'order_status' &&
                     settings.whatsapp_notify_order_status !== true
-                ) {
-                    return false;
-                }
+                ) return false;
 
                 if (
                     event === 'payment_status' &&
                     settings.whatsapp_notify_payment_status !== true
-                ) {
-                    return false;
-                }
+                ) return false;
+
+                const order = normalizeOrder(rawOrder);
 
                 const orderNumber =
                     order.order_number || order.id || 'غير متاح';
 
-                const customerName =
-                    order.customer_name ||
-                    order.name ||
-                    order.customer?.name ||
-                    'غير متاح';
-
-                const customerPhone =
-                    order.phone ||
-                    order.customer_phone ||
-                    order.customer?.phone ||
-                    'غير متاح';
-
+                const customerName = order.customer_name || 'غير متاح';
+                const customerPhone = order.phone || 'غير متاح';
+                const customerWhatsapp = order.whatsapp || customerPhone;
                 const status = order.status || 'New';
-
                 const paymentStatus =
                     order.payment_status ||
                     order.paymentStatus ||
@@ -470,10 +583,7 @@ module.exports = async function handler(req, res) {
                                 item.productName ||
                                 'منتج';
 
-                            const qty =
-                                item.qty || item.quantity || 1;
-
-                            return `• ${name} × ${qty}`;
+                            return `• ${name} × ${item.qty || item.quantity || 1}`;
                         }).join('\n')
                         : 'لا توجد تفاصيل منتجات';
 
@@ -482,7 +592,7 @@ module.exports = async function handler(req, res) {
                         `رقم الطلب: ${orderNumber}\n` +
                         `العميل: ${customerName}\n` +
                         `الهاتف: ${customerPhone}\n` +
-                        `واتساب العميل: ${order.whatsapp || customerPhone}\n` +
+                        `واتساب العميل: ${customerWhatsapp}\n` +
                         `المحافظة: ${order.governorate || ''}\n` +
                         `المدينة: ${order.city || ''}\n` +
                         `العنوان: ${order.address || ''}\n\n` +
@@ -519,7 +629,6 @@ module.exports = async function handler(req, res) {
                     'WHATSAPP NOTIFICATION FAILED:',
                     error?.message || error
                 );
-
                 return false;
             }
         }
@@ -530,24 +639,18 @@ module.exports = async function handler(req, res) {
 
         function getProductId(item) {
             return String(
-                item?.productId ??
-                item?.product_id ??
-                ''
+                item?.productId ?? item?.product_id ?? ''
             ).trim();
         }
 
         function getItemQuantity(item) {
-            const qty = Number(
-                item?.qty ?? item?.quantity ?? 1
-            );
+            const qty = Number(item?.qty ?? item?.quantity ?? 1);
 
             if (
                 !Number.isFinite(qty) ||
                 !Number.isInteger(qty) ||
                 qty < 1
-            ) {
-                return null;
-            }
+            ) return null;
 
             return qty;
         }
@@ -567,11 +670,11 @@ module.exports = async function handler(req, res) {
                 item?.upholsteryExtraType || ''
             ).toLowerCase().trim();
 
-            const name = getUpholsteryName(item);
-
             return (
                 type === 'sunbadge' ||
-                /صن\s*بيدج|sun\s*badge|sunbedge/i.test(name)
+                /صن\s*بيدج|sun\s*badge|sunbedge/i.test(
+                    getUpholsteryName(item)
+                )
             );
         }
 
@@ -592,56 +695,38 @@ module.exports = async function handler(req, res) {
 
             const encodedTrackId = encodeURIComponent(trackId);
 
-            let {
-                response,
-                data: orders,
-                text
-            } = await getSupabaseJson(
+            let result = await getSupabaseJson(
                 `${SUPABASE_URL}/rest/v1/orders` +
-                `?select=*` +
-                `&order_number=eq.${encodedTrackId}` +
-                `&limit=1`
+                `?select=*&order_number=eq.${encodedTrackId}&limit=1`
             );
 
             if (
-                response.ok &&
-                Array.isArray(orders) &&
-                orders.length === 0
+                result.response.ok &&
+                Array.isArray(result.data) &&
+                result.data.length === 0
             ) {
-                const fallback = await getSupabaseJson(
+                result = await getSupabaseJson(
                     `${SUPABASE_URL}/rest/v1/orders` +
-                    `?select=*` +
-                    `&id=eq.${encodedTrackId}` +
-                    `&limit=1`
+                    `?select=*&id=eq.${encodedTrackId}&limit=1`
                 );
-
-                response = fallback.response;
-                orders = fallback.data;
-                text = fallback.text;
             }
 
             if (
-                response.ok &&
-                Array.isArray(orders) &&
-                orders.length === 0
+                result.response.ok &&
+                Array.isArray(result.data) &&
+                result.data.length === 0
             ) {
-                const insensitive = await getSupabaseJson(
+                result = await getSupabaseJson(
                     `${SUPABASE_URL}/rest/v1/orders` +
-                    `?select=*` +
-                    `&order_number=ilike.${encodedTrackId}` +
-                    `&limit=1`
+                    `?select=*&order_number=ilike.${encodedTrackId}&limit=1`
                 );
-
-                response = insensitive.response;
-                orders = insensitive.data;
-                text = insensitive.text;
             }
 
-            if (!response.ok) {
+            if (!result.response.ok) {
                 console.error(
                     'ORDER TRACKING DATABASE ERROR:',
-                    response.status,
-                    orders || text
+                    result.response.status,
+                    result.data || result.text
                 );
 
                 return res.status(500).json({
@@ -650,14 +735,14 @@ module.exports = async function handler(req, res) {
                 });
             }
 
-            if (!Array.isArray(orders) || orders.length === 0) {
+            if (!Array.isArray(result.data) || result.data.length === 0) {
                 return res.status(404).json({
                     success: false,
                     error: 'لم يتم العثور على طلب بهذا الرقم.'
                 });
             }
 
-            const order = orders[0];
+            const order = normalizeOrder(result.data[0]);
 
             const publicOrder = {
                 id: order.id,
@@ -666,40 +751,22 @@ module.exports = async function handler(req, res) {
                 created_at: order.created_at || null,
                 updated_at: order.updated_at || null,
 
-                customer_name:
-                    order.customer_name ||
-                    order.name ||
-                    order.customer?.name ||
-                    '',
+                customer_name: order.customer_name,
+                phone: order.phone,
+                customer_phone: order.customer_phone,
+                customerPhone: order.customerPhone,
+                whatsapp: order.whatsapp,
+                whatsapp_number: order.whatsapp_number,
+                whatsappNumber: order.whatsappNumber,
 
-                phone:
-                    order.phone ||
-                    order.customer_phone ||
-                    order.customer?.phone ||
-                    '',
+                customer: order.customer,
 
-                whatsapp:
-                    order.whatsapp ||
-                    order.whatsapp_number ||
-                    order.customer?.whatsapp ||
-                    order.customer?.phone ||
-                    order.phone ||
-                    order.customer_phone ||
-                    '',
-
-                governorate:
-                    order.governorate ||
-                    order.customer?.governorate ||
-                    order.customer?.gov ||
-                    '',
-
-                city: order.city || order.customer?.city || '',
-                address: order.address || order.customer?.address || '',
+                governorate: order.governorate,
+                city: order.city,
+                address: order.address,
 
                 shipping_method:
-                    order.shipping_method ||
-                    order.delivery_method ||
-                    '',
+                    order.shipping_method || order.delivery_method || '',
 
                 shipping_cost: Number(order.shipping_cost || 0),
                 payment_method: order.payment_method || '',
@@ -710,10 +777,7 @@ module.exports = async function handler(req, res) {
                     order.deposit_amount ?? order.deposit ?? 0
                 ),
 
-                remaining_amount: Number(
-                    order.remaining_amount || 0
-                ),
-
+                remaining_amount: Number(order.remaining_amount || 0),
                 subtotal: Number(order.subtotal || 0),
                 sunBadgeFee: Number(order.sunbadge_fee || 0),
                 sunbadge_fee: Number(order.sunbadge_fee || 0),
@@ -726,10 +790,7 @@ module.exports = async function handler(req, res) {
                         ? order.products
                         : [],
 
-                notes:
-                    order.notes ||
-                    order.customer_notes ||
-                    ''
+                notes: order.notes || order.customer_notes || ''
             };
 
             return res.status(200).json({
@@ -764,9 +825,7 @@ module.exports = async function handler(req, res) {
                 });
             }
 
-            const items = Array.isArray(order.items)
-                ? order.items
-                : [];
+            const items = Array.isArray(order.items) ? order.items : [];
 
             if (items.length === 0) {
                 return res.status(400).json({
@@ -775,16 +834,13 @@ module.exports = async function handler(req, res) {
                 });
             }
 
-            const productIds = [
-                ...new Set(items.map(getProductId))
-            ];
+            const productIds = [...new Set(items.map(getProductId))];
 
             if (productIds.some(id => !id)) {
                 return res.status(400).json({
                     success: false,
                     error:
-                        'يوجد منتج بدون معرف صالح. ' +
-                        'حدّث السلة ثم حاول مرة أخرى.'
+                        'يوجد منتج بدون معرف صالح. حدّث السلة ثم حاول مرة أخرى.'
                 });
             }
 
@@ -820,6 +876,7 @@ module.exports = async function handler(req, res) {
 
                 const product = productData[0];
                 const price = Number(product.price);
+                const fee = Number(product.sunbadge_fee ?? 0);
 
                 if (!Number.isFinite(price) || price < 0) {
                     return res.status(400).json({
@@ -828,8 +885,6 @@ module.exports = async function handler(req, res) {
                             'سعر أحد المنتجات غير صالح في قاعدة البيانات.'
                     });
                 }
-
-                const fee = Number(product.sunbadge_fee ?? 0);
 
                 if (!Number.isFinite(fee) || fee < 0) {
                     return res.status(400).json({
@@ -858,8 +913,7 @@ module.exports = async function handler(req, res) {
                 if (!product) {
                     return res.status(400).json({
                         success: false,
-                        error:
-                            'تعذر العثور على بيانات أحد المنتجات.'
+                        error: 'تعذر العثور على بيانات أحد المنتجات.'
                     });
                 }
 
@@ -893,9 +947,7 @@ module.exports = async function handler(req, res) {
 
                 if (
                     !Number.isFinite(sunbadgeLineFee) ||
-                    !Number.isFinite(
-                        totalSunBadgeFee + sunbadgeLineFee
-                    )
+                    !Number.isFinite(totalSunBadgeFee + sunbadgeLineFee)
                 ) {
                     return res.status(400).json({
                         success: false,
@@ -908,29 +960,20 @@ module.exports = async function handler(req, res) {
 
                 savedItems.push({
                     ...item,
-
                     productId,
                     product_id: productId,
-
                     qty,
                     quantity: qty,
-
                     unitPrice,
                     price: unitPrice,
-
                     itemSubtotal,
-
                     sunbadgeUnitFee,
                     sunbadge_unit_fee: sunbadgeUnitFee,
-
                     sunbadgeFee: sunbadgeLineFee,
                     sunbadge_fee: sunbadgeLineFee,
-
                     sunbadgeLineFee,
                     sunbadge_line_fee: sunbadgeLineFee,
-
                     lineTotal: itemSubtotal + sunbadgeLineFee,
-
                     upholsteryExtraType: isSunBadgeItem(item)
                         ? 'sunbadge'
                         : (item.upholsteryExtraType || 'none')
@@ -950,17 +993,11 @@ module.exports = async function handler(req, res) {
             const beforeDiscount =
                 subtotal + totalSunBadgeFee + shippingCost;
 
-            const discount = Math.min(
-                requestedDiscount,
-                beforeDiscount
-            );
-
+            const discount = Math.min(requestedDiscount, beforeDiscount);
             const total = Math.max(0, beforeDiscount - discount);
 
             const rawDepositPercent = Number(
-                order.depositPercent ??
-                order.deposit_percent ??
-                30
+                order.depositPercent ?? order.deposit_percent ?? 30
             );
 
             if (
@@ -975,57 +1012,76 @@ module.exports = async function handler(req, res) {
             }
 
             const depositPercent = rawDepositPercent;
-
             const depositAmount = Math.round(
                 total * depositPercent / 100
             );
+            const remainingAmount = Math.max(0, total - depositAmount);
 
-            const remainingAmount = Math.max(
-                0,
-                total - depositAmount
-            );
+            const customerName = String(getCustomerField(
+                order,
+                'name',
+                'customer_name',
+                'customerName',
+                'customer_full_name',
+                'customerFullName',
+                'full_name',
+                'fullName'
+            )).trim();
 
-            const customer = order.customer || {};
+            const customerPhone = String(getCustomerField(
+                order,
+                'phone',
+                'customer_phone',
+                'customerPhone',
+                'phone_number',
+                'phoneNumber',
+                'customer_phone_number',
+                'customerPhoneNumber',
+                'mobile',
+                'mobile_number',
+                'mobileNumber',
+                'telephone',
+                'tel'
+            )).trim();
 
-            const customerName = String(
-                customer.name ??
-                order.customer_name ??
-                order.name ??
-                ''
-            ).trim();
-
-            const customerPhone = String(
-                customer.phone ??
-                order.phone ??
-                order.customer_phone ??
-                ''
-            ).trim();
-
-            const customerWhatsapp = String(
-                customer.whatsapp ||
-                order.whatsapp ||
-                order.whatsapp_number ||
+            const customerWhatsapp = String(firstNonEmpty(
+                getCustomerField(
+                    order,
+                    'whatsapp',
+                    'whats_app',
+                    'whatsapp_number',
+                    'whatsappNumber',
+                    'whatsapp_phone',
+                    'whatsappPhone',
+                    'customer_whatsapp',
+                    'customerWhatsapp',
+                    'customer_whatsapp_number',
+                    'customerWhatsappNumber'
+                ),
                 customerPhone
-            ).trim();
+            )).trim();
 
-            const customerGov = String(
-                customer.gov ??
-                customer.governorate ??
-                order.governorate ??
-                ''
-            ).trim();
+            const customerGov = String(getCustomerField(
+                order,
+                'gov',
+                'governorate',
+                'customer_governorate',
+                'customerGovernorate'
+            )).trim();
 
-            const customerCity = String(
-                customer.city ??
-                order.city ??
-                ''
-            ).trim();
+            const customerCity = String(getCustomerField(
+                order,
+                'city',
+                'customer_city',
+                'customerCity'
+            )).trim();
 
-            const customerAddress = String(
-                customer.address ??
-                order.address ??
-                ''
-            ).trim();
+            const customerAddress = String(getCustomerField(
+                order,
+                'address',
+                'customer_address',
+                'customerAddress'
+            )).trim();
 
             if (
                 !customerName ||
@@ -1034,28 +1090,37 @@ module.exports = async function handler(req, res) {
                 !customerCity ||
                 !customerAddress
             ) {
+                console.error('INCOMPLETE CUSTOMER DATA:', {
+                    orderNumber: requestedOrderNumber,
+                    hasName: Boolean(customerName),
+                    hasPhone: Boolean(customerPhone),
+                    hasWhatsApp: Boolean(customerWhatsapp),
+                    hasGovernorate: Boolean(customerGov),
+                    hasCity: Boolean(customerCity),
+                    hasAddress: Boolean(customerAddress),
+                    receivedKeys: Object.keys(order),
+                    customerKeys: getCustomerObjects(order).map(
+                        item => Object.keys(item)
+                    )
+                });
+
                 return res.status(400).json({
                     success: false,
                     error:
-                        'بيانات العميل غير مكتملة. ' +
-                        'راجع الاسم والهاتف والمحافظة والمدينة والعنوان.'
+                        'بيانات العميل غير مكتملة. راجع الاسم والهاتف والمحافظة والمدينة والعنوان.'
                 });
             }
 
             const insertPayload = {
                 order_number: requestedOrderNumber,
-
                 customer_name: customerName,
                 phone: customerPhone,
                 whatsapp: customerWhatsapp,
-
                 governorate: customerGov,
                 city: customerCity,
                 address: customerAddress,
                 location: '',
-
                 items: savedItems,
-
                 subtotal,
                 sunbadge_fee: totalSunBadgeFee,
                 shipping_cost: shippingCost,
@@ -1065,6 +1130,7 @@ module.exports = async function handler(req, res) {
                 shipping_method:
                     order.shippingMethod ??
                     order.shipping_method ??
+                    order.delivery_method ??
                     '',
 
                 payment_method:
@@ -1130,15 +1196,14 @@ module.exports = async function handler(req, res) {
                 });
             }
 
-            const finalOrder = {
+            const finalOrder = normalizeOrder({
                 ...savedOrder,
                 order_number: String(
-                    savedOrder.order_number ||
-                    requestedOrderNumber
+                    savedOrder.order_number || requestedOrderNumber
                 ).trim()
-            };
+            });
 
-            // فشل إشعارات واتساب لا يلغي الطلب المحفوظ.
+            // فشل واتساب لا يلغي نجاح حفظ الطلب.
             await notifyWhatsAppOrder('new_order', finalOrder);
             await sendCustomerOrderConfirmation(finalOrder);
 
@@ -1170,10 +1235,7 @@ module.exports = async function handler(req, res) {
             );
 
             if (!response.ok) {
-                console.error(
-                    'SUPABASE GET ORDERS ERROR:',
-                    data
-                );
+                console.error('SUPABASE GET ORDERS ERROR:', data);
 
                 return res.status(response.status).json({
                     success: false,
@@ -1184,9 +1246,13 @@ module.exports = async function handler(req, res) {
                 });
             }
 
+            const orders = Array.isArray(data)
+                ? data.map(normalizeOrder)
+                : [];
+
             return res.status(200).json({
                 success: true,
-                orders: Array.isArray(data) ? data : []
+                orders
             });
         }
 
@@ -1195,9 +1261,7 @@ module.exports = async function handler(req, res) {
         // =====================================================
 
         if (req.method === 'DELETE') {
-            const orderId = String(
-                req.query?.id || ''
-            ).trim();
+            const orderId = String(req.query?.id || '').trim();
 
             if (!orderId) {
                 return res.status(400).json({
@@ -1218,10 +1282,7 @@ module.exports = async function handler(req, res) {
             );
 
             if (!response.ok) {
-                console.error(
-                    'SUPABASE DELETE ORDER ERROR:',
-                    data
-                );
+                console.error('SUPABASE DELETE ORDER ERROR:', data);
 
                 return res.status(response.status).json({
                     success: false,
@@ -1251,9 +1312,7 @@ module.exports = async function handler(req, res) {
         // =====================================================
 
         if (req.method === 'PUT') {
-            const orderId = String(
-                req.query?.id || ''
-            ).trim();
+            const orderId = String(req.query?.id || '').trim();
 
             if (!orderId) {
                 return res.status(400).json({
@@ -1293,11 +1352,7 @@ module.exports = async function handler(req, res) {
                     'Refunded'
                 ];
 
-                if (
-                    !allowedPaymentStatuses.includes(
-                        body.paymentStatus
-                    )
-                ) {
+                if (!allowedPaymentStatuses.includes(body.paymentStatus)) {
                     return res.status(400).json({
                         success: false,
                         error: 'حالة الدفع غير صحيحة.'
@@ -1310,15 +1365,13 @@ module.exports = async function handler(req, res) {
             if (Object.keys(updateData).length === 0) {
                 return res.status(400).json({
                     success: false,
-                    error:
-                        'لم يتم إرسال حالة الطلب أو حالة الدفع.'
+                    error: 'لم يتم إرسال حالة الطلب أو حالة الدفع.'
                 });
             }
 
             const oldOrderResult = await getSupabaseJson(
                 `${SUPABASE_URL}/rest/v1/orders` +
-                `?id=eq.${encodeURIComponent(orderId)}` +
-                '&select=*&limit=1'
+                `?id=eq.${encodeURIComponent(orderId)}&select=*&limit=1`
             );
 
             if (
@@ -1337,7 +1390,7 @@ module.exports = async function handler(req, res) {
                 });
             }
 
-            const oldOrder = oldOrderResult.data[0];
+            const oldOrder = normalizeOrder(oldOrderResult.data[0]);
 
             const { response, data } = await getSupabaseJson(
                 `${SUPABASE_URL}/rest/v1/orders` +
@@ -1352,10 +1405,7 @@ module.exports = async function handler(req, res) {
             );
 
             if (!response.ok) {
-                console.error(
-                    'SUPABASE UPDATE ORDER ERROR:',
-                    data
-                );
+                console.error('SUPABASE UPDATE ORDER ERROR:', data);
 
                 return res.status(response.status).json({
                     success: false,
@@ -1373,7 +1423,7 @@ module.exports = async function handler(req, res) {
                 });
             }
 
-            const updatedOrder = data[0];
+            const updatedOrder = normalizeOrder(data[0]);
 
             if (
                 updateData.status !== undefined &&
