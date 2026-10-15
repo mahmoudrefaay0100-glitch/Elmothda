@@ -15692,6 +15692,7 @@ function accountingEnglishNumbers(value) {
 
 
 
+
 async function printAccountingInvoice(invoiceId, type) {
     let printWindow = null;
 
@@ -15702,9 +15703,7 @@ async function printAccountingInvoice(invoiceId, type) {
         );
 
         const invoice = result.invoice || {};
-        const items = Array.isArray(result.items)
-            ? result.items
-            : [];
+        const items = Array.isArray(result.items) ? result.items : [];
 
         if (!invoice.id && !invoice.invoice_number) {
             throw new Error(
@@ -15712,7 +15711,7 @@ async function printAccountingInvoice(invoiceId, type) {
             );
         }
 
-        // تحويل الأرقام العربية والفارسية إلى أرقام إنجليزية
+        // تحويل الأرقام العربية والفارسية إلى إنجليزية.
         const englishNumbers = (value) =>
             String(value ?? '')
                 .replace(/[٠-٩]/g, digit =>
@@ -15763,9 +15762,7 @@ async function printAccountingInvoice(invoiceId, type) {
         );
 
         const discount = Number(
-            invoice.discount ??
-            result.discount ??
-            0
+            invoice.discount ?? result.discount ?? 0
         );
 
         const subtotal = Number(
@@ -15793,9 +15790,7 @@ async function printAccountingInvoice(invoiceId, type) {
             '—';
 
         const invoiceNumber =
-            invoice.invoice_number ||
-            invoice.id ||
-            '—';
+            invoice.invoice_number || invoice.id || '—';
 
         const invoiceLogo = (() => {
             try {
@@ -15811,19 +15806,18 @@ async function printAccountingInvoice(invoiceId, type) {
             }
         })();
 
-        
-        // تنسيق المبالغ بأرقام إنجليزية
+        // تنسيق المبالغ داخل الفاتورة بأرقام إنجليزية.
+        // نضيف العملة هنا مرة واحدة فقط.
         const formatMoney = (value) =>
-            accountingEnglishNumbers(
-                accountingMoney(Number(value || 0))
-            );
+            Number(value || 0).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }) + ' ج.م';
 
-        // تنسيق الكميات بأرقام إنجليزية
         const formatNumber = (value) =>
             Number(value || 0).toLocaleString('en-US', {
                 maximumFractionDigits: 3
             });
-
 
         const rows = items.length
             ? items.map((item, index) => {
@@ -15858,10 +15852,21 @@ async function printAccountingInvoice(invoiceId, type) {
                             }
                         </td>
 
-                        <td class="center">${formatNumber(quantity)}</td>
-                        <td class="center">${escape(item.unit || 'قطعة')}</td>
-                        <td class="money">${escape(formatMoney(unitPrice))}</td>
-                        <td class="money total-cell">${escape(formatMoney(lineTotal))}</td>
+                        <td class="center numeric">
+                            ${formatNumber(quantity)}
+                        </td>
+
+                        <td class="center">
+                            ${escape(item.unit || 'قطعة')}
+                        </td>
+
+                        <td class="money numeric">
+                            ${formatMoney(unitPrice)}
+                        </td>
+
+                        <td class="money total-cell numeric">
+                            ${formatMoney(lineTotal)}
+                        </td>
                     </tr>
                 `;
             }).join('')
@@ -15890,9 +15895,10 @@ async function printAccountingInvoice(invoiceId, type) {
 
         const rawStatus = String(invoice.status || '').trim();
 
-        const status = statusLabels[rawStatus.toLowerCase()]
-            || rawStatus
-            || '—';
+        const status =
+            statusLabels[rawStatus.toLowerCase()] ||
+            rawStatus ||
+            '—';
 
         printWindow = window.open('', '_blank');
 
@@ -15909,7 +15915,6 @@ async function printAccountingInvoice(invoiceId, type) {
             <html lang="ar" dir="rtl">
             <head>
                 <meta charset="UTF-8">
-
                 <meta
                     name="viewport"
                     content="width=device-width, initial-scale=1"
@@ -15922,46 +15927,48 @@ async function printAccountingInvoice(invoiceId, type) {
                         box-sizing: border-box;
                     }
 
-                   
-body {
-    direction: rtl;
-    margin: 0;
-    padding: 24px;
-    background: #fff;
-    color: #111 !important;
-    font-family: Tahoma, Arial, sans-serif;
-    font-size: 12px;
-    line-height: 1.7;
-    font-weight: 600;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-}
+                    html {
+                        direction: rtl;
+                    }
+
+                    body {
+                        direction: rtl;
+                        margin: 0;
+                        padding: 24px;
+                        background: #fff;
+                        color: #222;
+                        font-family: Tahoma, Arial, sans-serif;
+                        font-size: 12px;
+                        line-height: 1.7;
+                        font-weight: 500;
+                    }
 
                     .invoice {
                         max-width: 1000px;
                         margin: 0 auto;
                     }
 
+                    /* رأس الفاتورة */
                     .top-header {
                         display: flex;
                         align-items: center;
                         justify-content: space-between;
-                        gap: 18px;
-                        padding: 0 0 18px;
-                        border-bottom: 2px solid #333;
+                        gap: 20px;
+                        padding-bottom: 17px;
+                        border-bottom: 3px solid #8B1E2B;
                     }
 
                     .company {
                         display: flex;
                         align-items: center;
-                        gap: 15px;
+                        gap: 14px;
                         min-width: 0;
                     }
 
                     .logo-box {
-                        width: 105px;
-                        height: 95px;
-                        flex: 0 0 105px;
+                        width: 100px;
+                        height: 90px;
+                        flex: 0 0 100px;
                         display: flex;
                         align-items: center;
                         justify-content: center;
@@ -15975,79 +15982,78 @@ body {
                     }
 
                     .company-name {
-                        margin: 0 0 6px;
+                        margin: 0 0 5px;
+                        color: #8B1E2B;
                         font-size: 23px;
+                        line-height: 1.5;
                         font-weight: 900;
-                        color: #111 !important;
                     }
 
                     .company-line {
                         margin: 3px 0;
-                        color: #222 !important;
+                        color: #222;
                         font-size: 11px;
                         font-weight: 600;
                     }
 
                     .company-phone {
-                        direction: ltr;
-                        unicode-bidi: embed;
                         display: inline-block;
-                        color: #111 !important;
-                        font-weight: 800;
+                        direction: ltr;
+                        unicode-bidi: isolate;
+                        color: #8B1E2B;
+                        font-weight: 900;
                     }
 
                     .invoice-heading {
-                        text-align: left;
                         flex: 0 0 auto;
+                        text-align: left;
                     }
 
-                   
-.invoice-label {
-    display: inline-block;
-    background: #8B1E2B;
-    color: #fff !important;
-    border: 2px solid #8B1E2B;
-    padding: 8px 17px;
-    border-radius: 5px;
-    font-size: 18px;
-    font-weight: 900;
-}
+                    .invoice-label {
+                        display: inline-block;
+                        padding: 8px 17px;
+                        border: 1px solid #8B1E2B;
+                        border-radius: 5px;
+                        background: #8B1E2B;
+                        color: #fff;
+                        font-size: 18px;
+                        font-weight: 900;
+                    }
 
                     .invoice-number {
-                        margin-top: 10px;
+                        margin-top: 9px;
+                        color: #111;
                         font-size: 12px;
                         font-weight: 800;
-                        color: #111 !important;
                     }
 
                     .invoice-date {
-                        margin-top: 4px;
-                        color: #222 !important;
+                        margin-top: 3px;
+                        color: #333;
                         font-weight: 600;
                     }
 
-                   
-.gold-line {
-    height: 3px;
-    width: 100%;
-    margin-top: 3px;
-    background: #D4AF37;
-}
-
-
-                    .section-title {
-                        color: #111 !important;
-                        font-size: 13px;
-                        font-weight: 900;
-                        margin: 0 0 10px;
+                    .gold-line {
+                        height: 3px;
+                        margin-top: 3px;
+                        background: #D4AF37;
                     }
 
+                    /* بيانات العميل أو المورد */
                     .customer-section {
-                        margin: 20px 0;
-                        padding: 13px;
-                        border: 1px solid #777;
-                        border-radius: 3px;
+                        margin: 19px 0;
+                        padding: 14px 16px;
+                        border: 1px solid #dfc5c8;
+                        border-right: 4px solid #8B1E2B;
+                        border-radius: 4px;
                         background: #fff;
+                    }
+
+                    .section-title {
+                        margin: 0 0 11px;
+                        color: #8B1E2B;
+                        font-size: 13px;
+                        font-weight: 900;
                     }
 
                     .customer-grid {
@@ -16062,26 +16068,28 @@ body {
                     }
 
                     .field-label {
-                        color: #222 !important;
                         margin-left: 5px;
+                        color: #444;
                         font-weight: 600;
                     }
 
                     .field-value {
-                        color: #111 !important;
+                        color: #111;
                         font-weight: 800;
                     }
 
                     .status-pill {
                         display: inline-block;
-                        border: 1px solid #777;
-                        border-radius: 3px;
                         padding: 1px 9px;
+                        border: 1px solid #c8a4a8;
+                        border-radius: 4px;
+                        color: #8B1E2B;
                     }
 
+                    /* جدول الأصناف */
                     .items-title {
-                        margin: 20px 0 8px;
-                        color: #111 !important;
+                        margin: 20px 0 9px;
+                        color: #8B1E2B;
                         font-size: 14px;
                         font-weight: 900;
                     }
@@ -16101,42 +16109,36 @@ body {
                         page-break-inside: avoid;
                     }
 
-                    
-th {
-    background: #8B1E2B !important;
-    color: #fff !important;
-    padding: 10px 6px;
-    border: 1px solid #8B1E2B;
-    font-size: 11px;
-    font-weight: 900;
-    text-align: center;
-}
+                    th {
+                        padding: 9px 6px;
+                        border: 1px solid #8B1E2B;
+                        background: #8B1E2B;
+                        color: #fff;
+                        font-size: 11px;
+                        font-weight: 900;
+                        text-align: center;
+                    }
 
                     td {
-                        color: #111 !important;
-                        border: 1px solid #777;
                         padding: 8px 7px;
+                        border: 1px solid #cfcfcf;
+                        color: #222;
                         vertical-align: top;
                         overflow-wrap: anywhere;
                         font-weight: 500;
                     }
 
                     tbody tr:nth-child(even) {
-                        background: #fff !important;
+                        background: #fcf8f8;
                     }
 
                     .number-cell {
-                        width: 6%;
                         text-align: center;
-                        font-weight: 700;
-                    }
-
-                    .product-cell {
-                        width: 34%;
+                        font-weight: 800;
                     }
 
                     .product-cell strong {
-                        color: #111 !important;
+                        color: #111;
                         font-weight: 900;
                     }
 
@@ -16144,58 +16146,70 @@ th {
                         text-align: center;
                     }
 
+                    .numeric {
+                        direction: ltr;
+                        unicode-bidi: isolate;
+                        font-variant-numeric: tabular-nums;
+                    }
+
                     .money {
                         text-align: center;
-                        direction: rtl;
+                        white-space: nowrap;
+                        font-size: 11px;
                         font-weight: 700;
                     }
 
                     .total-cell {
-                        font-weight: 900 !important;
+                        color: #111;
+                        font-weight: 900;
                     }
 
                     .item-description {
                         margin-top: 3px;
-                        color: #333 !important;
+                        color: #444;
                         font-size: 10px;
                         font-weight: 500;
                     }
 
                     .empty-items {
+                        padding: 24px;
+                        color: #333;
                         text-align: center;
-                        padding: 25px;
-                        color: #222 !important;
-                        font-weight: 600;
                     }
 
+                    /* الإجماليات والملاحظات */
                     .summary-layout {
                         display: flex;
                         justify-content: space-between;
                         align-items: flex-start;
-                        gap: 20px;
-                        margin-top: 22px;
+                        gap: 22px;
+                        margin-top: 20px;
                     }
 
                     .notes {
                         flex: 1;
                         min-width: 0;
-                        color: #222 !important;
+                        color: #333;
                         font-size: 11px;
-                        font-weight: 500;
                     }
 
                     .notes strong {
-                        color: #111 !important;
+                        color: #8B1E2B;
                         font-weight: 900;
+                    }
+
+                    .notes p {
+                        margin-top: 5px;
+                        overflow-wrap: anywhere;
                     }
 
                     .totals {
                         width: 320px;
                         max-width: 100%;
-                        border: 1px solid #555;
-                        border-radius: 3px;
-                        padding: 10px 13px;
                         flex-shrink: 0;
+                        padding: 11px 14px;
+                        border: 1px solid #d5b7ba;
+                        border-radius: 5px;
                     }
 
                     .total-row {
@@ -16204,66 +16218,71 @@ th {
                         justify-content: space-between;
                         gap: 12px;
                         padding: 5px 0;
-                        color: #111 !important;
+                        color: #222;
                         font-weight: 600;
                     }
 
                     .total-row span:last-child {
-                        font-weight: 800;
                         text-align: left;
-                        color: #111 !important;
+                        white-space: nowrap;
+                        color: #111;
+                        font-weight: 800;
                     }
 
-                   
-.grand-total {
-    margin: 5px -13px;
-    padding: 10px 13px;
-    background: #f7eeee !important;
-    color: #8B1E2B !important;
-    font-size: 16px;
-    font-weight: 900 !important;
-    border-top: 1px solid #8B1E2B;
-    border-bottom: 1px solid #8B1E2B;
-}
+                    .grand-total {
+                        margin: 6px -14px;
+                        padding: 10px 14px;
+                        border-top: 1px solid #8B1E2B;
+                        border-bottom: 1px solid #8B1E2B;
+                        background: #f7eeee;
+                        color: #8B1E2B;
+                        font-size: 15px;
+                        font-weight: 900;
+                    }
 
-.grand-total span {
-    color: #8B1E2B !important;
-    font-weight: 900 !important;
-}
-
+                    .grand-total span {
+                        color: #8B1E2B;
+                        font-weight: 900;
+                    }
 
                     .remaining {
-                        color: #111 !important;
+                        color: #8B1E2B;
+                        font-weight: 900;
+                    }
+
+                    .remaining span {
+                        color: #8B1E2B !important;
                         font-weight: 900 !important;
                     }
 
+                    /* التوقيعات والتذييل */
                     .signature-area {
                         display: grid;
                         grid-template-columns: 1fr 1fr;
-                        gap: 50px;
-                        margin-top: 55px;
+                        gap: 55px;
+                        margin-top: 48px;
                         text-align: center;
-                        color: #111 !important;
+                        color: #222;
                         font-weight: 700;
                     }
 
                     .signature {
                         padding-top: 10px;
-                        border-top: 1px solid #555;
+                        border-top: 1px solid #777;
                     }
 
                     .footer {
-                        border-top: 1px solid #777;
-                        margin-top: 25px;
-                        padding-top: 12px;
-                        text-align: center;
-                        color: #222 !important;
-                        font-size: 11px;
+                        margin-top: 24px;
+                        padding-top: 10px;
+                        border-top: 1px solid #d7c1c3;
+                        color: #333;
+                        font-size: 10px;
                         font-weight: 600;
+                        text-align: center;
                     }
 
                     .footer strong {
-                        color: #111 !important;
+                        color: #8B1E2B;
                         font-weight: 900;
                     }
 
@@ -16272,17 +16291,17 @@ th {
                         margin: 10mm;
                     }
 
-                   
-@media print {
-    body {
-        padding: 0;
-        color: #111 !important;
-        font-weight: 500;
-        print-color-adjust: exact;
-        -webkit-print-color-adjust: exact;
-    }
-}
-
+                    /* إعدادات الطباعة */
+                    @media print {
+                        body {
+                            margin: 0;
+                            padding: 0;
+                            background: #fff;
+                            color: #111;
+                            font-weight: 600;
+                            print-color-adjust: exact;
+                            -webkit-print-color-adjust: exact;
+                        }
 
                         .invoice {
                             max-width: none;
@@ -16297,23 +16316,24 @@ th {
                         }
 
                         .logo-box {
-                            width: 85px;
-                            height: 80px;
-                            flex-basis: 85px;
+                            width: 82px;
+                            height: 76px;
+                            flex-basis: 82px;
+                        }
+
+                        th,
+                        .invoice-label,
+                        .grand-total,
+                        .gold-line {
+                            print-color-adjust: exact;
+                            -webkit-print-color-adjust: exact;
                         }
 
                         * {
                             text-shadow: none !important;
                             box-shadow: none !important;
                         }
-
-                      
-th,
-.grand-total {
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-}
-
+                    }
 
                     @media screen and (max-width: 600px) {
                         body {
@@ -16344,7 +16364,6 @@ th,
                 <main class="invoice">
 
                     <header class="top-header">
-
                         <div class="company">
                             ${
                                 invoiceLogo
@@ -16389,15 +16408,18 @@ th,
 
                             <div class="invoice-number">
                                 رقم الفاتورة:
-                                ${escape(invoiceNumber)}
+                                <span class="numeric">
+                                    ${escape(invoiceNumber)}
+                                </span>
                             </div>
 
                             <div class="invoice-date">
                                 التاريخ:
-                                ${escape(invoiceDate)}
+                                <span class="numeric">
+                                    ${escape(invoiceDate)}
+                                </span>
                             </div>
                         </div>
-
                     </header>
 
                     <div class="gold-line"></div>
@@ -16408,7 +16430,6 @@ th,
                         </h2>
 
                         <div class="customer-grid">
-
                             <div class="field">
                                 <span class="field-label">
                                     ${type === 'sales' ? 'اسم العميل:' : 'اسم المورد:'}
@@ -16419,38 +16440,29 @@ th,
                             </div>
 
                             <div class="field">
-                                <span class="field-label">
-                                    رقم الهاتف:
-                                </span>
-                                <span class="field-value">
+                                <span class="field-label">رقم الهاتف:</span>
+                                <span class="field-value numeric">
                                     ${escape(phone || '—')}
                                 </span>
                             </div>
 
                             <div class="field">
-                                <span class="field-label">
-                                    العنوان:
-                                </span>
+                                <span class="field-label">العنوان:</span>
                                 <span class="field-value">
                                     ${escape(address || '—')}
                                 </span>
                             </div>
 
                             <div class="field">
-                                <span class="field-label">
-                                    حالة الفاتورة:
-                                </span>
+                                <span class="field-label">حالة الفاتورة:</span>
                                 <span class="field-value status-pill">
                                     ${escape(status)}
                                 </span>
                             </div>
-
                         </div>
                     </section>
 
-                    <h2 class="items-title">
-                        تفاصيل الأصناف
-                    </h2>
+                    <h2 class="items-title">تفاصيل الأصناف</h2>
 
                     <table>
                         <thead>
@@ -16470,7 +16482,6 @@ th,
                     </table>
 
                     <div class="summary-layout">
-
                         <div class="notes">
                             <strong>ملاحظات:</strong>
                             <p>
@@ -16483,18 +16494,17 @@ th,
                         </div>
 
                         <section class="totals">
-
                             ${
                                 discount > 0
                                     ? `
                                         <div class="total-row">
                                             <span>إجمالي الأصناف:</span>
-                                            <span>${escape(formatMoney(subtotal))} ج.م</span>
+                                            <span>${formatMoney(subtotal)}</span>
                                         </div>
 
                                         <div class="total-row">
                                             <span>الخصم:</span>
-                                            <span>${escape(formatMoney(discount))} ج.م</span>
+                                            <span>${formatMoney(discount)}</span>
                                         </div>
                                     `
                                     : ''
@@ -16502,30 +16512,24 @@ th,
 
                             <div class="total-row grand-total">
                                 <span>الإجمالي النهائي:</span>
-                                <span>${escape(formatMoney(total))} ج.م</span>
+                                <span>${formatMoney(total)}</span>
                             </div>
 
                             <div class="total-row">
                                 <span>المدفوع:</span>
-                                <span>${escape(formatMoney(paid))} ج.م</span>
+                                <span>${formatMoney(paid)}</span>
                             </div>
 
                             <div class="total-row remaining">
                                 <span>المتبقي:</span>
-                                <span>${escape(formatMoney(remaining))} ج.م</span>
+                                <span>${formatMoney(remaining)}</span>
                             </div>
-
                         </section>
                     </div>
 
                     <section class="signature-area">
-                        <div class="signature">
-                            توقيع المسؤول
-                        </div>
-
-                        <div class="signature">
-                            توقيع العميل / المستلم
-                        </div>
+                        <div class="signature">توقيع المسؤول</div>
+                        <div class="signature">توقيع العميل / المستلم</div>
                     </section>
 
                     <footer class="footer">
@@ -16533,7 +16537,7 @@ th,
                         <br>
                         تصنيع وتشطيب وتوريد الأثاث - أشمون، المنوفية
                         <br>
-                        تليفون: 01042056121
+                        تليفون: <span class="numeric">01042056121</span>
                     </footer>
 
                 </main>
