@@ -4160,10 +4160,13 @@ showToast('تم إضافة القسم بنجاح ✅');
     }
 }
         
-     
-
+    
 function openCustomizerModal(productId) {
-    const product = appState.products.find(
+    const products = Array.isArray(appState?.products)
+        ? appState.products
+        : [];
+
+    const product = products.find(
         p => String(p.id) === String(productId)
     );
 
@@ -4176,12 +4179,14 @@ function openCustomizerModal(productId) {
     const rawFee =
         product.sunbadge_fee ??
         product.sunbadgeFee ??
+        product.sunbadge_unit_fee ??
+        product.sunbadgeUnitFee ??
         0;
 
-    const sunbadgeFee = Number(rawFee);
+    const parsedFee = Number(rawFee);
     const validFee =
-        Number.isFinite(sunbadgeFee) && sunbadgeFee >= 0
-            ? sunbadgeFee
+        Number.isFinite(parsedFee) && parsedFee >= 0
+            ? parsedFee
             : 0;
 
     activeCustomizerProduct = {
@@ -4205,14 +4210,6 @@ function openCustomizerModal(productId) {
     const modal = document.getElementById('product-detail-modal');
     const container = document.getElementById('modal-product-content');
 
-    console.log('CUSTOMIZER DEBUG:', {
-        productId: activeCustomizerProduct.id,
-        modalExists: !!modal,
-        contentExists: !!container,
-        renderFunctionExists:
-            typeof renderCustomizerModalContent === 'function'
-    });
-
     if (!modal || !container) {
         console.error('CUSTOMIZER ELEMENT MISSING:', {
             modalExists: !!modal,
@@ -4226,16 +4223,24 @@ function openCustomizerModal(productId) {
     try {
         renderCustomizerModalContent();
 
+        // إظهار النافذة من جديد حتى لو كانت أُغلقت سابقًا
+        modal.style.removeProperty('display');
         modal.classList.remove('hidden');
-        modal.style.display = '';
         modal.setAttribute('aria-hidden', 'false');
 
-        console.log('CUSTOMIZER MODAL OPENED');
+        console.log('CUSTOMIZER MODAL OPENED:', {
+            productId: product.id,
+            productTitle: product.title || product.name,
+            sunbadgeFee: validFee
+        });
     } catch (error) {
         console.error('CUSTOMIZER RENDER ERROR:', error);
         alert('حدث خطأ أثناء فتح التخصيص. راجع Console.');
     }
 }
+
+window.openCustomizerModal = openCustomizerModal;
+
 
 
 function renderCustomizerModalContent() {
@@ -4550,23 +4555,27 @@ const grandTotal = productsTotal + sunBadgeTotal;
                     <p class="text-[10px] text-gray-400">
                         رسوم صن بيدج محسوبة لكل قطعة حسب الرسوم المسجلة للمنتج. قماش جاكوار بدون رسوم صن بيدج.
                     </p>
+                    
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+    <button
+        type="button"
+        onclick="confirmAddToCart(false)"
+        class="w-full wine-gradient hover:opacity-90 text-white font-extrabold py-3 rounded-xl border border-brand-amber/30 transition shadow-lg text-xs"
+    >
+        <i class="fas fa-cart-plus ml-1"></i>
+        إضافة للسلة
+    </button>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                        <button
-                            onclick="confirmAddToCart(false)"
-                            class="w-full wine-gradient hover:opacity-90 text-white font-extrabold py-3 rounded-xl border border-brand-amber/30 transition shadow-lg text-xs"
-                        >
-                            <i class="fas fa-cart-plus ml-1"></i>
-                            إضافة للسلة
-                        </button>
+    <button
+        type="button"
+        onclick="confirmAddToCart(true)"
+        class="w-full amber-gradient hover:opacity-90 text-black font-extrabold py-3 rounded-xl transition shadow-lg text-xs"
+    >
+        <i class="fas fa-bolt ml-1"></i>
+        تخصيص وإتمام الطلب
+    </button>
+</div>
 
-                        <button
-                            onclick="confirmAddToCart(true)"
-                            class="w-full amber-gradient hover:opacity-90 text-black font-extrabold py-3 rounded-xl transition shadow-lg text-xs"
-                        >
-                            <i class="fas fa-bolt ml-1"></i>
-                            إتمام الطلب
-                        </button>
                     </div>
                 </div>
             </div>
@@ -4580,6 +4589,7 @@ const grandTotal = productsTotal + sunBadgeTotal;
         function selectWickerColor(name) { selectedWickerColor = name; renderCustomizerModalContent(); }
         function toggleSunbrella(checked) { sunbrellaChecked = checked; renderCustomizerModalContent(); }
         function changeCustomizerQty(delta) { customizerQty = Math.max(1, customizerQty + delta); renderCustomizerModalContent(); }
+
 function closeProductModal() {
     const modal = document.getElementById('product-detail-modal');
 
@@ -4589,13 +4599,15 @@ function closeProductModal() {
     }
 
     modal.classList.add('hidden');
-    modal.style.display = 'none';
     modal.setAttribute('aria-hidden', 'true');
+
+    // إعادة ضبط display حتى لا تظل النافذة مخفية عند فتحها مجددًا
+    modal.style.removeProperty('display');
 }
+
+window.closeProductModal = closeProductModal;
+
   
-
-
-
      
 function confirmAddToCart(goToCheckout = false) {
     const originalProduct = activeCustomizerProduct;
@@ -4729,44 +4741,38 @@ function confirmAddToCart(goToCheckout = false) {
 
     console.log('تم تجهيز المنتج للطلب:', cartItem);
 
-    // إغلاق نافذة التخصيص إن أمكن.
-    if (typeof window.closeProductModal === 'function') {
-        window.closeProductModal();
+   
+if (typeof window.closeProductModal === 'function') {
+    window.closeProductModal();
+}
+
+if (typeof window.updateCartBadge === 'function') {
+    window.updateCartBadge();
+}
+
+if (typeof window.renderCartDrawer === 'function') {
+    window.renderCartDrawer();
+}
+
+if (goToCheckout) {
+    if (typeof window.openCheckoutModal === 'function') {
+        window.openCheckoutModal();
+    } else {
+        alert('تعذر فتح صفحة الشراء. حاول تحديث الصفحة.');
     }
 
-    // تحديث عداد السلة دون فتح درج السلة.
-    if (typeof window.updateCartBadge === 'function') {
-        window.updateCartBadge();
-    }
+    return;
+}
 
-    // تحديث محتوى السلة دون إجبار العميل على فتحها.
-    if (typeof window.renderCartDrawer === 'function') {
-        window.renderCartDrawer();
-    }
+if (typeof window.toggleCartDrawer === 'function') {
+    window.toggleCartDrawer(true);
+}
 
-    if (goToCheckout) {
-        // الانتقال مباشرة إلى خطوة الشراء.
-        // لا تستدعِ toggleCartDrawer(true) هنا.
-        if (typeof window.openCheckoutModal === 'function') {
-            window.openCheckoutModal();
-        } else {
-            alert('تعذر فتح صفحة الشراء. أعد تحميل الموقع وحاول مرة أخرى.');
-        }
-
-        return;
-    }
-
-    // زر إضافة للسلة يظل يعمل بالطريقة المعتادة.
-    if (typeof window.toggleCartDrawer === 'function') {
-        window.toggleCartDrawer(true);
-    }
 }
 
 window.confirmAddToCart = confirmAddToCart;
 
-
-
-        
+      
 function toggleCartDrawer(forceOpen) {
 const drawer = document.getElementById('cart-drawer');
 const overlay = document.getElementById('cart-drawer-overlay');
