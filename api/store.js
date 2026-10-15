@@ -11,9 +11,9 @@ module.exports = async function handler(req, res) {
     res.setHeader('Expires', '0');
     res.setHeader('X-Content-Type-Options', 'nosniff');
 
-    if (req.method !== 'GET' && req.method !== 'PUT') {
-        res.setHeader('Allow', 'GET, PUT');
+    res.setHeader('Allow', 'GET, PUT');
 
+    if (req.method !== 'GET' && req.method !== 'PUT') {
         return res.status(405).json({
             success: false,
             error: 'Method not allowed'
@@ -39,7 +39,8 @@ module.exports = async function handler(req, res) {
         if (!SERVICE_KEY) {
             return res.status(500).json({
                 success: false,
-                error: 'SUPABASE_SERVICE_ROLE_KEY is missing'
+                error:
+                    'SUPABASE_SERVICE_ROLE_KEY is missing'
             });
         }
 
@@ -128,6 +129,82 @@ module.exports = async function handler(req, res) {
             return res.status(status).json(payload);
         }
 
+        function getRequestBody() {
+            if (
+                req.body &&
+                typeof req.body === 'object' &&
+                !Array.isArray(req.body)
+            ) {
+                return req.body;
+            }
+
+            if (typeof req.body === 'string') {
+                try {
+                    const parsed = JSON.parse(req.body);
+
+                    if (
+                        parsed &&
+                        typeof parsed === 'object' &&
+                        !Array.isArray(parsed)
+                    ) {
+                        return parsed;
+                    }
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            return null;
+        }
+
+        function compareValue(value) {
+            if (value === undefined) {
+                return undefined;
+            }
+
+            if (value === null || value === '') {
+                return null;
+            }
+
+            if (typeof value === 'boolean') {
+                return value;
+            }
+
+            if (
+                typeof value === 'number' ||
+                (
+                    typeof value === 'string' &&
+                    value.trim() !== '' &&
+                    Number.isFinite(Number(value))
+                )
+            ) {
+                return Number(value);
+            }
+
+            return value;
+        }
+
+        function verifySavedFields(saved, expected) {
+            if (!saved || typeof saved !== 'object') {
+                return false;
+            }
+
+            for (const [key, expectedValue] of Object.entries(
+                expected
+            )) {
+                const actualValue = saved[key];
+
+                if (
+                    compareValue(actualValue) !==
+                    compareValue(expectedValue)
+                ) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         // =====================================================
         // SUPABASE REQUEST
         // =====================================================
@@ -166,9 +243,14 @@ module.exports = async function handler(req, res) {
                 headers['Content-Type'] = 'application/json';
             }
 
-            if (method === 'POST' || method === 'PATCH') {
+            if (
+                method === 'POST' ||
+                method === 'PATCH' ||
+                method === 'DELETE'
+            ) {
                 headers.Prefer =
-                    options.prefer || 'return=representation';
+                    options.prefer ||
+                    'return=representation';
             }
 
             let response;
@@ -177,17 +259,23 @@ module.exports = async function handler(req, res) {
                 response = await fetch(url, {
                     method,
                     headers,
-                    body: body !== null
-                        ? JSON.stringify(body)
-                        : undefined,
+                    body:
+                        body !== null
+                            ? JSON.stringify(body)
+                            : undefined,
                     cache: 'no-store',
-                    signal: AbortSignal.timeout(10000)
+                    signal: AbortSignal.timeout(15000)
                 });
             } catch (error) {
-                throw new Error(
+                const wrappedError = new Error(
                     `الاتصال بجدول ${table} فشل: ` +
                     normalizeError(error)
                 );
+
+                wrappedError.table = table;
+                wrappedError.status = 502;
+
+                throw wrappedError;
             }
 
             const responseText = await response.text();
@@ -197,11 +285,15 @@ module.exports = async function handler(req, res) {
             if (responseText) {
                 try {
                     data = JSON.parse(responseText);
-                } catch {
-                    throw new Error(
-                        `جدول ${table}: استجابة غير صالحة من Supabase. ` +
-                        responseText.substring(0, 250)
+                } catch (error) {
+                    const wrappedError = new Error(
+                        `جدول ${table}: استجابة غير صالحة من Supabase`
                     );
+
+                    wrappedError.table = table;
+                    wrappedError.status = 502;
+
+                    throw wrappedError;
                 }
             }
 
@@ -214,15 +306,15 @@ module.exports = async function handler(req, res) {
                     data?.error ||
                     `HTTP ${response.status}`;
 
-                const error = new Error(
+                const wrappedError = new Error(
                     `جدول ${table}: ${message}`
                 );
 
-                error.status = response.status;
-                error.table = table;
-                error.supabaseCode = data?.code;
+                wrappedError.status = response.status;
+                wrappedError.table = table;
+                wrappedError.supabaseCode = data?.code;
 
-                throw error;
+                throw wrappedError;
             }
 
             return data;
@@ -238,7 +330,7 @@ module.exports = async function handler(req, res) {
                 req.headers.Authorization ||
                 '';
 
-            const match = authorization.match(
+            const match = String(authorization).match(
                 /^Bearer\s+(.+)$/i
             );
 
@@ -262,16 +354,9 @@ module.exports = async function handler(req, res) {
             }
 
             const adminEmail = (
-                process.env.ADMIN_EMAIL || ''
+                process.env.ADMIN_EMAIL ||
+                'admin@elmothda.com'
             ).trim().toLowerCase();
-
-            if (!adminEmail) {
-                return {
-                    valid: false,
-                    status: 500,
-                    error: 'ADMIN_EMAIL is missing'
-                };
-            }
 
             let response;
 
@@ -309,8 +394,7 @@ module.exports = async function handler(req, res) {
                     valid: false,
                     status: 401,
                     error:
-                        'جلسة المدير غير صالحة أو انتهت. ' +
-                        'سجّل الدخول مرة أخرى.'
+                        'جلسة المدير غير صالحة أو انتهت. سجّل الدخول مرة أخرى.'
                 };
             }
 
@@ -318,12 +402,12 @@ module.exports = async function handler(req, res) {
 
             try {
                 user = await response.json();
-            } catch {
+            } catch (error) {
                 return {
                     valid: false,
                     status: 401,
                     error:
-                        'تعذر قراءة بيانات جلسة المدير.'
+                        'تعذر قراءة بيانات جلسة المدير'
                 };
             }
 
@@ -350,14 +434,6 @@ module.exports = async function handler(req, res) {
         // =====================================================
 
         if (req.method === 'GET') {
-            /*
-             * نحافظ على أسماء الجداول والحقول المستخدمة
-             * في الواجهة الحالية.
-             *
-             * في حالة فشل أي استعلام، يظهر اسم الجدول
-             * ورسالة Supabase بدل إرجاع بيانات مضللة.
-             */
-
             const tableRequests = [
                 {
                     key: 'products',
@@ -367,7 +443,8 @@ module.exports = async function handler(req, res) {
                 {
                     key: 'offers',
                     table: 'offers',
-                    query: 'select=*&order=sort_order.asc,created_at.desc'
+                    query:
+                        'select=*&order=sort_order.asc,created_at.desc'
                 },
                 {
                     key: 'categories',
@@ -420,7 +497,7 @@ module.exports = async function handler(req, res) {
                     } catch (error) {
                         console.error(
                             `STORE LOAD ERROR [${request.table}]:`,
-                            error
+                            normalizeError(error)
                         );
 
                         return {
@@ -440,25 +517,17 @@ module.exports = async function handler(req, res) {
             );
 
             if (failedRequests.length > 0) {
-                const failedTables = failedRequests.map(
-                    result => ({
-                        table: result.table,
-                        error: result.error,
-                        code: result.code
-                    })
-                );
-
-                console.error(
-                    'STORE TABLES FAILED:',
-                    failedTables
-                );
-
                 return res.status(500).json({
                     success: false,
                     error:
-                        'تعذر تحميل بيانات المتجر بالكامل. ' +
-                        'راجع تفاصيل الجداول التي فشل تحميلها.',
-                    failedTables
+                        'تعذر تحميل بيانات المتجر بالكامل',
+                    failedTables: failedRequests.map(
+                        result => ({
+                            table: result.table,
+                            error: result.error,
+                            code: result.code
+                        })
+                    )
                 });
             }
 
@@ -468,88 +537,81 @@ module.exports = async function handler(req, res) {
                 storeData[result.key] = result.data;
             });
 
-            const products = storeData.products;
-            const offers = storeData.offers;
-            const categories = storeData.categories;
-            const siteSettings = storeData.siteSettings;
-            const shippingOptions = storeData.shippingOptions;
-            const upholsteryTypes = storeData.upholsteryTypes;
-            const storeColors = storeData.storeColors;
-
             // =================================================
-            // NORMALIZE PRODUCT SUNBADGE FEE
+            // PRODUCTS / SUNBADGE
             // =================================================
 
-            function normalizeProduct(product) {
-                const rawFee =
-                    product.sunbadge_fee ??
-                    product.sunbadgeFee ??
-                    product.sunbadge_unit_fee ??
-                    product.sunbadgeUnitFee ??
-                    0;
+            const normalizedProducts =
+                storeData.products.map(function(product) {
+                    const rawFee =
+                        product.sunbadge_fee ??
+                        product.sunbadgeFee ??
+                        product.sunbadge_unit_fee ??
+                        product.sunbadgeUnitFee ??
+                        0;
 
-                const sunbadgeFee = safeNumber(rawFee, 0);
+                    const sunbadgeFee = safeNumber(
+                        rawFee,
+                        0
+                    );
 
-                return {
-                    ...product,
-                    sunbadge_fee: sunbadgeFee,
-                    sunbadgeFee
-                };
-            }
-
-            const normalizedProducts = products.map(
-                normalizeProduct
-            );
-
-            // =================================================
-            // SPLIT COLORS BY TYPE
-            // =================================================
-
-            const cushionColors = storeColors.filter(
-                color => color.type === 'cushion'
-            );
-
-            const wickerColors = storeColors.filter(
-                color => color.type === 'wicker'
-            );
-
-            const woodColors = storeColors.filter(
-                color => color.type === 'wood'
-            );
+                    return {
+                        ...product,
+                        sunbadge_fee: sunbadgeFee,
+                        sunbadgeFee
+                    };
+                });
 
             // =================================================
-            // STORE SETTINGS
+            // COLORS
             // =================================================
 
-            const settings = siteSettings[0] || {};
+            const cushionColors =
+                storeData.storeColors.filter(
+                    color => color.type === 'cushion'
+                );
 
-            const depositPercent = isValidPercentage(
-                settings.deposit_percent
-            )
-                ? Number(settings.deposit_percent)
-                : 30;
+            const wickerColors =
+                storeData.storeColors.filter(
+                    color => color.type === 'wicker'
+                );
+
+            const woodColors =
+                storeData.storeColors.filter(
+                    color => color.type === 'wood'
+                );
+
+            // =================================================
+            // SETTINGS
+            // =================================================
+
+            const settings =
+                storeData.siteSettings[0] || {};
+
+            const depositPercent =
+                isValidPercentage(settings.deposit_percent)
+                    ? Number(settings.deposit_percent)
+                    : 30;
 
             const sunbadgeOrderFee = safeNumber(
                 settings.sunbadge_order_fee,
                 0
             );
 
-            /*
-             * قيمة توافقية للواجهة القديمة فقط.
-             * رسوم صن بادج الخاصة بكل منتج تُقرأ من المنتج نفسه.
-             */
+            // قيمة توافقية للواجهة القديمة.
+            // الرسوم الخاصة بالمنتج تظل من sunbadge_fee.
             const sunbrellaRate = 200;
 
             // =================================================
-            // FINAL RESPONSE
+            // RESPONSE
             // =================================================
 
             return res.status(200).json({
                 success: true,
 
                 products: normalizedProducts,
-                offers,
-                categories,
+                offers: storeData.offers,
+                categories: storeData.categories,
 
                 siteSettings: settings,
 
@@ -557,8 +619,8 @@ module.exports = async function handler(req, res) {
                 sunbadgeOrderFee,
                 sunbrellaRate,
 
-                shippingOptions,
-                upholsteryTypes,
+                shippingOptions: storeData.shippingOptions,
+                upholsteryTypes: storeData.upholsteryTypes,
 
                 cushionColors,
                 wickerColors,
@@ -567,7 +629,7 @@ module.exports = async function handler(req, res) {
         }
 
         // =====================================================
-        // PUT: SAVE STORE SETTINGS
+        // PUT: VERIFY ADMIN
         // =====================================================
 
         const auth = await verifyAdmin();
@@ -579,12 +641,7 @@ module.exports = async function handler(req, res) {
             );
         }
 
-        const body =
-            req.body &&
-            typeof req.body === 'object' &&
-            !Array.isArray(req.body)
-                ? req.body
-                : null;
+        const body = getRequestBody();
 
         if (!body) {
             return sendError(
@@ -594,77 +651,59 @@ module.exports = async function handler(req, res) {
         }
 
         // =====================================================
-        // ALLOWED FIELDS
+        // ALLOWED SETTINGS
         // =====================================================
 
         const allowedFields = {
             depositPercent: {
                 column: 'deposit_percent',
-
                 validate: isValidPercentage,
-
                 normalize: value => Number(value),
-
                 error:
                     'نسبة العربون يجب أن تكون بين 0% و100%'
             },
 
             sunbadgeOrderFee: {
                 column: 'sunbadge_order_fee',
-
                 validate: value =>
                     isValidNonNegativeNumber(value, 100000),
-
                 normalize: value => Number(value),
-
                 error:
                     'رسوم صن بادج يجب أن تكون بين 0 و100000 جنيه'
             },
 
             whatsappNotifyNewOrder: {
                 column: 'whatsapp_notify_new_order',
-
                 validate: value =>
                     typeof value === 'boolean',
-
                 normalize: value => value,
-
                 error:
                     'قيمة إشعار الطلب الجديد غير صحيحة'
             },
 
             whatsappNotifyOrderStatus: {
                 column: 'whatsapp_notify_order_status',
-
                 validate: value =>
                     typeof value === 'boolean',
-
                 normalize: value => value,
-
                 error:
                     'قيمة إشعارات حالة الطلب غير صحيحة'
             },
 
             whatsappNotifyPaymentStatus: {
                 column: 'whatsapp_notify_payment_status',
-
                 validate: value =>
                     typeof value === 'boolean',
-
                 normalize: value => value,
-
                 error:
                     'قيمة إشعارات حالة الدفع غير صحيحة'
             },
 
             whatsappNotifyCustomer: {
                 column: 'whatsapp_notify_customer',
-
                 validate: value =>
                     typeof value === 'boolean',
-
                 normalize: value => value,
-
                 error:
                     'قيمة إشعارات العميل غير صحيحة'
             }
@@ -698,7 +737,7 @@ module.exports = async function handler(req, res) {
         }
 
         // =====================================================
-        // READ CURRENT SETTINGS
+        // LOAD CURRENT SETTINGS
         // =====================================================
 
         const existingSettings = await supabaseRequest(
@@ -710,7 +749,7 @@ module.exports = async function handler(req, res) {
         let savedSettings;
 
         // =====================================================
-        // UPDATE EXISTING ROW
+        // UPDATE EXISTING SETTINGS
         // =====================================================
 
         if (
@@ -720,8 +759,8 @@ module.exports = async function handler(req, res) {
             const current = existingSettings[0];
 
             if (
-                current.id === null ||
-                current.id === undefined
+                current.id === undefined ||
+                current.id === null
             ) {
                 return sendError(
                     500,
@@ -731,8 +770,7 @@ module.exports = async function handler(req, res) {
 
             const query =
                 'id=eq.' +
-                encodeURIComponent(String(current.id)) +
-                '&select=*';
+                encodeURIComponent(String(current.id));
 
             savedSettings = await supabaseRequest(
                 'site_settings',
@@ -740,13 +778,46 @@ module.exports = async function handler(req, res) {
                 query,
                 updateData
             );
+
+            // =================================================
+            // VERIFY PATCH RESULT
+            // =================================================
+
+            if (
+                !Array.isArray(savedSettings) ||
+                savedSettings.length === 0
+            ) {
+                const verification = await supabaseRequest(
+                    'site_settings',
+                    'GET',
+                    'id=eq.' +
+                        encodeURIComponent(String(current.id)) +
+                        '&select=*&limit=1'
+                );
+
+                if (
+                    !Array.isArray(verification) ||
+                    verification.length === 0 ||
+                    !verifySavedFields(
+                        verification[0],
+                        updateData
+                    )
+                ) {
+                    return sendError(
+                        409,
+                        'لم يتم تأكيد حفظ الإعدادات المطلوبة. راجع قاعدة البيانات وحاول مرة أخرى.'
+                    );
+                }
+
+                savedSettings = verification;
+            }
         } else {
-            // =============================================
-            // CREATE INITIAL SETTINGS ROW
-            // =============================================
+            // =================================================
+            // CREATE INITIAL SETTINGS
+            // لا نفترض نوع العمود id ولا نفرض القيمة 1.
+            // =================================================
 
             const initialSettings = {
-                id: 1,
                 title: 'المتحدة للرتان والأثاث',
                 deposit_percent: 30,
                 sunbadge_order_fee: 0,
@@ -760,43 +831,50 @@ module.exports = async function handler(req, res) {
             savedSettings = await supabaseRequest(
                 'site_settings',
                 'POST',
-                'select=*',
+                '',
                 initialSettings
-            );
-        }
-
-        // =====================================================
-        // VERIFY SAVED RESULT
-        // =====================================================
-
-        if (
-            !Array.isArray(savedSettings) ||
-            savedSettings.length === 0
-        ) {
-            /*
-             * عدم وجود صف را لا نعتبره نجاحًا مؤكدًا.
-             * نقرأ الإعدادات مجددًا لمعرفة هل تم الحفظ.
-             */
-            const verification = await supabaseRequest(
-                'site_settings',
-                'GET',
-                'select=*&limit=1'
             );
 
             if (
-                !Array.isArray(verification) ||
-                verification.length === 0
+                !Array.isArray(savedSettings) ||
+                savedSettings.length === 0
             ) {
-                return sendError(
-                    500,
-                    'لم يتم العثور على إعدادات محفوظة بعد عملية الحفظ'
+                const verification = await supabaseRequest(
+                    'site_settings',
+                    'GET',
+                    'select=*&limit=1'
                 );
-            }
 
-            savedSettings = verification;
+                if (
+                    !Array.isArray(verification) ||
+                    verification.length === 0 ||
+                    !verifySavedFields(
+                        verification[0],
+                        updateData
+                    )
+                ) {
+                    return sendError(
+                        409,
+                        'تعذر تأكيد إنشاء إعدادات المتجر وحفظ القيم المطلوبة'
+                    );
+                }
+
+                savedSettings = verification;
+            }
         }
 
+        // =====================================================
+        // FINAL VERIFICATION
+        // =====================================================
+
         const saved = savedSettings[0];
+
+        if (!verifySavedFields(saved, updateData)) {
+            return sendError(
+                409,
+                'الإعدادات التي رجعت من قاعدة البيانات لا تطابق القيم المطلوبة'
+            );
+        }
 
         // =====================================================
         // SUCCESS
@@ -804,7 +882,6 @@ module.exports = async function handler(req, res) {
 
         return res.status(200).json({
             success: true,
-
             message: 'تم حفظ إعدادات المتجر بنجاح',
 
             depositPercent: isValidPercentage(
