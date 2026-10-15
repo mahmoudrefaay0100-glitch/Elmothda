@@ -67,23 +67,30 @@ export default async function handler(req, res) {
             });
         }
 
-        const destinations = {
-            products: {
-                bucket: "product-images",
-                folder: "products",
-                prefix: "product"
-            },
-            offers: {
-                bucket: "product-images",
-                folder: "offers",
-                prefix: "offer"
-            },
-            "payment-proofs": {
-                bucket: "payment-proofs",
-                folder: "orders",
-                prefix: "payment"
-            }
-        };
+      
+const destinations = {
+    products: {
+        bucket: "product-images",
+        folder: "products",
+        prefix: "product"
+    },
+    offers: {
+        bucket: "product-images",
+        folder: "offers",
+        prefix: "offer"
+    },
+    "payment-proofs": {
+        bucket: "payment-proofs",
+        folder: "orders",
+        prefix: "payment"
+    },
+    "design-previews": {
+        bucket: "product-images",
+        folder: "design-previews",
+        prefix: "design"
+    }
+};
+
 
         const destination = destinations[folder];
 
