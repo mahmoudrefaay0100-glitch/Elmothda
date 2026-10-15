@@ -1,5 +1,6 @@
+
 export default async function handler(req, res) {
-    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
 
     if (req.method !== 'POST') {
         res.setHeader('Allow', 'POST');
@@ -13,75 +14,24 @@ export default async function handler(req, res) {
     try {
         const {
             WHATSAPP_ACCESS_TOKEN,
-            WHATSAPP_PHONE_NUMBER_ID
+            WHATSAPP_PHONE_NUMBER_ID,
+            WHATSAPP_CUSTOMER_SERVICE_PHONE
         } = process.env;
 
-        if (!WHATSAPP_ACCESS_TOKEN) {
+        if (!WHATSAPP_ACCESS_TOKEN || !WHATSAPP_PHONE_NUMBER_ID) {
             console.error(
-                'WhatsApp configuration error: missing access token'
+                'WhatsApp configuration error:',
+                JSON.stringify({
+                    hasAccessToken: Boolean(WHATSAPP_ACCESS_TOKEN),
+                    hasPhoneNumberId: Boolean(WHATSAPP_PHONE_NUMBER_ID)
+                })
             );
 
             return res.status(500).json({
                 success: false,
-                error: 'إعدادات واتساب غير مكتملة: Access Token'
+                error: 'إعدادات واتساب غير مكتملة في Vercel.'
             });
         }
-
-        if (!WHATSAPP_PHONE_NUMBER_ID) {
-            console.error(
-                'WhatsApp configuration error: missing phone number ID'
-            );
-
-            return res.status(500).json({
-                success: false,
-                error: 'إعدادات واتساب غير مكتملة: Phone Number ID'
-            });
-        }
-
-        // =====================================
-        // قراءة بيانات الطلب
-        // =====================================
-
-        let body = req.body || {};
-
-        if (typeof body === 'string') {
-            try {
-                body = JSON.parse(body);
-            } catch {
-                return res.status(400).json({
-                    success: false,
-                    error: 'بيانات الطلب ليست بصيغة JSON صحيحة'
-                });
-            }
-        }
-
-        // دعم الطلب المباشر أو الطلب الموجود داخل order أو data.
-        const order =
-            body?.order ||
-            body?.data?.order ||
-            body?.data ||
-            body;
-
-        if (
-            !order ||
-            typeof order !== 'object' ||
-            Array.isArray(order)
-        ) {
-            return res.status(400).json({
-                success: false,
-                error: 'بيانات الطلب غير صالحة'
-            });
-        }
-
-        const customer =
-            order.customer &&
-            typeof order.customer === 'object'
-                ? order.customer
-                : {};
-
-        const items = Array.isArray(order.items)
-            ? order.items
-            : [];
 
         // =====================================
         // أدوات مساعدة
@@ -131,14 +81,96 @@ export default async function handler(req, res) {
                 return fallback;
             }
 
-            // إزالة المحارف غير المناسبة في الرسالة
             return String(value)
                 .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
                 .trim();
         }
 
+        // توحيد أرقام مصر إلى الصيغة الدولية.
+        // مثال: 01042056131 -> 201042056131
+        function normalizeEgyptianWhatsAppNumber(value) {
+            let number = String(value || '')
+                .trim()
+                .replace(/[\s()+.-]/g, '');
+
+            if (!/^\d+$/.test(number)) {
+                throw new Error(
+                    'رقم استقبال إشعارات واتساب يحتوي على أحرف غير صالحة.'
+                );
+            }
+
+            if (number.startsWith('00')) {
+                number = number.slice(2);
+            }
+
+            if (number.startsWith('01') && number.length === 11) {
+                number = '20' + number.slice(1);
+            } else if (
+                number.startsWith('1') &&
+                number.length === 10
+            ) {
+                number = '20' + number;
+            }
+
+            if (
+                number.length < 8 ||
+                number.length > 15 ||
+                number.startsWith('0')
+            ) {
+                throw new Error(
+                    'رقم استقبال إشعارات واتساب ليس بصيغة دولية صحيحة.'
+                );
+            }
+
+            return number;
+        }
+
         // =====================================
-        // تفاصيل المنتجات
+        // قراءة بيانات الطلب
+        // =====================================
+
+        let body = req.body || {};
+
+        if (typeof body === 'string') {
+            try {
+                body = JSON.parse(body);
+            } catch {
+                return res.status(400).json({
+                    success: false,
+                    error: 'بيانات الطلب ليست بصيغة JSON صحيحة.'
+                });
+            }
+        }
+
+        const order =
+            body?.order ||
+            body?.data?.order ||
+            body?.data ||
+            body;
+
+        if (
+            !order ||
+            typeof order !== 'object' ||
+            Array.isArray(order)
+        ) {
+            return res.status(400).json({
+                success: false,
+                error: 'بيانات الطلب غير صالحة.'
+            });
+        }
+
+        const customer =
+            order.customer &&
+            typeof order.customer === 'object'
+                ? order.customer
+                : {};
+
+        const items = Array.isArray(order.items)
+            ? order.items
+            : [];
+
+        // =====================================
+        // تجهيز المنتجات
         // =====================================
 
         const itemsText = items.length
@@ -160,10 +192,7 @@ export default async function handler(req, res) {
                 const qty = Math.max(
                     0,
                     safeNumber(
-                        firstAvailable(
-                            item.qty,
-                            item.quantity
-                        ),
+                        firstAvailable(item.qty, item.quantity),
                         1
                     )
                 );
@@ -177,14 +206,14 @@ export default async function handler(req, res) {
                     0
                 );
 
-                // لا نضيف الرسوم مرة أخرى لو كانت داخلة بالفعل
-                // في إجمالي السطر المحفوظ.
                 const savedLineTotal = firstAvailable(
                     item.lineTotal,
                     item.line_total,
                     item.totalPrice,
                     item.total_price,
-                    item.itemTotal
+                    item.itemTotal,
+                    item.itemSubtotal,
+                    item.item_subtotal
                 );
 
                 const lineTotal =
@@ -238,10 +267,10 @@ export default async function handler(req, res) {
 
                 return details.join('\n');
             }).join('\n\n')
-            : 'لا توجد منتجات مسجلة في بيانات الطلب';
+            : 'لا توجد منتجات مسجلة في بيانات الطلب.';
 
         // =====================================
-        // بيانات الطلب والإجماليات
+        // بيانات الطلب
         // =====================================
 
         const orderNumber = cleanText(
@@ -255,13 +284,16 @@ export default async function handler(req, res) {
         const customerName = cleanText(
             firstAvailable(
                 customer.name,
-                order.customerName
+                order.customer_name,
+                order.customerName,
+                order.name
             )
         );
 
         const customerPhone = cleanText(
             firstAvailable(
                 customer.phone,
+                order.customer_phone,
                 order.customerPhone,
                 order.phone
             )
@@ -276,23 +308,26 @@ export default async function handler(req, res) {
         );
 
         const city = cleanText(
-            firstAvailable(
-                customer.city,
-                order.city
-            )
+            firstAvailable(customer.city, order.city)
         );
 
         const address = cleanText(
-            firstAvailable(
-                customer.address,
-                order.address
-            )
+            firstAvailable(customer.address, order.address)
         );
 
         const subtotal = safeNumber(
             firstAvailable(
                 order.subtotal,
                 order.subTotal
+            ),
+            0
+        );
+
+        const sunbadgeFee = safeNumber(
+            firstAvailable(
+                order.sunbadge_fee,
+                order.sunBadgeFee,
+                order.sunbadgeFee
             ),
             0
         );
@@ -304,6 +339,8 @@ export default async function handler(req, res) {
             ),
             0
         );
+
+        const discount = safeNumber(order.discount, 0);
 
         const total = safeNumber(
             firstAvailable(
@@ -325,7 +362,8 @@ export default async function handler(req, res) {
         const depositAmount = safeNumber(
             firstAvailable(
                 order.depositAmount,
-                order.deposit_amount
+                order.deposit_amount,
+                order.deposit
             ),
             0
         );
@@ -378,8 +416,14 @@ export default async function handler(req, res) {
             '💰 إجمالي المنتجات:',
             formatMoney(subtotal),
             '',
+            '🧵 رسوم صن بيدج:',
+            formatMoney(sunbadgeFee),
+            '',
             '🚚 تكلفة الشحن:',
             formatMoney(shippingCost),
+            '',
+            '🏷️ الخصم:',
+            formatMoney(discount),
             '',
             '💰 إجمالي الطلب:',
             formatMoney(total),
@@ -415,7 +459,6 @@ export default async function handler(req, res) {
             cleanText(order.status, 'New')
         ].join('\n');
 
-        // حد احتياطي لطول الرسالة
         const finalMessage =
             message.length > 4000
                 ? message.slice(0, 3950) +
@@ -423,24 +466,31 @@ export default async function handler(req, res) {
                 : message;
 
         // =====================================
-        // إرسال إشعار واتساب
+        // تحديد رقم استقبال إشعارات الإدارة
         // =====================================
 
-        const whatsappBusinessNumber = '201042056121';
+        // رقم خدمة العملاء الافتراضي: 01042056131
+        // يمكن تغييره من إعدادات Vercel دون تعديل الكود.
+        const recipient = normalizeEgyptianWhatsAppNumber(
+            WHATSAPP_CUSTOMER_SERVICE_PHONE || '01042056131'
+        );
+
+        // =====================================
+        // إرسال الإشعار من رقم Meta المربوط
+        // =====================================
 
         const response = await fetch(
             `https://graph.facebook.com/v23.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
             {
                 method: 'POST',
                 headers: {
-                    Authorization:
-                        `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+                    Authorization: `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     messaging_product: 'whatsapp',
                     recipient_type: 'individual',
-                    to: whatsappBusinessNumber,
+                    to: recipient,
                     type: 'text',
                     text: {
                         preview_url: false,
@@ -450,7 +500,7 @@ export default async function handler(req, res) {
             }
         );
 
-        let data;
+        let data = {};
 
         try {
             data = await response.json();
@@ -459,29 +509,41 @@ export default async function handler(req, res) {
         }
 
         if (!response.ok) {
+            const metaError = data?.error || {};
+
+            // لا تسجل التوكن أو ترويسات المصادقة.
             console.error(
                 'WHATSAPP API ERROR:',
                 JSON.stringify({
                     status: response.status,
-                    error: data?.error || data
+                    code: metaError.code ?? null,
+                    errorSubcode: metaError.error_subcode ?? null,
+                    type: metaError.type ?? null,
+                    message: metaError.message ?? null,
+                    details: metaError.error_data?.details ?? null,
+                    fbtrace_id: metaError.fbtrace_id ?? null,
+                    orderNumber
                 })
             );
 
             return res.status(502).json({
                 success: false,
                 error:
-                    data?.error?.message ||
-                    'فشل إرسال إشعار واتساب. راجع سجل أخطاء Vercel.'
+                    metaError.error_data?.details ||
+                    metaError.message ||
+                    'فشل إرسال إشعار واتساب. راجع سجل أخطاء Vercel.',
+                metaCode: metaError.code ?? null,
+                orderNumber
             });
         }
 
-        const messageId =
-            data?.messages?.[0]?.id || null;
+        const messageId = data?.messages?.[0]?.id || null;
 
         console.log(
             'WHATSAPP ORDER NOTIFICATION ACCEPTED:',
             JSON.stringify({
                 orderNumber,
+                recipient,
                 messageId
             })
         );
@@ -501,7 +563,9 @@ export default async function handler(req, res) {
 
         return res.status(500).json({
             success: false,
-            error: 'حدث خطأ أثناء تجهيز إشعار واتساب.'
+            error:
+                error?.message ||
+                'حدث خطأ أثناء تجهيز إشعار واتساب.'
         });
     }
 }
