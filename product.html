@@ -1,19 +1,34 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#171717">
+
     <title>تفاصيل المنتج | المتحدة للرتان والأثاث</title>
+
+    <meta
+        name="description"
+        content="تعرّف على منتجات المتحدة للرتان والأثاث، واختر التنجيد والألوان والكمية المناسبة، ثم أضف المنتج إلى سلتك وأكمل طلبك."
+    >
 
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
+            margin: 0;
             background: #111;
-            color: white;
+            color: #fff;
             font-family: Tahoma, Arial, sans-serif;
+        }
+
+        button,
+        a {
+            -webkit-tap-highlight-color: transparent;
         }
 
         .gold {
@@ -40,12 +55,13 @@
             inset: 0;
             z-index: 999999;
             background: #111;
+            overflow: hidden;
         }
 
         #customizer-frame {
+            display: block;
             width: 100%;
             height: 100%;
-            display: block;
             border: 0;
             background: #111;
         }
@@ -59,38 +75,114 @@
             border-radius: 10px;
             padding: 10px 16px;
             background: #8B1E2B;
-            color: white;
+            color: #fff;
             font-weight: bold;
             cursor: pointer;
+            box-shadow: 0 4px 15px #0006;
+        }
+
+        #customizer-overlay-close:hover {
+            background: #a52635;
+        }
+
+        #customize-product:disabled {
+            opacity: .7;
+            cursor: wait;
         }
     </style>
 </head>
 
 <body>
+
+    <!-- رأس الصفحة -->
     <header class="border-b border-neutral-800 p-4">
         <a href="/" class="font-bold text-lg">
             المتحدة للرتان والأثاث
         </a>
     </header>
 
+    <!-- محتوى المنتج -->
     <main class="max-w-5xl mx-auto p-4 md:p-8">
-        <a href="/"
-           class="inline-flex items-center gap-2 rounded-xl border border-neutral-700 bg-neutral-900 px-5 py-3 text-sm font-bold text-white hover:border-amber-500 transition">
+
+        <a
+            href="/"
+            class="inline-flex items-center gap-2 rounded-xl border border-neutral-700 bg-neutral-900 px-5 py-3 text-sm font-bold text-white hover:border-amber-500 transition"
+        >
             <span>→</span>
             <span>العودة للمتجر</span>
         </a>
 
-        <div id="product-details" class="mt-6 text-center text-gray-400">
+        <div
+            id="product-details"
+            class="mt-6 text-center text-gray-400"
+            aria-live="polite"
+        >
             جارٍ تحميل بيانات المنتج...
         </div>
+
     </main>
 
     <script>
-    let currentProductDetails = null;
+    'use strict';
 
-    // ==========================================
+    let currentProductDetails = null;
+    let customizerOverlayInstance = null;
+
+
+    // =====================================================
+    // أدوات مساعدة
+    // =====================================================
+
+    function escapeProductHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, function(ch) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[ch];
+        });
+    }
+
+
+    function getProductImageList(item) {
+        let images = [];
+
+        if (Array.isArray(item.images)) {
+            images = item.images.filter(function(image) {
+                return typeof image === 'string' && image.trim() !== '';
+            });
+        }
+
+        const legacyImage =
+            item.image_url ||
+            item.imageUrl ||
+            item.image ||
+            '';
+
+        if (!images.length && legacyImage) {
+            images.push(legacyImage);
+        }
+
+        return images;
+    }
+
+
+    function formatProductPrice(value) {
+        const price = Number(value);
+
+        return (
+            Number.isFinite(price) && price >= 0
+                ? price
+                : 0
+        ).toLocaleString('en-US');
+    }
+
+
+    // =====================================================
     // تبديل الصورة الرئيسية
-    // ==========================================
+    // =====================================================
 
     window.selectProductImage = function(index) {
         const product = currentProductDetails;
@@ -100,8 +192,14 @@
         }
 
         const image = product.images[index];
-        const mainImage = document.getElementById('product-main-image');
-        const thumbnails = document.getElementById('product-image-thumbnails');
+
+        const mainImage = document.getElementById(
+            'product-main-image'
+        );
+
+        const thumbnails = document.getElementById(
+            'product-image-thumbnails'
+        );
 
         if (!image || !mainImage || !thumbnails) {
             return;
@@ -109,29 +207,163 @@
 
         mainImage.src = image;
 
-        thumbnails.querySelectorAll('button').forEach(function(button, i) {
-            button.classList.toggle('border-amber-500', i === index);
-            button.classList.toggle('border-neutral-700', i !== index);
-            button.setAttribute('aria-pressed', String(i === index));
-        });
+        thumbnails.querySelectorAll('button').forEach(
+            function(button, i) {
+                button.classList.toggle(
+                    'border-amber-500',
+                    i === index
+                );
+
+                button.classList.toggle(
+                    'border-neutral-700',
+                    i !== index
+                );
+
+                button.setAttribute(
+                    'aria-pressed',
+                    String(i === index)
+                );
+            }
+        );
     };
 
 
-    // ==========================================
-    // فتح التخصيص باستخدام النظام الأصلي للمتجر
-    // ==========================================
+    // =====================================================
+    // تجهيز واجهة التخصيص داخل المتجر الأصلي
+    // =====================================================
+
+    function prepareCustomizerFrame(frame) {
+        try {
+            const doc = frame.contentDocument;
+
+            if (!doc || !doc.body || !doc.head) {
+                throw new Error(
+                    'لم يتم تحميل مستند المتجر داخل إطار التخصيص.'
+                );
+            }
+
+            /*
+             * لا ننقل عناصر التخصيص أو السلة أو الدفع من مكانها.
+             * النقل قد يؤثر على تنسيقها أو على محددات CSS الأصلية.
+             *
+             * نخفي خلفية المتجر بصريًا، مع إبقاء العناصر الأصلية
+             * في نفس المستند حتى تظل دوال التخصيص والسلة والدفع
+             * مرتبطة ببيانات الصفحة نفسها.
+             */
+
+            let style = doc.getElementById(
+                'product-page-embed-style'
+            );
+
+            if (!style) {
+                style = doc.createElement('style');
+
+                style.id = 'product-page-embed-style';
+
+                style.textContent = `
+                    html,
+                    body {
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        min-height: 100% !important;
+                        background: #111 !important;
+                        overflow-x: hidden !important;
+                    }
+
+                    /*
+                     * إخفاء محتويات المتجر في الخلفية دون
+                     * استخدام display:none على الحاويات الأم.
+                     */
+                    body > * {
+                        visibility: hidden !important;
+                    }
+
+                    /*
+                     * إظهار نوافذ التخصيص والدفع والسلة الأصلية.
+                     */
+                    body #product-detail-modal,
+                    body #checkout-modal,
+                    body #cart-drawer,
+                    body #cart-drawer-overlay {
+                        visibility: visible !important;
+                    }
+
+                    body #product-detail-modal *,
+                    body #checkout-modal *,
+                    body #cart-drawer *,
+                    body #cart-drawer-overlay * {
+                        visibility: visible !important;
+                    }
+
+                    /*
+                     * إبقاء نوافذ التخصيص والدفع فوق الخلفية.
+                     * لا نفرض display:flex على النافذة حتى
+                     * لا نلغي حالة hidden التي يتحكم بها المتجر.
+                     */
+                    body #product-detail-modal,
+                    body #checkout-modal {
+                        z-index: 2147483000 !important;
+                    }
+
+                    body #cart-drawer {
+                        z-index: 2147482000 !important;
+                    }
+
+                    body #cart-drawer-overlay {
+                        z-index: 2147481999 !important;
+                    }
+
+                    /*
+                     * احترام حالات الإخفاء الأصلية.
+                     */
+                    body #product-detail-modal.hidden,
+                    body #checkout-modal.hidden,
+                    body #cart-drawer.hidden,
+                    body #cart-drawer-overlay.hidden,
+                    body #product-detail-modal[hidden],
+                    body #checkout-modal[hidden],
+                    body #cart-drawer[hidden],
+                    body #cart-drawer-overlay[hidden] {
+                        display: none !important;
+                    }
+                `;
+
+                doc.head.appendChild(style);
+            }
+
+            return true;
+
+        } catch (error) {
+            console.error(
+                'PRODUCT CUSTOMIZER FRAME ERROR:',
+                error
+            );
+
+            return false;
+        }
+    }
+
+
+    // =====================================================
+    // فتح التخصيص من صفحة تفاصيل المنتج
+    // =====================================================
 
     function openCustomizerOnProductPage(product) {
-        if (!product || !product.id) {
-            alert('تعذر تحديد المنتج. حدّث الصفحة وحاول مرة أخرى.');
+        if (!product || product.id === undefined || product.id === null) {
+            alert(
+                'تعذر تحديد المنتج. حدّث الصفحة وحاول مرة أخرى.'
+            );
+
             return;
         }
 
-        if (document.getElementById('customizer-overlay')) {
+        if (customizerOverlayInstance) {
             return;
         }
 
-        const button = document.getElementById('customize-product');
+        const button = document.getElementById(
+            'customize-product'
+        );
 
         if (!button) {
             alert('تعذر العثور على زر تخصيص المنتج.');
@@ -142,21 +374,28 @@
         const oldOverflow = document.body.style.overflow;
 
         const overlay = document.createElement('div');
+
         overlay.id = 'customizer-overlay';
 
         const frame = document.createElement('iframe');
+
         frame.id = 'customizer-frame';
         frame.title = 'تخصيص المنتج وإتمام الطلب';
-        frame.src =
-            '/?customize=' + encodeURIComponent(String(product.id));
+        frame.setAttribute('allow', 'payment');
 
         const closeButton = document.createElement('button');
+
         closeButton.id = 'customizer-overlay-close';
         closeButton.type = 'button';
         closeButton.textContent = '✕ إغلاق';
-        closeButton.setAttribute('aria-label', 'إغلاق نافذة التخصيص');
+
+        closeButton.setAttribute(
+            'aria-label',
+            'إغلاق نافذة التخصيص'
+        );
 
         let closed = false;
+        let frameReady = false;
 
         function closeOverlay() {
             if (closed) {
@@ -165,209 +404,222 @@
 
             closed = true;
 
+            window.removeEventListener(
+                'keydown',
+                handleEscapeKey
+            );
+
             overlay.remove();
+
             document.body.style.overflow = oldOverflow;
 
             button.disabled = false;
             button.textContent = originalButtonText;
+
+            if (customizerOverlayInstance === overlay) {
+                customizerOverlayInstance = null;
+            }
         }
 
-        closeButton.addEventListener('click', closeOverlay);
+        function handleEscapeKey(event) {
+            if (event.key === 'Escape') {
+                closeOverlay();
+            }
+        }
+
+        closeButton.addEventListener(
+            'click',
+            closeOverlay
+        );
+
+        window.addEventListener(
+            'keydown',
+            handleEscapeKey
+        );
 
         frame.addEventListener('load', function() {
             if (closed) {
                 return;
             }
 
-            try {
-                const doc = frame.contentDocument;
+            const prepared = prepareCustomizerFrame(frame);
 
-                if (!doc || !frame.contentWindow) {
-                    throw new Error('تعذر الوصول إلى صفحة المتجر.');
-                }
-
-                // نقل نوافذ المتجر المطلوبة فقط إلى body.
-                // نضيف طبقة السلة الخلفية حتى تعمل مع نظامها الأصلي.
-                const modalIds = [
-                    'product-detail-modal',
-                    'checkout-modal',
-                    'cart-drawer-overlay',
-                    'cart-drawer'
-                ];
-
-                modalIds.forEach(function(id) {
-                    const element = doc.getElementById(id);
-
-                    if (element && element.parentElement !== doc.body) {
-                        doc.body.appendChild(element);
-                    }
-                });
-
-                // تهيئة CSS مرة واحدة.
-                // نخفي محتويات الصفحة الرئيسية داخل الإطار،
-                // ونُبقي نوافذ التخصيص والدفع والسلة متاحة.
-                let style = doc.getElementById('product-page-embed-style');
-
-                if (!style) {
-                    style = doc.createElement('style');
-                    style.id = 'product-page-embed-style';
-
-                    style.textContent = `
-                        html,
-                        body {
-                            margin: 0 !important;
-                            padding: 0 !important;
-                            min-height: 100% !important;
-                            background: #111 !important;
-                            overflow: hidden !important;
-                        }
-
-                        body > * {
-                            display: none !important;
-                        }
-
-                        /* نافذة تخصيص المنتج */
-                        body > #product-detail-modal,
-                        body > #checkout-modal {
-                            display: flex !important;
-                            position: fixed !important;
-                            inset: 0 !important;
-                            z-index: 2147483000 !important;
-                        }
-
-                        /* السلة: لا نفرض عليها ملء الشاشة،
-                           ونحافظ على موضعها وحركتها الأصليين */
-                        body > #cart-drawer {
-                            display: flex !important;
-                            z-index: 2147482000 !important;
-                        }
-
-                        /* طبقة خلفية السلة */
-                        body > #cart-drawer-overlay {
-                            display: block !important;
-                            z-index: 2147481999 !important;
-                        }
-
-                        /* احترام حالة الإخفاء الأصلية */
-                        #product-detail-modal.hidden,
-                        #checkout-modal.hidden,
-                        #cart-drawer.hidden,
-                        #cart-drawer-overlay.hidden,
-                        #product-detail-modal[hidden],
-                        #checkout-modal[hidden],
-                        #cart-drawer[hidden],
-                        #cart-drawer-overlay[hidden] {
-                            display: none !important;
-                        }
-                    `;
-
-                    doc.head.appendChild(style);
-                }
-
-            } catch (error) {
-                console.error('PRODUCT CUSTOMIZER ERROR:', error);
-
+            if (!prepared) {
                 closeOverlay();
 
                 alert(
-                    'تعذر تهيئة نافذة التخصيص. ' +
-                    'تأكد من أن صفحة المتجر تعمل على نفس النطاق.'
+                    'تعذر تجهيز نافذة التخصيص. ' +
+                    'تأكد من أن المتجر يعمل بصورة طبيعية.'
                 );
+
+                return;
             }
+
+            frameReady = true;
+
+            button.textContent = 'التخصيص مفتوح';
+
+            console.log(
+                'PRODUCT CUSTOMIZER FRAME READY:',
+                product.id
+            );
         });
+
+        frame.addEventListener('error', function() {
+            if (closed) {
+                return;
+            }
+
+            console.error(
+                'تعذر تحميل صفحة المتجر داخل إطار التخصيص.'
+            );
+
+            closeOverlay();
+
+            alert(
+                'تعذر تحميل نافذة التخصيص. ' +
+                'تحقق من اتصال الإنترنت ثم حاول مرة أخرى.'
+            );
+        });
+
+        /*
+         * يفتح المتجر الأصلي مع رقم المنتج.
+         * كود openRequestedProductCustomizer في المتجر
+         * مسؤول عن انتظار تحميل المنتجات وفتح النافذة الأصلية.
+         */
+        frame.src =
+            '/?customize=' +
+            encodeURIComponent(String(product.id));
 
         overlay.appendChild(frame);
         overlay.appendChild(closeButton);
 
         document.body.style.overflow = 'hidden';
+
         document.body.appendChild(overlay);
+
+        customizerOverlayInstance = overlay;
 
         button.disabled = true;
         button.textContent = 'جاري فتح التخصيص...';
+
+        /*
+         * حماية إضافية لو لم يُطلق الإطار حدث load.
+         */
+        window.setTimeout(function() {
+            if (
+                !closed &&
+                !frameReady
+            ) {
+                console.warn(
+                    'CUSTOMIZER: ما زال الإطار ينتظر التحميل.'
+                );
+            }
+        }, 12000);
     }
 
 
-    // ==========================================
+    // =====================================================
     // تحميل تفاصيل المنتج
-    // ==========================================
+    // =====================================================
 
-    (async function() {
-        const container = document.getElementById('product-details');
-        const productId = new URLSearchParams(location.search).get('id');
+    (async function loadProductDetails() {
+        const container = document.getElementById(
+            'product-details'
+        );
+
+        const pageParams = new URLSearchParams(
+            window.location.search
+        );
+
+        const productId = pageParams.get('id');
 
         if (!productId) {
-            container.textContent = 'لم يتم تحديد المنتج.';
+            container.textContent =
+                'لم يتم تحديد المنتج. ارجع إلى المتجر واختر منتجًا.';
+
             return;
         }
 
         try {
             const response = await fetch('/api/products', {
-                cache: 'no-store'
+                method: 'GET',
+                cache: 'no-store',
+                headers: {
+                    Accept: 'application/json'
+                }
             });
 
-            const data = await response.json();
+            let data;
+
+            try {
+                data = await response.json();
+            } catch {
+                throw new Error(
+                    'استجابة المنتجات ليست بصيغة JSON صحيحة.'
+                );
+            }
 
             if (
                 !response.ok ||
-                !data.success ||
+                !data ||
                 !Array.isArray(data.products)
             ) {
-                throw new Error('تعذر تحميل المنتجات.');
+                throw new Error(
+                    data?.error ||
+                    data?.message ||
+                    'تعذر تحميل قائمة المنتجات.'
+                );
             }
 
-            const item = data.products.find(function(p) {
-                return String(p.id) === String(productId);
+            const item = data.products.find(function(product) {
+                return String(product.id) === String(productId);
             });
 
             if (!item) {
                 container.textContent =
                     'المنتج غير موجود أو لم يعد متاحًا.';
+
                 return;
             }
 
-            const productImages = Array.isArray(item.images)
-                ? item.images.filter(function(image) {
-                    return typeof image === 'string' && image.trim();
-                })
-                : [];
-
-            const legacyImage = item.image_url || item.imageUrl || '';
-
-            if (!productImages.length && legacyImage) {
-                productImages.push(legacyImage);
-            }
+            const productImages = getProductImageList(item);
 
             const product = {
                 id: item.id,
-                title: item.name || item.title || '',
+
+                title:
+                    item.name ||
+                    item.title ||
+                    'منتج من المتحدة للرتان والأثاث',
+
                 category: item.category || '',
+
                 price: Number(item.price) || 0,
+
                 images: productImages,
-                image: productImages[0] || 'https://placehold.co/700x500',
+
+                image:
+                    productImages[0] ||
+                    'https://placehold.co/700x500?text=United+Furniture',
+
                 description: item.description || '',
+
                 dimensions: item.dimensions || '',
+
                 specifications: item.specifications || ''
             };
 
             currentProductDetails = product;
 
-            const safe = function(value) {
-                return String(value ?? '').replace(/[&<>"']/g, function(ch) {
-                    return {
-                        '&': '&amp;',
-                        '<': '&lt;',
-                        '>': '&gt;',
-                        '"': '&quot;',
-                        "'": '&#39;'
-                    }[ch];
-                });
-            };
+            const safe = escapeProductHtml;
 
             container.className = 'mt-6';
 
             container.innerHTML = `
                 <div class="grid md:grid-cols-2 gap-8 items-start text-right">
 
+                    <!-- الصور -->
                     <div>
                         <div class="rounded-2xl overflow-hidden border border-neutral-800 bg-neutral-900">
                             <img
@@ -375,188 +627,273 @@
                                 src="${safe(product.image)}"
                                 alt="${safe(product.title)}"
                                 class="w-full object-cover cursor-zoom-in"
-                                style="max-height:600px"
+                                style="max-height:600px; min-height:250px"
                                 title="اضغط لعرض الصورة بالحجم الكامل"
                             >
                         </div>
 
-                        ${product.images.length ? `
-                            <div id="product-image-thumbnails"
-                                 class="flex flex-wrap gap-3 mt-4 justify-start">
-                                ${product.images.map(function(image, index) {
-                                    return `
-                                        <button
-                                            type="button"
-                                            class="product-thumb overflow-hidden rounded-xl border-2 ${index === 0 ? 'border-amber-500' : 'border-neutral-700'}"
-                                            onclick="selectProductImage(${index})"
-                                            aria-label="عرض الصورة ${index + 1}"
-                                            aria-pressed="${index === 0}"
-                                        >
-                                            <img
-                                                src="${safe(image)}"
-                                                alt="${safe(product.title)} - ${index + 1}"
-                                                loading="lazy"
-                                                class="w-full h-full object-cover"
-                                            >
-                                        </button>
-                                    `;
-                                }).join('')}
-                            </div>
-                        ` : ''}
+                        ${
+                            product.images.length
+                                ? `
+                                    <div
+                                        id="product-image-thumbnails"
+                                        class="flex flex-wrap gap-3 mt-4 justify-start"
+                                    >
+                                        ${product.images.map(function(image, index) {
+                                            return `
+                                                <button
+                                                    type="button"
+                                                    class="product-thumb overflow-hidden rounded-xl border-2 ${
+                                                        index === 0
+                                                            ? 'border-amber-500'
+                                                            : 'border-neutral-700'
+                                                    }"
+                                                    onclick="selectProductImage(${index})"
+                                                    aria-label="عرض الصورة ${index + 1}"
+                                                    aria-pressed="${index === 0}"
+                                                >
+                                                    <img
+                                                        src="${safe(image)}"
+                                                        alt="${safe(product.title)} - ${index + 1}"
+                                                        loading="lazy"
+                                                        class="w-full h-full object-cover"
+                                                    >
+                                                </button>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                `
+                                : ''
+                        }
                     </div>
 
+                    <!-- تفاصيل المنتج -->
                     <section class="space-y-5">
-                        <p class="text-sm gold">
-                            ${safe(product.category)}
-                        </p>
+
+                        ${
+                            product.category
+                                ? `
+                                    <p class="text-sm gold">
+                                        ${safe(product.category)}
+                                    </p>
+                                `
+                                : ''
+                        }
 
                         <h1 class="text-2xl md:text-3xl font-bold">
                             ${safe(product.title)}
                         </h1>
 
                         <p class="text-2xl font-extrabold gold">
-                            ${product.price.toLocaleString('en-US')} ج.م
+                            ${formatProductPrice(product.price)} ج.م
                         </p>
 
-                        ${product.description ? `
-                            <div>
-                                <h2 class="font-bold mb-2">وصف المنتج</h2>
-                                <p class="text-gray-300 leading-8 whitespace-pre-line">${safe(product.description)}</p>
-                            </div>
-                        ` : ''}
+                        ${
+                            product.description
+                                ? `
+                                    <div>
+                                        <h2 class="font-bold mb-2">
+                                            وصف المنتج
+                                        </h2>
 
-                        ${product.dimensions ? `
-                            <div>
-                                <h2 class="font-bold mb-2">المقاسات</h2>
-                                <p class="text-gray-300">${safe(product.dimensions)}</p>
-                            </div>
-                        ` : ''}
+                                        <p class="text-gray-300 leading-8 whitespace-pre-line">${safe(product.description)}</p>
+                                    </div>
+                                `
+                                : ''
+                        }
 
-                        ${product.specifications ? `
-                            <div>
-                                <h2 class="font-bold mb-2">المواصفات</h2>
-                                <p class="text-gray-300 leading-8 whitespace-pre-line">${safe(product.specifications)}</p>
-                            </div>
-                        ` : ''}
+                        ${
+                            product.dimensions
+                                ? `
+                                    <div>
+                                        <h2 class="font-bold mb-2">
+                                            المقاسات
+                                        </h2>
+
+                                        <p class="text-gray-300 leading-8 whitespace-pre-line">
+                                            ${safe(product.dimensions)}
+                                        </p>
+                                    </div>
+                                `
+                                : ''
+                        }
+
+                        ${
+                            product.specifications
+                                ? `
+                                    <div>
+                                        <h2 class="font-bold mb-2">
+                                            المواصفات
+                                        </h2>
+
+                                        <p class="text-gray-300 leading-8 whitespace-pre-line">${safe(product.specifications)}</p>
+                                    </div>
+                                `
+                                : ''
+                        }
 
                         <button
                             id="customize-product"
                             type="button"
-                            class="amber w-full rounded-xl p-4 font-extrabold"
+                            class="amber w-full rounded-xl p-4 font-extrabold transition hover:opacity-90"
                         >
                             تخصيص وإضافة للسلة
                         </button>
 
-                        <p class="text-xs text-gray-500">
-                            اختر التنجيد والألوان والكمية، ثم أضف المنتج للسلة وأكمل طلبك.
+                        <p class="text-xs text-gray-500 leading-6">
+                            اختر نوع التنجيد والألوان والكمية،
+                            ثم أضف المنتج إلى السلة وأكمل طلبك.
                         </p>
+
                     </section>
                 </div>
             `;
 
+
+            // =================================================
             // عرض الصورة بالحجم الكامل
-            const mainImage = document.getElementById('product-main-image');
+            // =================================================
 
-            mainImage.addEventListener('click', function() {
-                window.open(
-                    mainImage.src,
-                    '_blank',
-                    'noopener,noreferrer'
-                );
-            });
+            const mainImage = document.getElementById(
+                'product-main-image'
+            );
 
-            // زر التخصيص
-            document.getElementById('customize-product')
-                .addEventListener('click', function() {
-                    openCustomizerOnProductPage(product);
+            if (mainImage) {
+                mainImage.addEventListener('click', function() {
+                    window.open(
+                        mainImage.src,
+                        '_blank',
+                        'noopener,noreferrer'
+                    );
                 });
-
-            // باقي المنتجات
-            const otherProducts = data.products.filter(function(p) {
-                return (
-                    String(p.id) !== String(product.id) &&
-                    p.visible !== false &&
-                    p.is_active !== false
-                );
-            });
-
-            if (otherProducts.length) {
-                container.insertAdjacentHTML('beforeend', `
-                    <section class="mt-14 border-t border-neutral-800 pt-8">
-                        <div class="mb-6">
-                            <h2 class="text-2xl font-extrabold text-white">
-                                اكتشف باقي منتجاتنا
-                            </h2>
-
-                            <p class="mt-2 text-sm text-gray-400">
-                                اختار من تشكيلتنا المتنوعة من أثاث الرتان والأثاث الخارجي
-                            </p>
-                        </div>
-
-                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            ${otherProducts.map(function(p) {
-                                const otherImages = Array.isArray(p.images)
-                                    ? p.images.filter(function(image) {
-                                        return typeof image === 'string' && image.trim();
-                                    })
-                                    : [];
-
-                                const otherImage =
-                                    otherImages[0] ||
-                                    p.image_url ||
-                                    p.imageUrl ||
-                                    'https://placehold.co/400';
-
-                                const otherTitle =
-                                    p.name || p.title || 'منتج من المتحدة';
-
-                                const otherPrice = Number(p.price) || 0;
-
-                                return `
-                                    <a
-                                        href="/product.html?id=${encodeURIComponent(p.id)}"
-                                        class="block overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900 hover:border-amber-500 transition"
-                                    >
-                                        <div class="h-36 sm:h-48 overflow-hidden bg-neutral-950">
-                                            <img
-                                                src="${safe(otherImage)}"
-                                                alt="${safe(otherTitle)}"
-                                                loading="lazy"
-                                                class="h-full w-full object-cover hover:scale-105 transition duration-300"
-                                            >
-                                        </div>
-
-                                        <div class="p-3">
-                                            <h3 class="text-sm font-bold text-white">
-                                                ${safe(otherTitle)}
-                                            </h3>
-
-                                            <p class="mt-2 font-extrabold gold">
-                                                ${otherPrice.toLocaleString('en-US')} ج.م
-                                            </p>
-
-                                            <span class="mt-3 block rounded-lg amber py-2 text-center text-xs font-bold">
-                                                عرض التفاصيل
-                                            </span>
-                                        </div>
-                                    </a>
-                                `;
-                            }).join('')}
-                        </div>
-                    </section>
-                `);
             }
 
+
+            // =================================================
+            // زر التخصيص
+            // =================================================
+
+            const customizeButton = document.getElementById(
+                'customize-product'
+            );
+
+            customizeButton.addEventListener(
+                'click',
+                function() {
+                    openCustomizerOnProductPage(product);
+                }
+            );
+
+
+            // =================================================
+            // باقي المنتجات
+            // =================================================
+
+            const otherProducts = data.products.filter(
+                function(otherProduct) {
+                    const isVisible =
+                        otherProduct.visible !== false &&
+                        otherProduct.is_active !== false &&
+                        otherProduct.isActive !== false;
+
+                    return (
+                        String(otherProduct.id) !== String(product.id) &&
+                        isVisible
+                    );
+                }
+            );
+
+            if (otherProducts.length) {
+                container.insertAdjacentHTML(
+                    'beforeend',
+                    `
+                        <section class="mt-14 border-t border-neutral-800 pt-8">
+
+                            <div class="mb-6">
+                                <h2 class="text-2xl font-extrabold text-white">
+                                    اكتشف باقي منتجاتنا
+                                </h2>
+
+                                <p class="mt-2 text-sm text-gray-400">
+                                    اختار من تشكيلتنا المتنوعة من أثاث الرتان والأثاث الخارجي
+                                </p>
+                            </div>
+
+                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+
+                                ${otherProducts.map(function(otherProduct) {
+                                    const otherImages =
+                                        getProductImageList(otherProduct);
+
+                                    const otherImage =
+                                        otherImages[0] ||
+                                        'https://placehold.co/400?text=United+Furniture';
+
+                                    const otherTitle =
+                                        otherProduct.name ||
+                                        otherProduct.title ||
+                                        'منتج من المتحدة';
+
+                                    const otherPrice =
+                                        Number(otherProduct.price) || 0;
+
+                                    return `
+                                        <a
+                                            href="/product.html?id=${encodeURIComponent(otherProduct.id)}"
+                                            class="block overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900 hover:border-amber-500 transition"
+                                        >
+                                            <div class="h-36 sm:h-48 overflow-hidden bg-neutral-950">
+                                                <img
+                                                    src="${safe(otherImage)}"
+                                                    alt="${safe(otherTitle)}"
+                                                    loading="lazy"
+                                                    class="h-full w-full object-cover hover:scale-105 transition duration-300"
+                                                >
+                                            </div>
+
+                                            <div class="p-3">
+                                                <h3 class="text-sm font-bold text-white">
+                                                    ${safe(otherTitle)}
+                                                </h3>
+
+                                                <p class="mt-2 font-extrabold gold">
+                                                    ${formatProductPrice(otherPrice)} ج.م
+                                                </p>
+
+                                                <span class="mt-3 block rounded-lg amber py-2 text-center text-xs font-bold">
+                                                    عرض التفاصيل
+                                                </span>
+                                            </div>
+                                        </a>
+                                    `;
+                                }).join('')}
+
+                            </div>
+                        </section>
+                    `
+                );
+            }
+
+
+            // =================================================
+            // عنوان الصفحة
+            // =================================================
+
             document.title =
-                product.title + ' | المتحدة للرتان والأثاث';
+                product.title +
+                ' | المتحدة للرتان والأثاث';
 
         } catch (error) {
-            console.error('PRODUCT PAGE ERROR:', error);
+            console.error(
+                'PRODUCT PAGE ERROR:',
+                error
+            );
 
             container.textContent =
                 'حدث خطأ أثناء تحميل المنتج. حاول تحديث الصفحة.';
         }
     })();
     </script>
+
 </body>
 </html>
