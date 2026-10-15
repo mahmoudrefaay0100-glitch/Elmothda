@@ -1441,6 +1441,52 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
         <h4 class="text-lg font-bold text-white">فواتير البيع</h4>
         <div class="flex gap-2">
+          
+<!-- إعداد شعار الفواتير -->
+<div class="mb-5 rounded-2xl border border-neutral-700 bg-neutral-900 p-5">
+    <h3 class="mb-2 text-lg font-extrabold text-white">
+        شعار الفواتير
+    </h3>
+
+    <p class="mb-4 text-sm text-gray-400">
+        اختر صورة اللوجو من جهازك لتظهر في الفواتير المطبوعة.
+    </p>
+
+    <div class="flex flex-wrap items-center gap-4">
+        <div class="flex h-24 w-24 items-center justify-center overflow-hidden rounded-xl border border-neutral-700 bg-white">
+            <img
+                id="accounting-invoice-logo-preview"
+                alt="معاينة شعار الفاتورة"
+                class="hidden h-full w-full object-contain"
+            >
+            <span id="accounting-invoice-logo-placeholder"
+                  class="px-2 text-center text-xs text-gray-500">
+                معاينة اللوجو
+            </span>
+        </div>
+
+        <div class="min-w-0 flex-1">
+            <input
+                id="accounting-invoice-logo-file"
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                onchange="previewAccountingInvoiceLogo(event)"
+                class="block w-full rounded-lg border border-neutral-700 bg-neutral-800 p-3 text-sm text-white"
+            >
+
+            <button
+                type="button"
+                onclick="saveAccountingInvoiceLogo()"
+                class="mt-3 rounded-xl bg-amber-500 px-5 py-3 font-bold text-black hover:bg-amber-400">
+                حفظ شعار الفواتير
+            </button>
+
+            <p id="accounting-invoice-logo-message"
+               class="mt-2 text-sm text-gray-400"></p>
+        </div>
+    </div>
+</div>
+
             <button type="button" onclick="showAccountingInvoiceForm('sales')"
                     class="bg-red-800 hover:bg-red-700 text-white px-4 py-2 rounded-xl">
                 <i class="fas fa-plus ml-1"></i> إنشاء فاتورة بيع
@@ -14863,123 +14909,374 @@ function searchAccountingInvoices(event, type) {
 // تفاصيل الفاتورة
 // =====================================================
 
+
 async function viewAccountingInvoice(invoiceId, type) {
     const container = document.getElementById('acc-invoice-details');
 
-    if (!container) {
+    if (!container) return;
+
+    if (!['sales', 'purchases'].includes(type)) {
         return;
     }
 
     container.classList.remove('hidden');
 
-    container.innerHTML =
-        '<p class="text-gray-300">جارٍ تحميل تفاصيل الفاتورة...</p>';
+    container.innerHTML = `
+        <div class="p-6 text-center text-gray-400">
+            جارٍ تجهيز تفاصيل الفاتورة...
+        </div>
+    `;
 
     try {
-      
-console.log('ACCOUNTING DETAIL REQUEST:', {
-    invoiceId,
-    type
-});
+        console.log('ACCOUNTING DETAIL REQUEST:', {
+            invoiceId,
+            type
+        });
 
-const result = await accountingRequest(
-    'action=get&type=' + encodeURIComponent(type) +
-    '&id=' + encodeURIComponent(invoiceId)
-);
+        const result = await accountingRequest(
+            'action=get&type=' + encodeURIComponent(type) +
+            '&id=' + encodeURIComponent(invoiceId)
+        );
 
-console.log('ACCOUNTING DETAIL RESPONSE:', result);
+        console.log('ACCOUNTING DETAIL RESPONSE:', result);
+
+        if (!result || result.success === false) {
+            throw new Error(
+                result?.error || 'تعذر تحميل تفاصيل الفاتورة.'
+            );
+        }
 
         const invoice = result.invoice || {};
-        const items = result.items || [];
-        const payments = result.payments || [];
+        const items = Array.isArray(result.items) ? result.items : [];
+        const payments = Array.isArray(result.payments)
+            ? result.payments
+            : [];
 
-        const name = type === 'sales'
+        const isSales = type === 'sales';
+
+        const invoiceNumber = invoice.invoice_number || '—';
+        const customerName = isSales
             ? invoice.customer_name
             : invoice.supplier_name;
 
+        const phone = isSales
+            ? invoice.customer_phone
+            : invoice.supplier_phone;
+
         const paid = Number(result.paid || 0);
         const total = Number(invoice.total || 0);
+
         const remaining = Number(
             result.remaining ?? Math.max(0, total - paid)
         );
 
+        const subtotal = Number(
+            invoice.subtotal ??
+            items.reduce(function (sum, item) {
+                return sum + Number(
+                    item.line_total ??
+                    (Number(item.quantity || 0) *
+                     Number(item.unit_price || 0))
+                );
+            }, 0)
+        );
+
+        const discount = Number(invoice.discount || 0);
+        const shipping = Number(invoice.shipping_cost || 0);
+
+        const statusLabels = {
+            draft: 'مسودة',
+            pending: 'معلقة',
+            confirmed: 'مؤكدة',
+            paid: 'مدفوعة',
+            partial: 'مدفوعة جزئيًا',
+            cancelled: 'ملغاة',
+            completed: 'مكتملة',
+            unpaid: 'غير مدفوعة'
+        };
+
+        const rawStatus = String(invoice.status || '').toLowerCase();
+        const statusLabel = statusLabels[rawStatus] ||
+            (invoice.status || '—');
+
+        const money = function (value) {
+            return accountingEscape(
+                accountingMoney(Number(value) || 0)
+            );
+        };
+
+        const text = function (value) {
+            return accountingEscape(
+                value === null || value === undefined || value === ''
+                    ? '—'
+                    : String(value)
+            );
+        };
+
+        const safeInvoiceId = accountingEscape(String(invoiceId));
+        const safeType = accountingEscape(type);
+
         container.innerHTML = `
-            <div class="flex items-center justify-between gap-3 flex-wrap">
-                <h4 class="text-xl font-extrabold text-white">
-                    تفاصيل الفاتورة ${accountingEscape(invoice.invoice_number || '')}
-                </h4>
-                <button type="button"
-                        onclick="document.getElementById('acc-invoice-details').classList.add('hidden')"
-                        class="bg-neutral-800 text-white px-3 py-2 rounded-lg">
-                    إغلاق
-                </button>
-            </div>
+            <div dir="rtl"
+                 class="overflow-hidden rounded-2xl border border-neutral-700 bg-neutral-950 text-white shadow-xl">
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                <p class="text-gray-300">الاسم: ${accountingEscape(name || '—')}</p>
-                <p class="text-gray-300">التاريخ: ${accountingEscape(invoice.invoice_date || '—')}</p>
-                <p class="text-white">الإجمالي: ${accountingEscape(accountingMoney(total))}</p>
-                <p class="text-green-300">المدفوع: ${accountingEscape(accountingMoney(paid))}</p>
-                <p class="text-amber-300">المتبقي: ${accountingEscape(accountingMoney(remaining))}</p>
-            </div>
+                <!-- أزرار التحكم -->
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-800 bg-neutral-900 p-4">
+                    <div>
+                        <h3 class="text-lg font-extrabold">
+                            تفاصيل ${isSales ? 'فاتورة البيع' : 'فاتورة الشراء'}
+                        </h3>
+                        <p class="mt-1 text-sm text-gray-400">
+                            ${text(invoiceNumber)}
+                        </p>
+                    </div>
 
-            <h5 class="font-bold text-white mt-4">الأصناف</h5>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-right">
-                    <thead class="text-gray-400 border-b border-neutral-700">
-                        <tr>
-                            <th class="p-2">الصنف</th>
-                            <th class="p-2">الكمية</th>
-                            <th class="p-2">الوحدة</th>
-                            <th class="p-2">سعر الوحدة</th>
-                            <th class="p-2">الإجمالي</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${items.map(function (item) {
-                            return `
-                                <tr class="border-b border-neutral-800">
-                                    <td class="p-2">${accountingEscape(item.product_name || item.item_name || '')}</td>
-                                    <td class="p-2">${accountingEscape(item.quantity ?? 0)}</td>
-                                    <td class="p-2">${accountingEscape(item.unit || 'قطعة')}</td>
-                                    <td class="p-2">${accountingEscape(accountingMoney(item.unit_price))}</td>
-                                    <td class="p-2">${accountingEscape(accountingMoney(item.line_total))}</td>
+                    <div class="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            data-invoice-id="${safeInvoiceId}"
+                            data-invoice-type="${safeType}"
+                            onclick="printAccountingInvoice(this.dataset.invoiceId, this.dataset.invoiceType)"
+                            class="rounded-xl bg-amber-500 px-4 py-2.5 font-bold text-black hover:bg-amber-400">
+                            <i class="fas fa-print ml-1"></i>
+                            طباعة الفاتورة
+                        </button>
+
+                        <button
+                            type="button"
+                            onclick="document.getElementById('acc-invoice-details').classList.add('hidden')"
+                            class="rounded-xl border border-neutral-700 bg-neutral-800 px-4 py-2.5 text-white hover:bg-neutral-700">
+                            إغلاق
+                        </button>
+                    </div>
+                </div>
+
+                <!-- رأس الفاتورة -->
+                <div class="border-b-4 border-amber-500 bg-white p-5 text-neutral-900 sm:p-7">
+                    <div class="flex flex-col items-center justify-between gap-5 sm:flex-row">
+                        <div class="flex items-center gap-4">
+                            <img
+                                src="https://www.elmothdafurniture.com/united-logo.jpg"
+                                alt="شعار المتحدة للرتان والأثاث"
+                                class="h-20 w-20 rounded-xl border border-gray-200 object-contain p-1"
+                                onerror="this.style.display='none'">
+
+                            <div>
+                                <h2 class="text-xl font-black text-[#8B1E2B] sm:text-2xl">
+                                    المتحدة للرتان والأثاث
+                                </h2>
+                                <p class="mt-1 text-sm font-bold text-gray-700">
+                                    أثاث الرتان والأثاث الخارجي
+                                </p>
+                                <p class="mt-1 text-xs text-gray-600">
+                                    أشمون - المنوفية - جمهورية مصر العربية
+                                </p>
+                                <p class="mt-1 text-xs text-gray-600">
+                                    هاتف: 01042056121
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="min-w-[190px] rounded-xl border border-gray-200 p-4 text-center">
+                            <h3 class="text-lg font-black text-[#8B1E2B]">
+                                ${isSales ? 'فاتورة بيع' : 'فاتورة شراء'}
+                            </h3>
+                            <p class="mt-2 text-sm text-gray-600">
+                                رقم الفاتورة
+                            </p>
+                            <p class="mt-1 break-all font-extrabold">
+                                ${text(invoiceNumber)}
+                            </p>
+                            <p class="mt-2 text-sm text-gray-600">
+                                التاريخ: ${text(invoice.invoice_date)}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- بيانات العميل -->
+                <div class="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2">
+                    <div class="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+                        <p class="mb-2 text-xs text-gray-400">
+                            ${isSales ? 'بيانات العميل' : 'بيانات المورد'}
+                        </p>
+                        <p class="font-bold">
+                            ${text(customerName)}
+                        </p>
+                        <p class="mt-2 text-sm text-gray-400">
+                            الهاتف: ${text(phone)}
+                        </p>
+                    </div>
+
+                    <div class="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+                        <p class="mb-2 text-xs text-gray-400">
+                            حالة الفاتورة
+                        </p>
+                        <p class="font-bold text-amber-300">
+                            ${text(statusLabel)}
+                        </p>
+                        <p class="mt-2 text-sm text-gray-400">
+                            طريقة الدفع: ${text(invoice.payment_method)}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- الأصناف -->
+                <div class="px-5 pb-5">
+                    <h4 class="mb-3 text-lg font-extrabold">
+                        تفاصيل الأصناف
+                    </h4>
+
+                    <div class="overflow-x-auto rounded-xl border border-neutral-800">
+                        <table class="w-full min-w-[600px] text-right text-sm">
+                            <thead class="bg-neutral-800 text-gray-200">
+                                <tr>
+                                    <th class="p-3">م</th>
+                                    <th class="p-3">الصنف</th>
+                                    <th class="p-3">الكمية</th>
+                                    <th class="p-3">الوحدة</th>
+                                    <th class="p-3">سعر الوحدة</th>
+                                    <th class="p-3">الإجمالي</th>
                                 </tr>
-                            `;
-                        }).join('')}
-                    </tbody>
-                </table>
-            </div>
+                            </thead>
 
-            <h5 class="font-bold text-white mt-4">سجل الدفعات</h5>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-right">
-                    <thead class="text-gray-400 border-b border-neutral-700">
-                        <tr>
-                            <th class="p-2">التاريخ</th>
-                            <th class="p-2">المبلغ</th>
-                            <th class="p-2">طريقة الدفع</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${payments.length ? payments.map(function (payment) {
-                            return `
-                                <tr class="border-b border-neutral-800">
-                                    <td class="p-2">${accountingEscape(payment.receipt_date || payment.payment_date || '—')}</td>
-                                    <td class="p-2">${accountingEscape(accountingMoney(payment.amount))}</td>
-                                    <td class="p-2">${accountingEscape(payment.payment_method || '—')}</td>
+                            <tbody>
+                                ${
+                                    items.length
+                                        ? items.map(function (item, index) {
+                                            const quantity = Number(item.quantity || 0);
+                                            const unitPrice = Number(item.unit_price || 0);
+                                            const lineTotal = Number(
+                                                item.line_total ??
+                                                quantity * unitPrice
+                                            );
+
+                                            return `
+                                                <tr class="border-t border-neutral-800">
+                                                    <td class="p-3 text-gray-400">${index + 1}</td>
+                                                    <td class="p-3 font-bold">${text(item.product_name || item.item_name)}</td>
+                                                    <td class="p-3">${text(quantity)}</td>
+                                                    <td class="p-3">${text(item.unit || 'قطعة')}</td>
+                                                    <td class="p-3 whitespace-nowrap">${money(unitPrice)}</td>
+                                                    <td class="p-3 whitespace-nowrap font-bold">${money(lineTotal)}</td>
+                                                </tr>
+                                            `;
+                                        }).join('')
+                                        : `
+                                            <tr>
+                                                <td colspan="6" class="p-5 text-center text-gray-400">
+                                                    لا توجد أصناف مسجلة في الفاتورة.
+                                                </td>
+                                            </tr>
+                                        `
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ملخص الحساب -->
+                <div class="grid grid-cols-1 gap-4 border-t border-neutral-800 bg-neutral-900 p-5 sm:grid-cols-2">
+                    <div class="space-y-3">
+                        <h4 class="font-extrabold">ملخص الحساب</h4>
+
+                        <div class="flex justify-between gap-3 text-sm">
+                            <span class="text-gray-400">إجمالي الأصناف</span>
+                            <span>${money(subtotal)}</span>
+                        </div>
+
+                        <div class="flex justify-between gap-3 text-sm">
+                            <span class="text-gray-400">الخصم</span>
+                            <span>${money(discount)}</span>
+                        </div>
+
+                        <div class="flex justify-between gap-3 text-sm">
+                            <span class="text-gray-400">مصاريف الشحن</span>
+                            <span>${money(shipping)}</span>
+                        </div>
+
+                        <div class="flex justify-between gap-3 border-t border-neutral-700 pt-3 font-extrabold">
+                            <span>الإجمالي النهائي</span>
+                            <span class="text-amber-300">${money(total)}</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 rounded-xl border border-neutral-800 bg-neutral-950 p-4">
+                        <div class="flex justify-between gap-3">
+                            <span class="text-gray-400">المدفوع</span>
+                            <strong class="text-green-400">${money(paid)}</strong>
+                        </div>
+
+                        <div class="flex justify-between gap-3">
+                            <span class="text-gray-400">المتبقي</span>
+                            <strong class="text-red-300">${money(remaining)}</strong>
+                        </div>
+
+                        <div class="mt-3 rounded-lg bg-neutral-900 p-3 text-center">
+                            <p class="text-xs text-gray-400">المبلغ المستحق</p>
+                            <p class="mt-1 text-xl font-black text-amber-300">
+                                ${money(remaining)}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- سجل الدفعات -->
+                <div class="p-5">
+                    <h4 class="mb-3 text-lg font-extrabold">
+                        سجل الدفعات
+                    </h4>
+
+                    <div class="overflow-x-auto rounded-xl border border-neutral-800">
+                        <table class="w-full min-w-[400px] text-right text-sm">
+                            <thead class="bg-neutral-800 text-gray-300">
+                                <tr>
+                                    <th class="p-3">التاريخ</th>
+                                    <th class="p-3">المبلغ</th>
+                                    <th class="p-3">طريقة الدفع</th>
                                 </tr>
-                            `;
-                        }).join('') : '<tr><td colspan="3" class="p-3 text-gray-400">لا توجد دفعات مسجلة.</td></tr>'}
-                    </tbody>
-                </table>
-            </div>
+                            </thead>
+                            <tbody>
+                                ${
+                                    payments.length
+                                        ? payments.map(function (payment) {
+                                            return `
+                                                <tr class="border-t border-neutral-800">
+                                                    <td class="p-3">${text(payment.receipt_date || payment.payment_date)}</td>
+                                                    <td class="p-3 font-bold">${money(payment.amount)}</td>
+                                                    <td class="p-3">${text(payment.payment_method)}</td>
+                                                </tr>
+                                            `;
+                                        }).join('')
+                                        : `
+                                            <tr>
+                                                <td colspan="3" class="p-4 text-center text-gray-400">
+                                                    لا توجد دفعات مسجلة حتى الآن.
+                                                </td>
+                                            </tr>
+                                        `
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
 
-            <button type="button"
-                    onclick="printAccountingInvoice('${accountingEscape(invoiceId)}', '${type}')"
-                    class="bg-neutral-800 hover:bg-neutral-700 text-white px-4 py-3 rounded-xl mt-4">
-                <i class="fas fa-print ml-1"></i> طباعة الفاتورة
-            </button>
+                ${
+                    invoice.notes
+                        ? `
+                            <div class="mx-5 mb-5 rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+                                <h4 class="mb-2 font-bold">ملاحظات</h4>
+                                <p class="whitespace-pre-wrap text-sm text-gray-300">${text(invoice.notes)}</p>
+                            </div>
+                        `
+                        : ''
+                }
+
+                <div class="border-t border-neutral-800 bg-white p-4 text-center text-xs text-gray-600">
+                    <p class="font-bold">المتحدة للرتان والأثاث</p>
+                    <p class="mt-1">شكرًا لثقتكم بنا</p>
+                </div>
+            </div>
         `;
 
         container.scrollIntoView({
@@ -14990,11 +15287,127 @@ console.log('ACCOUNTING DETAIL RESPONSE:', result);
     } catch (error) {
         console.error('ACCOUNTING INVOICE DETAIL ERROR:', error);
 
-        container.innerHTML =
-            '<p class="text-red-300">' +
-            accountingEscape(error.message) +
-            '</p>';
+        container.innerHTML = `
+            <div class="rounded-xl border border-red-900 bg-red-950/30 p-4 text-red-300">
+                ${accountingEscape(
+                    error.message || 'حدث خطأ أثناء تحميل تفاصيل الفاتورة.'
+                )}
+            </div>
+        `;
     }
+}
+
+
+const ACCOUNTING_INVOICE_LOGO_KEY = 'accounting_invoice_logo';
+
+function previewAccountingInvoiceLogo(event) {
+    const file = event.target.files?.[0];
+    const message = document.getElementById(
+        'accounting-invoice-logo-message'
+    );
+
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        if (message) message.textContent = 'اختر ملف صورة صالحًا.';
+        return;
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+        if (message) {
+            message.textContent = 'حجم الصورة يجب ألا يتجاوز 3 ميجابايت.';
+        }
+        event.target.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function () {
+        const preview = document.getElementById(
+            'accounting-invoice-logo-preview'
+        );
+        const placeholder = document.getElementById(
+            'accounting-invoice-logo-placeholder'
+        );
+
+        if (preview) {
+            preview.src = reader.result;
+            preview.classList.remove('hidden');
+        }
+
+        if (placeholder) placeholder.classList.add('hidden');
+
+        if (message) {
+            message.textContent =
+                'تمت معاينة الصورة. اضغط حفظ شعار الفواتير.';
+        }
+    };
+
+    reader.readAsDataURL(file);
+}
+
+function saveAccountingInvoiceLogo() {
+    const fileInput = document.getElementById(
+        'accounting-invoice-logo-file'
+    );
+    const file = fileInput?.files?.[0];
+    const message = document.getElementById(
+        'accounting-invoice-logo-message'
+    );
+
+    if (!file) {
+        if (message) {
+            message.textContent = 'اختر صورة اللوجو أولًا.';
+        }
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function () {
+        try {
+            localStorage.setItem(
+                ACCOUNTING_INVOICE_LOGO_KEY,
+                String(reader.result)
+            );
+
+            if (message) {
+                message.textContent = 'تم حفظ الشعار على هذا المتصفح.';
+            }
+        } catch (error) {
+            console.error('SAVE INVOICE LOGO ERROR:', error);
+
+            if (message) {
+                message.textContent =
+                    'تعذر الحفظ المحلي. استخدم رفع الصور إلى تخزين الموقع.';
+            }
+        }
+    };
+
+    reader.readAsDataURL(file);
+}
+
+function loadAccountingInvoiceLogoPreview() {
+    const logo = localStorage.getItem(
+        ACCOUNTING_INVOICE_LOGO_KEY
+    );
+
+    if (!logo) return;
+
+    const preview = document.getElementById(
+        'accounting-invoice-logo-preview'
+    );
+    const placeholder = document.getElementById(
+        'accounting-invoice-logo-placeholder'
+    );
+
+    if (preview) {
+        preview.src = logo;
+        preview.classList.remove('hidden');
+    }
+
+    if (placeholder) placeholder.classList.add('hidden');
 }
 
 
@@ -15263,6 +15676,7 @@ async function saveAccountingExpense(event) {
 // =====================================================
 
 
+
 async function printAccountingInvoice(invoiceId, type) {
     try {
         const result = await accountingRequest(
@@ -15274,7 +15688,9 @@ async function printAccountingInvoice(invoiceId, type) {
         const items = Array.isArray(result.items) ? result.items : [];
 
         if (!invoice.id && !invoice.invoice_number) {
-            throw new Error('لم يتم تحميل بيانات الفاتورة. حدّث الصفحة وحاول مرة أخرى.');
+            throw new Error(
+                'لم يتم تحميل بيانات الفاتورة. حدّث الصفحة وحاول مرة أخرى.'
+            );
         }
 
         const name = type === 'sales'
@@ -15287,25 +15703,55 @@ async function printAccountingInvoice(invoiceId, type) {
             result.remaining ?? Math.max(0, total - paid)
         );
 
-        const escape = (value) => accountingEscape(String(value ?? ''));
+        const escape = (value) =>
+            accountingEscape(String(value ?? ''));
+
+        // قراءة شعار الفواتير المحفوظ في المتصفح
+        let invoiceLogo = '';
+
+        try {
+            invoiceLogo = localStorage.getItem(
+                'accounting_invoice_logo'
+            ) || '';
+        } catch (logoError) {
+            console.warn(
+                'تعذر قراءة شعار الفاتورة:',
+                logoError
+            );
+        }
+
+        // السماح فقط بصور PNG وJPEG وWebP بصيغة Data URL
+        // لتجنب إدراج محتوى غير متوقع داخل صفحة الطباعة.
+        if (
+            !/^data:image\/(?:png|jpeg|webp);base64,/i.test(invoiceLogo)
+        ) {
+            invoiceLogo = '';
+        }
 
         const printWindow = window.open('', '_blank');
 
         if (!printWindow) {
-            throw new Error('اسمح بفتح النوافذ المنبثقة لطباعة الفاتورة.');
+            throw new Error(
+                'اسمح بفتح النوافذ المنبثقة لطباعة الفاتورة.'
+            );
         }
 
         const rows = items.length
             ? items.map(function (item) {
                 const quantity = Number(item.quantity || 0);
                 const unitPrice = Number(item.unit_price || 0);
+
                 const lineTotal = item.line_total != null
                     ? Number(item.line_total)
                     : quantity * unitPrice;
 
                 return `
                     <tr>
-                        <td>${escape(item.product_name || item.item_name || '—')}</td>
+                        <td>${escape(
+                            item.product_name ||
+                            item.item_name ||
+                            '—'
+                        )}</td>
                         <td>${escape(quantity)}</td>
                         <td>${escape(item.unit || 'قطعة')}</td>
                         <td>${escape(accountingMoney(unitPrice))}</td>
@@ -15313,17 +15759,32 @@ async function printAccountingInvoice(invoiceId, type) {
                     </tr>
                 `;
             }).join('')
-            : '<tr><td colspan="5">لا توجد أصناف مسجلة في الفاتورة</td></tr>';
+            : `
+                <tr>
+                    <td colspan="5">
+                        لا توجد أصناف مسجلة في الفاتورة
+                    </td>
+                </tr>
+            `;
 
         printWindow.document.write(`
             <!DOCTYPE html>
             <html lang="ar" dir="rtl">
             <head>
                 <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1">
-                <title>فاتورة ${escape(invoice.invoice_number || '')}</title>
+                <meta
+                    name="viewport"
+                    content="width=device-width, initial-scale=1"
+                >
+                <title>فاتورة ${escape(
+                    invoice.invoice_number || ''
+                )}</title>
+
                 <style>
-                    * { box-sizing: border-box; }
+                    * {
+                        box-sizing: border-box;
+                    }
+
                     body {
                         font-family: Tahoma, Arial, sans-serif;
                         direction: rtl;
@@ -15333,19 +15794,32 @@ async function printAccountingInvoice(invoiceId, type) {
                         background: #fff;
                         font-size: 14px;
                     }
+
                     header {
                         text-align: center;
                         border-bottom: 2px solid #8B1E2B;
                         padding-bottom: 15px;
                         margin-bottom: 24px;
-                        position: relative;
                     }
+
+                    .invoice-logo {
+                        display: block;
+                        width: 110px;
+                        height: 90px;
+                        object-fit: contain;
+                        margin: 0 auto 12px;
+                    }
+
                     h1 {
                         color: #8B1E2B;
                         margin: 0 0 8px;
                         font-size: 27px;
                     }
-                    .subtitle { margin: 5px 0; }
+
+                    .subtitle {
+                        margin: 5px 0;
+                    }
+
                     .invoice-title {
                         display: inline-block;
                         margin-top: 14px;
@@ -15355,31 +15829,38 @@ async function printAccountingInvoice(invoiceId, type) {
                         color: #8B1E2B;
                         font-weight: bold;
                     }
+
                     .info {
                         display: grid;
                         grid-template-columns: 1fr 1fr;
                         gap: 13px;
                         margin-bottom: 22px;
                     }
+
                     .info div {
                         border: 1px solid #ddd;
                         padding: 10px;
                         border-radius: 4px;
                     }
+
                     table {
                         width: 100%;
                         border-collapse: collapse;
                         margin-top: 15px;
                     }
-                    th, td {
+
+                    th,
+                    td {
                         border: 1px solid #bbb;
                         padding: 10px 8px;
                         text-align: right;
                     }
+
                     th {
                         background: #f3e9e9;
                         color: #54202a;
                     }
+
                     .totals {
                         width: 330px;
                         max-width: 100%;
@@ -15388,38 +15869,91 @@ async function printAccountingInvoice(invoiceId, type) {
                         border: 1px solid #ddd;
                         line-height: 2.2;
                     }
+
                     .grand-total {
                         color: #8B1E2B;
                         border-bottom: 1px solid #ddd;
                         font-size: 17px;
                     }
+
                     .thanks {
                         margin-top: 45px;
                         text-align: center;
                         color: #666;
                     }
-                    @page { size: A4; margin: 12mm; }
+
+                    @page {
+                        size: A4;
+                        margin: 12mm;
+                    }
+
                     @media print {
-                        body { padding: 0; }
-                        th { background: #f3e9e9 !important; print-color-adjust: exact; }
+                        body {
+                            padding: 0;
+                        }
+
+                        th {
+                            background: #f3e9e9 !important;
+                            print-color-adjust: exact;
+                            -webkit-print-color-adjust: exact;
+                        }
                     }
                 </style>
             </head>
+
             <body>
                 <header>
+                    ${
+                        invoiceLogo
+                            ? `
+                                <img
+                                    class="invoice-logo"
+                                    src="${invoiceLogo}"
+                                    alt="شعار المتحدة للرتان والأثاث"
+                                >
+                            `
+                            : ''
+                    }
+
                     <h1>المتحدة للرتان والأثاث</h1>
-                    <div class="subtitle">أثاث الرتان والأثاث الخارجي</div>
-                    <div class="subtitle">أشمون - المنوفية - جمهورية مصر العربية</div>
+
+                    <div class="subtitle">
+                        أثاث الرتان والأثاث الخارجي
+                    </div>
+
+                    <div class="subtitle">
+                        أشمون - المنوفية - جمهورية مصر العربية
+                    </div>
+
                     <div class="invoice-title">
                         فاتورة ${type === 'sales' ? 'بيع' : 'شراء'}
                     </div>
                 </header>
 
                 <div class="info">
-                    <div>رقم الفاتورة: ${escape(invoice.invoice_number || '—')}</div>
-                    <div>التاريخ: ${escape(invoice.invoice_date || invoice.created_at?.slice(0, 10) || '—')}</div>
-                    <div>${type === 'sales' ? 'العميل' : 'المورد'}: ${escape(name || '—')}</div>
-                    <div>الحالة: ${escape(invoice.status || '—')}</div>
+                    <div>
+                        رقم الفاتورة:
+                        ${escape(invoice.invoice_number || '—')}
+                    </div>
+
+                    <div>
+                        التاريخ:
+                        ${escape(
+                            invoice.invoice_date ||
+                            invoice.created_at?.slice(0, 10) ||
+                            '—'
+                        )}
+                    </div>
+
+                    <div>
+                        ${type === 'sales' ? 'العميل' : 'المورد'}:
+                        ${escape(name || '—')}
+                    </div>
+
+                    <div>
+                        الحالة:
+                        ${escape(invoice.status || '—')}
+                    </div>
                 </div>
 
                 <table>
@@ -15432,34 +15966,66 @@ async function printAccountingInvoice(invoiceId, type) {
                             <th>الإجمالي</th>
                         </tr>
                     </thead>
-                    <tbody>${rows}</tbody>
+
+                    <tbody>
+                        ${rows}
+                    </tbody>
                 </table>
 
                 <div class="totals">
-                    <div class="grand-total">الإجمالي: ${escape(accountingMoney(total))} ج.م</div>
-                    <div>المدفوع: ${escape(accountingMoney(paid))} ج.م</div>
-                    <div>المتبقي: ${escape(accountingMoney(remaining))} ج.م</div>
+                    <div class="grand-total">
+                        الإجمالي:
+                        ${escape(accountingMoney(total))} ج.م
+                    </div>
+
+                    <div>
+                        المدفوع:
+                        ${escape(accountingMoney(paid))} ج.م
+                    </div>
+
+                    <div>
+                        المتبقي:
+                        ${escape(accountingMoney(remaining))} ج.م
+                    </div>
                 </div>
 
-                <p class="thanks">شكرًا لتعاملكم مع المتحدة للرتان والأثاث</p>
+                <p class="thanks">
+                    شكرًا لتعاملكم مع المتحدة للرتان والأثاث
+                </p>
 
                 <script>
                     window.onload = function () {
-                        setTimeout(function () {
-                            window.print();
-                        }, 300);
+                        const logo = document.querySelector('.invoice-logo');
+
+                        const printWhenReady = function () {
+                            setTimeout(function () {
+                                window.print();
+                            }, 300);
+                        };
+
+                        if (logo && !logo.complete) {
+                            logo.onload = printWhenReady;
+                            logo.onerror = printWhenReady;
+                        } else {
+                            printWhenReady();
+                        }
                     };
                 <\/script>
             </body>
             </html>
         `);
 
-              printWindow.document.close();
+        printWindow.document.close();
 
     } catch (error) {
-        console.error('PRINT ACCOUNTING INVOICE ERROR:', error);
+        console.error(
+            'PRINT ACCOUNTING INVOICE ERROR:',
+            error
+        );
+
         accountingMessage(
-            error.message || 'حدث خطأ أثناء طباعة الفاتورة.',
+            error.message ||
+            'حدث خطأ أثناء طباعة الفاتورة.',
             true
         );
     }
