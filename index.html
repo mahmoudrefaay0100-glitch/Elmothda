@@ -1533,6 +1533,79 @@
                 <div id="acc-sales-items" class="space-y-3"></div>
             </div>
 
+<!-- مصمم معاينة الطقم - فواتير البيع فقط -->
+<div id="acc-sales-design-editor"
+     class="space-y-4 rounded-2xl border border-amber-500/40 bg-neutral-900 p-4"
+     dir="rtl">
+
+    <div>
+        <h6 class="text-lg font-extrabold text-white">
+            🎨 مصمم معاينة الطقم للمصنع
+        </h6>
+        <p class="mt-1 text-sm text-gray-400">
+            ارفع صور مكونات الطقم، وسجل تفاصيل كل قطعة لتظهر مع نسخة المصنع.
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div>
+            <label class="mb-2 block text-sm font-bold text-gray-300">
+                صور الطقم والمكونات
+            </label>
+            <input id="acc-sales-design-files"
+                   type="file"
+                   accept="image/jpeg,image/png,image/webp"
+                   multiple
+                   onchange="handleAccountingDesignImages(event)"
+                   class="w-full rounded-xl border border-neutral-700 bg-black p-3 text-sm text-white">
+            <p class="mt-1 text-xs text-gray-500">
+                يمكنك تحديد عدة صور من جهازك.
+            </p>
+        </div>
+
+        <div>
+            <label class="mb-2 block text-sm font-bold text-gray-300">
+                ملاحظات عامة للمصنع
+            </label>
+            <textarea id="acc-sales-design-notes"
+                      rows="3"
+                      placeholder="مثال: لون الرتان بني غامق، القماش بيج..."
+                      class="w-full rounded-xl border border-neutral-700 bg-black p-3 text-white"></textarea>
+        </div>
+    </div>
+
+    <div id="acc-sales-design-gallery"
+         class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+        <p class="col-span-full text-sm text-gray-500">
+            لم تتم إضافة صور بعد.
+        </p>
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+        <button type="button"
+                onclick="addAccountingDesignComponent()"
+                class="rounded-xl bg-amber-500 px-4 py-2 font-bold text-black">
+            + إضافة قطعة ومواصفاتها
+        </button>
+
+        <button type="button"
+                onclick="clearAccountingDesignImages()"
+                class="rounded-xl border border-neutral-700 px-4 py-2 text-white">
+            مسح الصور
+        </button>
+    </div>
+
+    <div id="acc-sales-design-components" class="space-y-3"></div>
+
+    <p id="acc-sales-design-status"
+       class="text-sm text-gray-400"
+       role="status"></p>
+
+    <!-- يحتفظان ببيانات المعاينة الحالية عند تعديل الفاتورة -->
+    <input type="hidden" id="acc-sales-design-preview-url" value="">
+    <input type="hidden" id="acc-sales-design-specs-json" value="">
+</div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <input name="discount" type="number" min="0" step="0.01" value="0"
                        placeholder="الخصم بالجنيه"
@@ -15693,6 +15766,7 @@ function accountingEnglishNumbers(value) {
 
 
 
+
 async function printAccountingInvoice(invoiceId, type) {
     let printWindow = null;
 
@@ -15806,8 +15880,7 @@ async function printAccountingInvoice(invoiceId, type) {
             }
         })();
 
-        // تنسيق المبالغ داخل الفاتورة بأرقام إنجليزية.
-        // نضيف العملة هنا مرة واحدة فقط.
+        // تنسيق المبالغ كما هي في الفاتورة الحالية.
         const formatMoney = (value) =>
             Number(value || 0).toLocaleString('en-US', {
                 minimumFractionDigits: 2,
@@ -15818,6 +15891,227 @@ async function printAccountingInvoice(invoiceId, type) {
             Number(value || 0).toLocaleString('en-US', {
                 maximumFractionDigits: 3
             });
+
+        // =====================================================
+        // معاينة تصميم الطقم - فواتير البيع فقط
+        // لا يتم تعديل بيانات الفاتورة أو الحسابات هنا.
+        // =====================================================
+
+        const designSpecs = (() => {
+            if (type !== 'sales') return {};
+
+            let specs = invoice.design_specs;
+
+            if (typeof specs === 'string') {
+                try {
+                    specs = JSON.parse(specs);
+                } catch {
+                    specs = {};
+                }
+            }
+
+            return specs &&
+                typeof specs === 'object' &&
+                !Array.isArray(specs)
+                ? specs
+                : {};
+        })();
+
+        // السماح بروابط الصور الآمنة فقط.
+        const safeDesignImageUrl = (value) => {
+            if (typeof value !== 'string' || !value.trim()) {
+                return '';
+            }
+
+            try {
+                const url = new URL(value.trim(), window.location.origin);
+
+                if (
+                    url.protocol !== 'https:' &&
+                    url.origin !== window.location.origin
+                ) {
+                    return '';
+                }
+
+                if (
+                    url.protocol !== 'https:' &&
+                    url.protocol !== 'http:'
+                ) {
+                    return '';
+                }
+
+                return url.href;
+            } catch {
+                return '';
+            }
+        };
+
+        const designPreviewUrl = type === 'sales'
+            ? safeDesignImageUrl(invoice.design_preview_url)
+            : '';
+
+        const designImages = type === 'sales' &&
+            Array.isArray(designSpecs.images)
+            ? designSpecs.images
+                .filter(image =>
+                    image &&
+                    typeof image === 'object' &&
+                    !Array.isArray(image)
+                )
+                .map(image => ({
+                    name: String(image.name || 'صورة معاينة'),
+                    url: safeDesignImageUrl(image.url)
+                }))
+                .filter(image => image.url)
+            : [];
+
+        const designComponents = type === 'sales' &&
+            Array.isArray(designSpecs.components)
+            ? designSpecs.components
+                .filter(component =>
+                    component &&
+                    typeof component === 'object' &&
+                    !Array.isArray(component)
+                )
+                .map(component => ({
+                    name: String(component.name || 'قطعة'),
+                    quantity: component.quantity,
+                    color: String(component.color || ''),
+                    dimensions: String(component.dimensions || ''),
+                    notes: String(component.notes || '')
+                }))
+            : [];
+
+        const designNotes = type === 'sales'
+            ? String(designSpecs.notes || '')
+            : '';
+
+        // تجميع الصور بدون تكرار رابط الصورة الرئيسية.
+        const allDesignImages = [];
+        const usedImageUrls = new Set();
+
+        const addDesignImage = (image) => {
+            if (!image || !image.url || usedImageUrls.has(image.url)) {
+                return;
+            }
+
+            usedImageUrls.add(image.url);
+            allDesignImages.push(image);
+        };
+
+        if (designPreviewUrl) {
+            addDesignImage({
+                name: 'المعاينة الرئيسية للطقم',
+                url: designPreviewUrl
+            });
+        }
+
+        designImages.forEach(addDesignImage);
+
+        const hasDesignContent =
+            allDesignImages.length > 0 ||
+            designComponents.length > 0 ||
+            Boolean(designNotes.trim());
+
+        const designSection = type === 'sales' && hasDesignContent
+            ? `
+                <section class="design-section">
+                    <h2 class="items-title">معاينة تصميم الطقم للمصنع</h2>
+
+                    ${
+                        allDesignImages.length
+                            ? `
+                                <div class="design-gallery">
+                                    ${allDesignImages.map((image, index) => `
+                                        <figure class="design-image-card">
+                                            <img
+                                                class="design-image"
+                                                src="${escape(image.url)}"
+                                                alt="${escape(image.name)}"
+                                            >
+                                            <figcaption>
+                                                ${escape(
+                                                    image.name ||
+                                                    'صورة ' + (index + 1)
+                                                )}
+                                            </figcaption>
+                                        </figure>
+                                    `).join('')}
+                                </div>
+                            `
+                            : ''
+                    }
+
+                    ${
+                        designComponents.length
+                            ? `
+                                <h3 class="design-subtitle">
+                                    مكونات الطقم ومواصفاته
+                                </h3>
+
+                                <table class="design-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:7%">م</th>
+                                            <th style="width:25%">القطعة</th>
+                                            <th style="width:12%">الكمية</th>
+                                            <th style="width:16%">اللون</th>
+                                            <th style="width:20%">المقاسات</th>
+                                            <th style="width:20%">ملاحظات</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        ${designComponents.map((component, index) => `
+                                            <tr>
+                                                <td class="center numeric">
+                                                    ${index + 1}
+                                                </td>
+
+                                                <td>
+                                                    ${escape(component.name)}
+                                                </td>
+
+                                                <td class="center numeric">
+                                                    ${escape(component.quantity ?? '—')}
+                                                </td>
+
+                                                <td>
+                                                    ${escape(component.color || '—')}
+                                                </td>
+
+                                                <td>
+                                                    ${escape(component.dimensions || '—')}
+                                                </td>
+
+                                                <td>
+                                                    ${escape(component.notes || '—')}
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            `
+                            : ''
+                    }
+
+                    ${
+                        designNotes.trim()
+                            ? `
+                                <div class="design-notes">
+                                    <strong>ملاحظات التصميم للمصنع:</strong>
+                                    <p>${escape(designNotes).replace(/\n/g, '<br>')}</p>
+                                </div>
+                            `
+                            : ''
+                    }
+                </section>
+            `
+            : '';
+
+        // =====================================================
+        // تفاصيل أصناف الفاتورة الأصلية
+        // =====================================================
 
         const rows = items.length
             ? items.map((item, index) => {
@@ -15948,7 +16242,7 @@ async function printAccountingInvoice(invoiceId, type) {
                         margin: 0 auto;
                     }
 
-                    /* رأس الفاتورة */
+                    /* رأس الفاتورة - الألوان الأصلية دون تغيير */
                     .top-header {
                         display: flex;
                         align-items: center;
@@ -16086,7 +16380,7 @@ async function printAccountingInvoice(invoiceId, type) {
                         color: #8B1E2B;
                     }
 
-                    /* جدول الأصناف */
+                    /* جدول الأصناف الأصلي */
                     .items-title {
                         margin: 20px 0 9px;
                         color: #8B1E2B;
@@ -16177,7 +16471,85 @@ async function printAccountingInvoice(invoiceId, type) {
                         text-align: center;
                     }
 
-                    /* الإجماليات والملاحظات */
+                    /* إضافات معاينة التصميم فقط */
+                    .design-section {
+                        margin-top: 22px;
+                        break-inside: auto;
+                        page-break-inside: auto;
+                    }
+
+                    .design-gallery {
+                        display: grid;
+                        grid-template-columns: repeat(3, minmax(0, 1fr));
+                        gap: 12px;
+                        margin: 12px 0 18px;
+                    }
+
+                    .design-image-card {
+                        margin: 0;
+                        padding: 8px;
+                        border: 1px solid #dfc5c8;
+                        border-radius: 4px;
+                        text-align: center;
+                        break-inside: avoid;
+                        page-break-inside: avoid;
+                    }
+
+                    .design-image {
+                        display: block;
+                        width: 100%;
+                        height: 180px;
+                        object-fit: contain;
+                        background: #fff;
+                    }
+
+                    .design-image-card figcaption {
+                        margin-top: 6px;
+                        color: #222;
+                        font-size: 10px;
+                        font-weight: 700;
+                        overflow-wrap: anywhere;
+                    }
+
+                    .design-subtitle {
+                        margin: 15px 0 8px;
+                        color: #8B1E2B;
+                        font-size: 12px;
+                        font-weight: 900;
+                    }
+
+                    .design-table {
+                        margin-top: 8px;
+                    }
+
+                    .design-table th {
+                        padding: 7px 4px;
+                    }
+
+                    .design-table td {
+                        padding: 7px 5px;
+                        font-size: 10px;
+                    }
+
+                    .design-notes {
+                        margin-top: 12px;
+                        padding: 10px 12px;
+                        border: 1px solid #dfc5c8;
+                        border-right: 3px solid #8B1E2B;
+                        border-radius: 4px;
+                        overflow-wrap: anywhere;
+                    }
+
+                    .design-notes strong {
+                        color: #8B1E2B;
+                        font-weight: 900;
+                    }
+
+                    .design-notes p {
+                        margin: 5px 0 0;
+                    }
+
+                    /* الإجماليات والملاحظات الأصلية */
                     .summary-layout {
                         display: flex;
                         justify-content: space-between;
@@ -16255,7 +16627,7 @@ async function printAccountingInvoice(invoiceId, type) {
                         font-weight: 900 !important;
                     }
 
-                    /* التوقيعات والتذييل */
+                    /* التوقيعات والتذييل الأصلي */
                     .signature-area {
                         display: grid;
                         grid-template-columns: 1fr 1fr;
@@ -16291,7 +16663,7 @@ async function printAccountingInvoice(invoiceId, type) {
                         margin: 10mm;
                     }
 
-                    /* إعدادات الطباعة */
+                    /* إعدادات الطباعة الأصلية */
                     @media print {
                         body {
                             margin: 0;
@@ -16333,6 +16705,10 @@ async function printAccountingInvoice(invoiceId, type) {
                             text-shadow: none !important;
                             box-shadow: none !important;
                         }
+
+                        .design-image {
+                            max-height: 180px;
+                        }
                     }
 
                     @media screen and (max-width: 600px) {
@@ -16355,6 +16731,14 @@ async function printAccountingInvoice(invoiceId, type) {
 
                         .totals {
                             width: 100%;
+                        }
+
+                        .design-gallery {
+                            grid-template-columns: repeat(2, minmax(0, 1fr));
+                        }
+
+                        .design-image {
+                            height: 140px;
                         }
                     }
                 </style>
@@ -16481,6 +16865,8 @@ async function printAccountingInvoice(invoiceId, type) {
                         </tbody>
                     </table>
 
+                    ${designSection}
+
                     <div class="summary-layout">
                         <div class="notes">
                             <strong>ملاحظات:</strong>
@@ -16544,21 +16930,57 @@ async function printAccountingInvoice(invoiceId, type) {
 
                 <script>
                     window.onload = function () {
-                        const logo = document.querySelector('.logo');
+                        const images = Array.from(
+                            document.querySelectorAll('img')
+                        );
+
+                        let pending = images.filter(
+                            image => !image.complete
+                        ).length;
+
+                        let started = false;
 
                         function startPrint() {
+                            if (started) return;
+                            started = true;
+
                             setTimeout(function () {
                                 window.focus();
                                 window.print();
                             }, 500);
                         }
 
-                        if (logo && !logo.complete) {
-                            logo.onload = startPrint;
-                            logo.onerror = startPrint;
-                        } else {
+                        if (pending === 0) {
                             startPrint();
+                            return;
                         }
+
+                        const imageFinished = function () {
+                            pending--;
+
+                            if (pending <= 0) {
+                                startPrint();
+                            }
+                        };
+
+                        images.forEach(function (image) {
+                            if (!image.complete) {
+                                image.addEventListener(
+                                    'load',
+                                    imageFinished,
+                                    { once: true }
+                                );
+
+                                image.addEventListener(
+                                    'error',
+                                    imageFinished,
+                                    { once: true }
+                                );
+                            }
+                        });
+
+                        // عدم تعطيل الطباعة لو صورة لم تُحمّل.
+                        setTimeout(startPrint, 5000);
                     };
                 <\/script>
             </body>
@@ -16963,6 +17385,19 @@ async function saveAccountingInvoice(event, type) {
             ).trim()
         };
 
+if (type === 'sales') {
+    const designSpecs = collectAccountingDesignSpecs();
+
+    const previewUrl = String(
+        document.getElementById(
+            'acc-sales-design-preview-url'
+        )?.value || ''
+    ).trim();
+
+    payload.design_preview_url = previewUrl || null;
+    payload.design_specs = designSpecs;
+}
+
         if (isEditing) {
             payload.id = editingInvoiceId;
         } else {
@@ -17092,6 +17527,319 @@ async function saveAccountingInvoice(event, type) {
                 : originalButtonText;
         }
     }
+}
+
+/* ==========================================
+   مصمم معاينة الطقم - فواتير البيع
+   ========================================== */
+
+window.accountingDesignImages =
+    window.accountingDesignImages || [];
+
+window.accountingDesignComponents =
+    window.accountingDesignComponents || [];
+
+function accountingDesignEscape(value) {
+    return String(value ?? '').replace(/[&<>"']/g, function (char) {
+        return {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[char];
+    });
+}
+
+async function uploadAccountingDesignFile(file) {
+    if (!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) {
+        throw new Error('اختر صورة JPG أو PNG أو WEBP فقط.');
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+        throw new Error('حجم الصورة يجب ألا يتجاوز 10 ميجابايت.');
+    }
+
+    const dataUrl = await new Promise(function (resolve, reject) {
+        const reader = new FileReader();
+
+        reader.onload = function () {
+            resolve(reader.result);
+        };
+
+        reader.onerror = function () {
+            reject(new Error('تعذرت قراءة الصورة من الجهاز.'));
+        };
+
+        reader.readAsDataURL(file);
+    });
+
+    const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            fileName: file.name,
+            fileType: file.type,
+            fileData: String(dataUrl).split(',')[1],
+            folder: 'design-previews'
+        })
+    });
+
+    const result = await response.json().catch(function () {
+        return {};
+    });
+
+    if (!response.ok || !result.url) {
+        throw new Error(
+            result.message || result.error || 'فشل رفع صورة المعاينة.'
+        );
+    }
+
+    return result.url;
+}
+
+async function handleAccountingDesignImages(event) {
+    const files = Array.from(event.target.files || []);
+    const status = document.getElementById('acc-sales-design-status');
+
+    if (!files.length) return;
+
+    try {
+        if (status) {
+            status.textContent = 'جارٍ رفع الصور...';
+        }
+
+        for (const file of files) {
+            const url = await uploadAccountingDesignFile(file);
+
+            window.accountingDesignImages.push({
+                name: file.name,
+                url: url
+            });
+        }
+
+        renderAccountingDesignGallery();
+
+        if (status) {
+            status.textContent = 'تم رفع الصور بنجاح.';
+        }
+    } catch (error) {
+        console.error('ACCOUNTING DESIGN UPLOAD ERROR:', error);
+
+        if (status) {
+            status.textContent = error.message || 'تعذر رفع الصور.';
+        }
+
+        alert(error.message || 'تعذر رفع الصور.');
+    } finally {
+        event.target.value = '';
+    }
+}
+
+function renderAccountingDesignGallery() {
+    const gallery = document.getElementById(
+        'acc-sales-design-gallery'
+    );
+
+    if (!gallery) return;
+
+    const images = window.accountingDesignImages || [];
+
+    if (!images.length) {
+        gallery.innerHTML =
+            '<p class="col-span-full text-sm text-gray-500">' +
+            'لم تتم إضافة صور بعد.</p>';
+        return;
+    }
+
+    gallery.innerHTML = images.map(function (image, index) {
+        return `
+            <div class="overflow-hidden rounded-xl border border-neutral-700 bg-black">
+                <img
+                    src="${accountingDesignEscape(image.url)}"
+                    alt="${accountingDesignEscape(image.name)}"
+                    class="h-36 w-full object-contain"
+                    loading="lazy">
+                <div class="p-2">
+                    <p class="truncate text-xs text-gray-300">
+                        ${accountingDesignEscape(image.name)}
+                    </p>
+                    <button
+                        type="button"
+                        onclick="removeAccountingDesignImage(${index})"
+                        class="mt-2 rounded-lg bg-red-900 px-3 py-1 text-xs text-white">
+                        حذف الصورة
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function removeAccountingDesignImage(index) {
+    window.accountingDesignImages.splice(index, 1);
+    renderAccountingDesignGallery();
+}
+
+function clearAccountingDesignImages() {
+    if (!confirm('هل تريد إزالة جميع صور المعاينة من هذه الفاتورة؟')) {
+        return;
+    }
+
+    window.accountingDesignImages = [];
+    renderAccountingDesignGallery();
+}
+
+function addAccountingDesignComponent(component = {}) {
+    const container = document.getElementById(
+        'acc-sales-design-components'
+    );
+
+    if (!container) return;
+
+    const id = 'design-component-' +
+        Date.now() + '-' +
+        Math.random().toString(36).slice(2, 8);
+
+    const item = {
+        id: id,
+        name: component.name || '',
+        quantity: component.quantity ?? 1,
+        color: component.color || '',
+        dimensions: component.dimensions || '',
+        notes: component.notes || ''
+    };
+
+    window.accountingDesignComponents.push(item);
+
+    const card = document.createElement('div');
+    card.className =
+        'rounded-xl border border-neutral-700 bg-black/50 p-3 space-y-3';
+    card.dataset.designComponentId = id;
+
+    card.innerHTML = `
+        <div class="flex items-center justify-between gap-2">
+            <strong class="text-white">قطعة من الطقم</strong>
+            <button type="button"
+                    class="rounded-lg bg-red-900 px-3 py-1 text-sm text-white"
+                    onclick="removeAccountingDesignComponent('${id}')">
+                حذف القطعة
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <input data-field="name"
+                   value="${accountingDesignEscape(item.name)}"
+                   placeholder="اسم القطعة: كرسي، كنبة، ترابيزة..."
+                   class="rounded-lg border border-neutral-700 bg-neutral-900 p-3 text-white">
+
+            <input data-field="quantity"
+                   type="number" min="1" step="1"
+                   value="${accountingDesignEscape(item.quantity)}"
+                   placeholder="العدد"
+                   class="rounded-lg border border-neutral-700 bg-neutral-900 p-3 text-white">
+
+            <input data-field="color"
+                   value="${accountingDesignEscape(item.color)}"
+                   placeholder="اللون أو نوع القماش"
+                   class="rounded-lg border border-neutral-700 bg-neutral-900 p-3 text-white">
+
+            <input data-field="dimensions"
+                   value="${accountingDesignEscape(item.dimensions)}"
+                   placeholder="المقاسات"
+                   class="rounded-lg border border-neutral-700 bg-neutral-900 p-3 text-white">
+
+            <textarea data-field="notes"
+                      rows="2"
+                      placeholder="ملاحظات تصنيع القطعة"
+                      class="md:col-span-2 rounded-lg border border-neutral-700 bg-neutral-900 p-3 text-white">${accountingDesignEscape(item.notes)}</textarea>
+        </div>
+    `;
+
+    container.appendChild(card);
+}
+
+function removeAccountingDesignComponent(id) {
+    window.accountingDesignComponents =
+        window.accountingDesignComponents.filter(function (item) {
+            return item.id !== id;
+        });
+
+    document.querySelector(
+        '[data-design-component-id="' + id + '"]'
+    )?.remove();
+}
+
+function collectAccountingDesignSpecs() {
+    const container = document.getElementById(
+        'acc-sales-design-components'
+    );
+
+    const components = container
+        ? Array.from(
+            container.querySelectorAll('[data-design-component-id]')
+        ).map(function (card) {
+            return {
+                name: card.querySelector('[data-field="name"]')?.value.trim() || '',
+                quantity: Number(
+                    card.querySelector('[data-field="quantity"]')?.value
+                ),
+                color: card.querySelector('[data-field="color"]')?.value.trim() || '',
+                dimensions: card.querySelector('[data-field="dimensions"]')?.value.trim() || '',
+                notes: card.querySelector('[data-field="notes"]')?.value.trim() || ''
+            };
+        })
+        : [];
+
+    for (const component of components) {
+        if (!component.name) {
+            throw new Error('اكتب اسم كل قطعة أضفتها للمصمم.');
+        }
+
+        if (
+            !Number.isInteger(component.quantity) ||
+            component.quantity < 1
+        ) {
+            throw new Error('عدد كل قطعة يجب أن يكون عددًا صحيحًا أكبر من صفر.');
+        }
+    }
+
+    return {
+        version: 1,
+        notes: document.getElementById(
+            'acc-sales-design-notes'
+        )?.value.trim() || '',
+        images: (window.accountingDesignImages || []).map(function (image) {
+            return {
+                name: image.name,
+                url: image.url
+            };
+        }),
+        components: components
+    };
+}
+
+function resetAccountingDesignEditor() {
+    window.accountingDesignImages = [];
+    window.accountingDesignComponents = [];
+
+    const notes = document.getElementById('acc-sales-design-notes');
+    const url = document.getElementById('acc-sales-design-preview-url');
+    const specs = document.getElementById('acc-sales-design-specs-json');
+    const components = document.getElementById('acc-sales-design-components');
+    const files = document.getElementById('acc-sales-design-files');
+    const status = document.getElementById('acc-sales-design-status');
+
+    if (notes) notes.value = '';
+    if (url) url.value = '';
+    if (specs) specs.value = '';
+    if (components) components.innerHTML = '';
+    if (files) files.value = '';
+    if (status) status.textContent = '';
+
+    renderAccountingDesignGallery();
 }
 
 
