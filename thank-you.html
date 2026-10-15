@@ -2,11 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>تم تسجيل طلبك | المتحدة للرتان والأثاث</title>
 
@@ -44,6 +40,75 @@
                     #050505 100%
                 );
         }
+
+        .info-box {
+            background: #111;
+            border: 1px solid #262626;
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .info-box span {
+            color: #737373;
+            font-size: 11px;
+        }
+
+        .info-box strong {
+            color: #fff;
+            font-size: 13px;
+            overflow-wrap: anywhere;
+        }
+
+        .order-item {
+            background: #111;
+            border: 1px solid #262626;
+            border-radius: 16px;
+            padding: 14px;
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .order-item img {
+            width: 72px;
+            height: 72px;
+            min-width: 72px;
+            object-fit: cover;
+            border-radius: 12px;
+            background: #222;
+        }
+
+        .order-item-details {
+            flex: 1;
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .order-item-price {
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 480px) {
+            .order-item {
+                gap: 9px;
+                padding: 10px;
+            }
+
+            .order-item img {
+                width: 58px;
+                height: 58px;
+                min-width: 58px;
+            }
+
+            .order-item-price {
+                font-size: 12px;
+            }
+        }
     </style>
 </head>
 
@@ -51,30 +116,20 @@
 
     <main class="min-h-screen flex items-center justify-center px-4 py-10">
 
-        <div
-            class="w-full max-w-4xl bg-neutral-950/95 border border-neutral-800 rounded-3xl shadow-2xl overflow-hidden"
-        >
+        <div class="w-full max-w-4xl bg-neutral-950/95 border border-neutral-800 rounded-3xl shadow-2xl overflow-hidden">
 
             <!-- Header -->
-            <div
-                class="text-center px-6 py-10 border-b border-neutral-800"
-            >
+            <div class="text-center px-6 py-10 border-b border-neutral-800">
 
-                <div
-                    class="mx-auto mb-5 w-20 h-20 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center"
-                >
+                <div class="mx-auto mb-5 w-20 h-20 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center">
                     <span class="text-4xl">✓</span>
                 </div>
 
-                <h1
-                    class="text-2xl md:text-3xl font-black text-brand-amber"
-                >
+                <h1 class="text-2xl md:text-3xl font-black text-brand-amber">
                     شكرًا لاختيارك المتحدة للرتان والأثاث
                 </h1>
 
-                <p
-                    class="text-gray-300 mt-3 text-sm md:text-base"
-                >
+                <p class="text-gray-300 mt-3 text-sm md:text-base">
                     تم تسجيل طلبك بنجاح، وسنتواصل معك لتأكيد تفاصيل الطلب.
                 </p>
 
@@ -83,38 +138,16 @@
             <!-- Order Info -->
             <div class="p-6 md:p-8">
 
-                <div
-                    class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8"
-                >
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
 
-                    <div
-                        class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5"
-                    >
-                        <p class="text-xs text-gray-500 mb-2">
-                            رقم الطلب
-                        </p>
-
-                        <p
-                            id="order-id"
-                            class="text-xl font-black text-brand-amber"
-                        >
-                            -
-                        </p>
+                    <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5">
+                        <p class="text-xs text-gray-500 mb-2">رقم الطلب</p>
+                        <p id="order-id" class="text-xl font-black text-brand-amber">-</p>
                     </div>
 
-                    <div
-                        class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5"
-                    >
-                        <p class="text-xs text-gray-500 mb-2">
-                            حالة الطلب
-                        </p>
-
-                        <p
-                            id="order-status"
-                            class="text-lg font-bold text-green-400"
-                        >
-                            جديد
-                        </p>
+                    <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5">
+                        <p class="text-xs text-gray-500 mb-2">حالة الطلب</p>
+                        <p id="order-status" class="text-lg font-bold text-green-400">جديد</p>
                     </div>
 
                 </div>
@@ -122,15 +155,11 @@
                 <!-- Customer -->
                 <section class="mb-8">
 
-                    <h2
-                        class="text-lg font-black text-brand-amber mb-4"
-                    >
+                    <h2 class="text-lg font-black text-brand-amber mb-4">
                         بيانات العميل
                     </h2>
 
-                    <div
-                        class="grid grid-cols-1 md:grid-cols-2 gap-3"
-                    >
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
 
                         <div class="info-box">
                             <span>الاسم</span>
@@ -152,9 +181,7 @@
                             <strong id="customer-city">-</strong>
                         </div>
 
-                        <div
-                            class="info-box md:col-span-2"
-                        >
+                        <div class="info-box md:col-span-2">
                             <span>العنوان</span>
                             <strong id="customer-address">-</strong>
                         </div>
@@ -166,59 +193,32 @@
                 <!-- Products -->
                 <section class="mb-8">
 
-                    <h2
-                        class="text-lg font-black text-brand-amber mb-4"
-                    >
+                    <h2 class="text-lg font-black text-brand-amber mb-4">
                         تفاصيل الطلب
                     </h2>
 
-                    <div
-                        id="order-items"
-                        class="space-y-3"
-                    ></div>
+                    <div id="order-items" class="space-y-3"></div>
 
                 </section>
 
                 <!-- Totals -->
                 <section class="mb-8">
 
-                    <div
-                        class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 space-y-3"
-                    >
+                    <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 space-y-3">
 
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-400">
-                                إجمالي المنتجات
-                            </span>
-
-                            <strong id="subtotal">
-                                0 ج.م
-                            </strong>
+                        <div class="flex justify-between text-sm gap-3">
+                            <span class="text-gray-400">إجمالي المنتجات</span>
+                            <strong id="subtotal">0 ج.م</strong>
                         </div>
 
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-400">
-                                الشحن
-                            </span>
-
-                            <strong id="shipping">
-                                0 ج.م
-                            </strong>
+                        <div class="flex justify-between text-sm gap-3">
+                            <span class="text-gray-400">الشحن</span>
+                            <strong id="shipping">0 ج.م</strong>
                         </div>
 
-                        <div
-                            class="border-t border-neutral-800 pt-3 flex justify-between"
-                        >
-                            <span class="font-bold">
-                                الإجمالي
-                            </span>
-
-                            <strong
-                                id="total"
-                                class="text-xl text-brand-amber"
-                            >
-                                0 ج.م
-                            </strong>
+                        <div class="border-t border-neutral-800 pt-3 flex justify-between gap-3">
+                            <span class="font-bold">الإجمالي</span>
+                            <strong id="total" class="text-xl text-brand-amber">0 ج.م</strong>
                         </div>
 
                     </div>
@@ -228,15 +228,11 @@
                 <!-- Payment -->
                 <section class="mb-8">
 
-                    <h2
-                        class="text-lg font-black text-brand-amber mb-4"
-                    >
+                    <h2 class="text-lg font-black text-brand-amber mb-4">
                         الدفع والاستلام
                     </h2>
 
-                    <div
-                        class="grid grid-cols-1 md:grid-cols-2 gap-3"
-                    >
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
 
                         <div class="info-box">
                             <span>طريقة الاستلام</span>
@@ -258,16 +254,9 @@
                             <strong id="deposit-amount">-</strong>
                         </div>
 
-                        <div
-                            class="info-box md:col-span-2"
-                        >
+                        <div class="info-box md:col-span-2">
                             <span>المبلغ المتبقي</span>
-                            <strong
-                                id="remaining-amount"
-                                class="text-brand-amber"
-                            >
-                                -
-                            </strong>
+                            <strong id="remaining-amount" class="text-brand-amber">-</strong>
                         </div>
 
                     </div>
@@ -289,442 +278,559 @@
     </main>
 
     <script>
+        'use strict';
 
-        const style = document.createElement('style');
+        // =====================================
+        // أدوات مساعدة
+        // =====================================
 
-        style.innerHTML = `
-            .info-box {
-                background: #111;
-                border: 1px solid #262626;
-                border-radius: 16px;
-                padding: 16px;
-                display: flex;
-                flex-direction: column;
-                gap: 6px;
+        function getElement(id) {
+            return document.getElementById(id);
+        }
+
+        function setText(id, value) {
+            const element = getElement(id);
+
+            if (element) {
+                element.textContent =
+                    value === null ||
+                    value === undefined ||
+                    value === ''
+                        ? '-'
+                        : String(value);
+            }
+        }
+
+        function formatMoney(value) {
+            const number = Number(value);
+
+            if (!Number.isFinite(number)) {
+                return '0 ج.م';
             }
 
-            .info-box span {
-                color: #737373;
-                font-size: 11px;
+            return number.toLocaleString('ar-EG') + ' ج.م';
+        }
+
+        function safeNumber(value, fallback = 0) {
+            if (
+                value === null ||
+                value === undefined ||
+                value === ''
+            ) {
+                return fallback;
             }
 
-            .info-box strong {
-                color: #fff;
-                font-size: 13px;
+            const number = Number(value);
+
+            return Number.isFinite(number)
+                ? number
+                : fallback;
+        }
+
+        function firstAvailable(...values) {
+            for (const value of values) {
+                if (
+                    value !== undefined &&
+                    value !== null &&
+                    value !== ''
+                ) {
+                    return value;
+                }
             }
 
-            .order-item {
-                background: #111;
-                border: 1px solid #262626;
-                border-radius: 16px;
-                padding: 14px;
-                display: flex;
-                gap: 14px;
-                align-items: center;
+            return null;
+        }
+
+        // حماية النصوص قبل استخدامها في HTML
+        function escapeHtml(value) {
+            return String(value ?? '').replace(
+                /[&<>"']/g,
+                character => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                })[character]
+            );
+        }
+
+        // منع استخدام روابط صور غير آمنة
+        function safeImageUrl(value) {
+            if (typeof value !== 'string') {
+                return '';
             }
 
-            .order-item img {
-                width: 72px;
-                height: 72px;
-                object-fit: cover;
-                border-radius: 12px;
-                background: #222;
+            const url = value.trim();
+
+            if (!url) {
+                return '';
             }
-        `;
 
-        document.head.appendChild(style);
+            if (
+                /^https?:\/\//i.test(url) ||
+                /^\/(?!\/)/.test(url) ||
+                /^\.\.?\//.test(url)
+            ) {
+                return url;
+            }
 
+            return '';
+        }
+
+        // =====================================
+        // شاشة الرسائل
+        // =====================================
+
+        function showMessage(title, message, titleClass = 'text-brand-amber') {
+            document.body.innerHTML = '';
+
+            const wrapper = document.createElement('main');
+            wrapper.className =
+                'min-h-screen flex items-center justify-center p-6 text-center';
+
+            const content = document.createElement('div');
+
+            const heading = document.createElement('h1');
+            heading.className =
+                'text-2xl font-black mb-3 ' + titleClass;
+            heading.textContent = title;
+
+            const paragraph = document.createElement('p');
+            paragraph.className = 'text-gray-400 mb-6';
+            paragraph.textContent = message;
+
+            const link = document.createElement('a');
+            link.href = '/';
+            link.className =
+                'inline-block bg-brand-wine text-white px-8 py-3 rounded-xl font-bold';
+            link.textContent = 'العودة للرئيسية';
+
+            content.append(heading, paragraph, link);
+            wrapper.appendChild(content);
+            document.body.appendChild(wrapper);
+        }
 
         // =====================================
         // قراءة آخر طلب
         // =====================================
 
-      
-const rawOrder =
-    sessionStorage.getItem('lastOrder') ||
-    localStorage.getItem('lastOrder');
+        let rawOrder = null;
 
+        try {
+            rawOrder =
+                sessionStorage.getItem('lastOrder') ||
+                localStorage.getItem('lastOrder');
+        } catch (storageError) {
+            console.error(
+                'THANK YOU PAGE STORAGE ERROR:',
+                storageError
+            );
 
-
-        if (!rawOrder) {
-
-            document.body.innerHTML = `
-
-                <div
-                    class="min-h-screen flex items-center justify-center p-6 text-center"
-                >
-
-                    <div>
-
-                        <h1
-                            class="text-2xl font-black text-brand-amber mb-3"
-                        >
-                            لا يوجد طلب لعرضه
-                        </h1>
-
-                        <p class="text-gray-400 mb-6">
-                            لم يتم العثور على بيانات الطلب.
-                        </p>
-
-                        <a
-                            href="/"
-                            class="inline-block bg-brand-wine text-white px-8 py-3 rounded-xl font-bold"
-                        >
-                            العودة للرئيسية
-                        </a>
-
-                    </div>
-
-                </div>
-
-            `;
-
-       
-} else {
-
-    try {
-
-        // قراءة بيانات الطلب المحفوظة
-        const order = JSON.parse(rawOrder);
-
-        if (!order || typeof order !== 'object') {
-            throw new Error('بيانات الطلب غير صالحة');
+            showMessage(
+                'تعذر قراءة بيانات الطلب',
+                'تعذر الوصول إلى بيانات الطلب المحفوظة على هذا الجهاز.'
+            );
         }
 
-        // تجهيز رقم الطلب المختصر
-        const shortOrderNumber = String(
-            order.order_number ?? ''
-        )
-            .replace(/^(ORD-|MOTA)/i, '')
-            .trim();
+        if (!document.getElementById('order-id')) {
+            // تم عرض رسالة تعذر الوصول إلى التخزين.
+        } else if (!rawOrder) {
+            showMessage(
+                'لا يوجد طلب لعرضه',
+                'لم يتم العثور على بيانات الطلب المحفوظة. إذا أكملت الطلب بالفعل، تحقق من صفحة الطلبات أو تواصل معنا.'
+            );
+        } else {
+            try {
+                const order = JSON.parse(rawOrder);
 
-        // عرض رقم الطلب بصيغة MOTA1001
-        document.getElementById('order-id').textContent =
-            shortOrderNumber
-                ? `MOTA${shortOrderNumber}`
-                : (order.id || '-');
+                if (
+                    !order ||
+                    typeof order !== 'object' ||
+                    Array.isArray(order)
+                ) {
+                    throw new Error('بيانات الطلب غير صالحة');
+                }
 
-        // =====================================
-        // رقم الطلب والحالة
-        // =====================================
+                // =====================================
+                // رقم الطلب
+                // =====================================
 
-        const statusMap = {
-            New: 'جديد',
-            Confirmed: 'مؤكد',
-            Shipped: 'تم الشحن',
-            Delivered: 'تم التسليم',
-            Cancelled: 'ملغي'
-        };
+                const originalOrderNumber = firstAvailable(
+                    order.order_number,
+                    order.orderNumber
+                );
 
+                if (originalOrderNumber !== null) {
+                    const normalizedNumber =
+                        String(originalOrderNumber)
+                            .trim()
+                            .replace(/^(ORD[-_]?|MOTA)/i, '')
+                            .trim();
 
-                document.getElementById(
-                    'order-status'
-                ).textContent =
-                    statusMap[
-                        order.status
-                    ] ||
-                    'جديد';
+                    setText(
+                        'order-id',
+                        normalizedNumber
+                            ? 'MOTA' + normalizedNumber
+                            : originalOrderNumber
+                    );
+                } else {
+                    // لا نضيف MOTA إلى رقم داخلي غير معروف.
+                    setText(
+                        'order-id',
+                        firstAvailable(order.id, '-')
+                    );
+                }
 
+                // =====================================
+                // حالة الطلب
+                // =====================================
+
+                const statusMap = {
+                    new: 'جديد',
+                    confirmed: 'مؤكد',
+                    shipped: 'تم الشحن',
+                    delivered: 'تم التسليم',
+                    cancelled: 'ملغي'
+                };
+
+                const statusValue = String(
+                    order.status ?? 'New'
+                ).trim();
+
+                const normalizedStatus =
+                    statusValue.toLowerCase();
+
+                setText(
+                    'order-status',
+                    statusMap[normalizedStatus] ||
+                    statusValue ||
+                    'جديد'
+                );
+
+                const statusElement = getElement('order-status');
+
+                if (statusElement) {
+                    if (normalizedStatus === 'cancelled') {
+                        statusElement.className =
+                            'text-lg font-bold text-red-400';
+                    } else if (
+                        normalizedStatus === 'shipped' ||
+                        normalizedStatus === 'delivered'
+                    ) {
+                        statusElement.className =
+                            'text-lg font-bold text-green-400';
+                    } else {
+                        statusElement.className =
+                            'text-lg font-bold text-brand-amber';
+                    }
+                }
 
                 // =====================================
                 // بيانات العميل
                 // =====================================
 
                 const customer =
-                    order.customer || {};
+                    order.customer &&
+                    typeof order.customer === 'object'
+                        ? order.customer
+                        : {};
 
+                setText(
+                    'customer-name',
+                    firstAvailable(
+                        customer.name,
+                        order.customerName
+                    )
+                );
 
-                document.getElementById(
-                    'customer-name'
-                ).textContent =
-                    customer.name || '-';
+                setText(
+                    'customer-phone',
+                    firstAvailable(
+                        customer.phone,
+                        order.customerPhone,
+                        order.phone
+                    )
+                );
 
+                setText(
+                    'customer-gov',
+                    firstAvailable(
+                        customer.gov,
+                        customer.governorate,
+                        customer.governorateName,
+                        order.governorate
+                    )
+                );
 
-                document.getElementById(
-                    'customer-phone'
-                ).textContent =
-                    customer.phone || '-';
+                setText(
+                    'customer-city',
+                    firstAvailable(
+                        customer.city,
+                        customer.cityName,
+                        order.city
+                    )
+                );
 
-
-                document.getElementById(
-                    'customer-gov'
-                ).textContent =
-                    customer.gov || '-';
-
-
-                document.getElementById(
-                    'customer-city'
-                ).textContent =
-                    customer.city || '-';
-
-
-                document.getElementById(
-                    'customer-address'
-                ).textContent =
-                    customer.address || '-';
-
+                setText(
+                    'customer-address',
+                    firstAvailable(
+                        customer.address,
+                        customer.fullAddress,
+                        order.address
+                    )
+                );
 
                 // =====================================
                 // المنتجات
                 // =====================================
 
-                const items =
-                    Array.isArray(order.items)
-                        ? order.items
-                        : [];
+                const items = Array.isArray(order.items)
+                    ? order.items
+                    : [];
 
-
-                const itemsContainer =
-                    document.getElementById(
-                        'order-items'
-                    );
-
+                const itemsContainer = getElement('order-items');
 
                 if (!items.length) {
-
-                    itemsContainer.innerHTML = `
-                        <div class="text-center text-gray-500 py-8">
-                            لا توجد منتجات في الطلب.
-                        </div>
-                    `;
-
+                    itemsContainer.textContent =
+                        'لا توجد منتجات مسجلة في بيانات الطلب.';
                 } else {
+                    itemsContainer.innerHTML = items.map(item => {
+                        item = item && typeof item === 'object'
+                            ? item
+                            : {};
 
-                    itemsContainer.innerHTML =
-                        items.map(item => {
+                        const qty = Math.max(
+                            0,
+                            safeNumber(item.qty ?? item.quantity, 0)
+                        );
 
-                            const qty =
-                                Number(
-                                    item.qty || 0
-                                );
+                        const unitPrice = safeNumber(
+                            firstAvailable(
+                                item.unitPrice,
+                                item.unit_price,
+                                item.price
+                            ),
+                            0
+                        );
 
-                            const unitPrice =
-                                Number(
-                                    item.unitPrice ??
-                                    item.price ??
-                                    0
-                                );
+                        // استخدم إجمالي السطر المحفوظ إذا كان موجودًا.
+                        // وإلا احتفظ بطريقة الحساب الأصلية: سعر الوحدة × الكمية.
+                        const savedLineTotal = firstAvailable(
+                            item.lineTotal,
+                            item.line_total,
+                            item.totalPrice,
+                            item.total_price,
+                            item.itemTotal
+                        );
 
-                            const itemTotal =
-                                unitPrice *
-                                qty;
+                        const itemTotal =
+                            savedLineTotal !== null
+                                ? safeNumber(savedLineTotal, unitPrice * qty)
+                                : unitPrice * qty;
 
+                        const productName = firstAvailable(
+                            item.productTitle,
+                            item.title,
+                            item.name,
+                            'منتج'
+                        );
 
-                            return `
+                        const upholstery = firstAvailable(
+                            item.upholsteryName,
+                            item.upholstery_name,
+                            item.upholstery
+                        );
 
-                                <div class="order-item">
+                        const cushionColor = firstAvailable(
+                            item.cushionColor,
+                            item.cushion_color
+                        );
 
-                                    <img
-                                        src="${
-                                            item.image ||
-                                            ''
-                                        }"
-                                        alt=""
-                                    >
+                        const wickerColor = firstAvailable(
+                            item.wickerColor,
+                            item.wicker_color
+                        );
 
-                                    <div class="flex-grow">
+                        const image = safeImageUrl(
+                            firstAvailable(
+                                item.image,
+                                item.image_url,
+                                item.imageUrl
+                            )
+                        );
 
-                                        <h3
-                                            class="font-bold text-white text-sm mb-1"
-                                        >
-                                            ${
-                                                item.productTitle ||
-                                                item.title ||
-                                                item.name ||
-                                                'منتج'
-                                            }
-                                        </h3>
+                        return `
+                            <div class="order-item">
+                                <img
+                                    src="${escapeHtml(image)}"
+                                    alt=""
+                                    loading="lazy"
+                                    onerror="this.style.visibility='hidden'"
+                                >
 
-                                        <p
-                                            class="text-[11px] text-gray-500"
-                                        >
-                                            الكمية:
-                                            ${qty}
-                                        </p>
+                                <div class="order-item-details">
+                                    <h3 class="font-bold text-white text-sm mb-1">
+                                        ${escapeHtml(productName)}
+                                    </h3>
 
-                                        ${
-                                            item.upholsteryName
-                                                ? `
-                                                    <p class="text-[11px] text-gray-500">
-                                                        التنجيد:
-                                                        ${item.upholsteryName}
-                                                    </p>
-                                                `
-                                                : ''
-                                        }
+                                    <p class="text-[11px] text-gray-500">
+                                        الكمية: ${escapeHtml(qty)}
+                                    </p>
 
-                                        ${
-                                            item.cushionColor
-                                                ? `
-                                                    <p class="text-[11px] text-gray-500">
-                                                        لون المخدة:
-                                                        ${item.cushionColor}
-                                                    </p>
-                                                `
-                                                : ''
-                                        }
+                                    ${
+                                        upholstery
+                                            ? `
+                                                <p class="text-[11px] text-gray-500">
+                                                    التنجيد: ${escapeHtml(upholstery)}
+                                                </p>
+                                            `
+                                            : ''
+                                    }
 
-                                        ${
-                                            item.wickerColor
-                                                ? `
-                                                    <p class="text-[11px] text-gray-500">
-                                                        لون الرتان:
-                                                        ${item.wickerColor}
-                                                    </p>
-                                                `
-                                                : ''
-                                        }
+                                    ${
+                                        cushionColor
+                                            ? `
+                                                <p class="text-[11px] text-gray-500">
+                                                    لون المخدة: ${escapeHtml(cushionColor)}
+                                                </p>
+                                            `
+                                            : ''
+                                    }
 
-                                    </div>
-
-                                    <strong
-                                        class="text-brand-amber text-sm whitespace-nowrap"
-                                    >
-                                        ${
-                                            itemTotal.toLocaleString(
-                                                'ar-EG'
-                                            )
-                                        }
-                                        ج.م
-                                    </strong>
-
+                                    ${
+                                        wickerColor
+                                            ? `
+                                                <p class="text-[11px] text-gray-500">
+                                                    لون الرتان: ${escapeHtml(wickerColor)}
+                                                </p>
+                                            `
+                                            : ''
+                                    }
                                 </div>
 
-                            `;
-
-                        }).join('');
-
+                                <strong class="order-item-price text-brand-amber text-sm whitespace-nowrap">
+                                    ${escapeHtml(formatMoney(itemTotal))}
+                                </strong>
+                            </div>
+                        `;
+                    }).join('');
                 }
-
 
                 // =====================================
                 // الإجماليات
                 // =====================================
+                // لا نعيد حساب الإجمالي النهائي من المنتجات؛
+                // نعرض القيم المسجلة مع الطلب للحفاظ على نفس الحساب المعتمد.
 
-                document.getElementById(
-                    'subtotal'
-                ).textContent =
-                    `${
-                        Number(
-                            order.subtotal || 0
-                        ).toLocaleString(
-                            'ar-EG'
+                setText(
+                    'subtotal',
+                    formatMoney(
+                        safeNumber(
+                            firstAvailable(
+                                order.subtotal,
+                                order.subTotal
+                            ),
+                            0
                         )
-                    } ج.م`;
+                    )
+                );
 
-
-                document.getElementById(
-                    'shipping'
-                ).textContent =
-                    `${
-                        Number(
-                            order.shippingCost || 0
-                        ).toLocaleString(
-                            'ar-EG'
+                setText(
+                    'shipping',
+                    formatMoney(
+                        safeNumber(
+                            firstAvailable(
+                                order.shippingCost,
+                                order.shipping_cost
+                            ),
+                            0
                         )
-                    } ج.م`;
+                    )
+                );
 
-
-                document.getElementById(
-                    'total'
-                ).textContent =
-                    `${
-                        Number(
-                            order.total || 0
-                        ).toLocaleString(
-                            'ar-EG'
+                setText(
+                    'total',
+                    formatMoney(
+                        safeNumber(
+                            firstAvailable(
+                                order.total,
+                                order.grandTotal,
+                                order.grand_total
+                            ),
+                            0
                         )
-                    } ج.م`;
-
+                    )
+                );
 
                 // =====================================
                 // الدفع والاستلام
                 // =====================================
 
-                document.getElementById(
-                    'shipping-method'
-                ).textContent =
-                    order.shippingMethod ||
-                    '-';
+                setText(
+                    'shipping-method',
+                    firstAvailable(
+                        order.shippingMethod,
+                        order.shipping_method
+                    )
+                );
 
+                setText(
+                    'payment-method',
+                    firstAvailable(
+                        order.paymentMethod,
+                        order.payment_method
+                    )
+                );
 
-                document.getElementById(
-                    'payment-method'
-                ).textContent =
-                    order.paymentMethod ||
-                    '-';
+                const depositPercent = firstAvailable(
+                    order.depositPercent,
+                    order.deposit_percent
+                );
 
+                setText(
+                    'deposit-percent',
+                    depositPercent !== null
+                        ? safeNumber(depositPercent, 0) + '%'
+                        : '-'
+                );
 
-                document.getElementById(
-                    'deposit-percent'
-                ).textContent =
-                    `${
-                        Number(
-                            order.depositPercent || 0
-                        )
-                    }%`;
+                const depositAmount = firstAvailable(
+                    order.depositAmount,
+                    order.deposit_amount
+                );
 
+                setText(
+                    'deposit-amount',
+                    depositAmount !== null
+                        ? formatMoney(safeNumber(depositAmount, 0))
+                        : '-'
+                );
 
-                document.getElementById(
-                    'deposit-amount'
-                ).textContent =
-                    `${
-                        Number(
-                            order.depositAmount || 0
-                        ).toLocaleString(
-                            'ar-EG'
-                        )
-                    } ج.م`;
+                const remainingAmount = firstAvailable(
+                    order.remainingAmount,
+                    order.remaining_amount
+                );
 
-
-                document.getElementById(
-                    'remaining-amount'
-                ).textContent =
-                    `${
-                        Number(
-                            order.remainingAmount || 0
-                        ).toLocaleString(
-                            'ar-EG'
-                        )
-                    } ج.م`;
+                setText(
+                    'remaining-amount',
+                    remainingAmount !== null
+                        ? formatMoney(safeNumber(remainingAmount, 0))
+                        : '-'
+                );
 
             } catch (error) {
-
                 console.error(
                     'THANK YOU PAGE ERROR:',
                     error
                 );
 
-                document.body.innerHTML = `
-
-                    <div
-                        class="min-h-screen flex items-center justify-center p-6 text-center"
-                    >
-
-                        <div>
-
-                            <h1
-                                class="text-2xl font-black text-red-400 mb-3"
-                            >
-                                حدث خطأ في عرض الطلب
-                            </h1>
-
-                            <a
-                                href="/"
-                                class="inline-block bg-brand-wine text-white px-8 py-3 rounded-xl font-bold"
-                            >
-                                العودة للرئيسية
-                            </a>
-
-                        </div>
-
-                    </div>
-
-                `;
+                showMessage(
+                    'حدث خطأ في عرض الطلب',
+                    'تعذر قراءة بعض بيانات الطلب. لم يتم حذف بيانات الطلب المحفوظة.'
+                );
             }
-
         }
-
     </script>
 
 </body>
