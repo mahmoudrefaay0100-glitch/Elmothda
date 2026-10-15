@@ -1,4 +1,3 @@
-
 module.exports = async function handler(req, res) {
     try {
         const SUPABASE_URL =
@@ -32,10 +31,16 @@ module.exports = async function handler(req, res) {
 
         const token =
             adminToken ||
-            String(authHeader).replace(/^Bearer\s+/i, '').trim();
+            String(authHeader)
+                .replace(/^Bearer\s+/i, '')
+                .trim();
 
         function toNonNegativeNumber(value, fallback = 0) {
-            if (value === null || value === undefined || value === '') {
+            if (
+                value === null ||
+                value === undefined ||
+                value === ''
+            ) {
                 return fallback;
             }
 
@@ -96,13 +101,22 @@ module.exports = async function handler(req, res) {
                 return null;
             }
 
-            return Array.isArray(data) && data.length
+            return Array.isArray(data) && data.length > 0
                 ? data[0]
                 : null;
         }
 
+        // =====================================================
+        // WHATSAPP NUMBER NORMALIZATION
+        // =====================================================
+
         function normalizeWhatsAppNumber(value) {
-            let number = String(value || '').replace(/\D/g, '');
+            let number = String(value || '')
+                .replace(/\D/g, '');
+
+            if (!number) {
+                return '';
+            }
 
             if (number.startsWith('00')) {
                 number = number.substring(2);
@@ -132,7 +146,11 @@ module.exports = async function handler(req, res) {
             const phoneNumberId =
                 process.env.WHATSAPP_PHONE_NUMBER_ID;
 
-            if (!accessToken || !phoneNumberId || !recipient) {
+            if (
+                !accessToken ||
+                !phoneNumberId ||
+                !recipient
+            ) {
                 console.error(
                     'WhatsApp credentials or recipient missing.'
                 );
@@ -142,41 +160,73 @@ module.exports = async function handler(req, res) {
 
             const to = normalizeWhatsAppNumber(recipient);
 
-            const response = await fetch(
-                `https://graph.facebook.com/v23.0/${phoneNumberId}/messages`,
-                {
-                    method: 'POST',
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        messaging_product: 'whatsapp',
-                        recipient_type: 'individual',
-                        to,
-                        type: 'text',
-                        text: {
-                            preview_url: false,
-                            body: message
+            if (!to || to.length < 10) {
+                console.error(
+                    'Invalid WhatsApp recipient number.'
+                );
+
+                return false;
+            }
+
+            try {
+                const response = await fetch(
+                    `https://graph.facebook.com/v23.0/${phoneNumberId}/messages`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            Authorization: `Bearer ${accessToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            messaging_product: 'whatsapp',
+                            recipient_type: 'individual',
+                            to,
+                            type: 'text',
+                            text: {
+                                preview_url: false,
+                                body: String(message || '')
+                            }
+                        })
+                    }
+                );
+
+                const result = await response
+                    .json()
+                    .catch(() => ({}));
+
+                if (!response.ok) {
+                    console.error(
+                        'WHATSAPP SEND ERROR:',
+                        {
+                            status: response.status,
+                            error: result.error || result,
+                            recipient: to,
+                            phoneNumberIdLast4:
+                                String(phoneNumberId).slice(-4)
                         }
-                    })
+                    );
+
+                    return false;
                 }
-            );
 
-           const result = await response.json().catch(() => ({}));
+                console.log(
+                    'WHATSAPP TEXT ACCEPTED:',
+                    {
+                        recipient: to,
+                        messageId:
+                            result?.messages?.[0]?.id || null
+                    }
+                );
 
-if (!response.ok) {
-    console.error('WHATSAPP SEND ERROR:', {
-        status: response.status,
-        error: result.error || result,
-        recipient: recipient,
-        phoneNumberIdLast4: String(phoneNumberId).slice(-4)
-    });
+                return true;
+            } catch (error) {
+                console.error(
+                    'WHATSAPP TEXT REQUEST FAILED:',
+                    error?.message || error
+                );
 
-    return false;
-}
-
-            return true;
+                return false;
+            }
         }
 
         // =====================================================
@@ -193,14 +243,17 @@ if (!response.ok) {
                     console.error(
                         'Customer WhatsApp settings unavailable.'
                     );
+
                     return false;
                 }
 
-                // مفتاح تفعيل إرسال الرسائل للعملاء من لوحة التحكم.
-                if (settings.whatsapp_notify_customer !== true) {
+                if (
+                    settings.whatsapp_notify_customer !== true
+                ) {
                     console.log(
                         'Customer WhatsApp notifications are disabled.'
                     );
+
                     return false;
                 }
 
@@ -214,7 +267,8 @@ if (!response.ok) {
                     process.env.WHATSAPP_ORDER_TEMPLATE_NAME;
 
                 const templateLanguage =
-                    process.env.WHATSAPP_ORDER_TEMPLATE_LANGUAGE || 'ar';
+                    process.env.WHATSAPP_ORDER_TEMPLATE_LANGUAGE ||
+                    'ar';
 
                 const servicePhone =
                     process.env.WHATSAPP_CUSTOMER_SERVICE_PHONE;
@@ -228,6 +282,7 @@ if (!response.ok) {
                     console.error(
                         'Customer WhatsApp template configuration is incomplete.'
                     );
+
                     return false;
                 }
 
@@ -235,18 +290,26 @@ if (!response.ok) {
                     order.whatsapp || order.phone
                 );
 
-                if (!customerPhone || customerPhone.length < 10) {
+                if (
+                    !customerPhone ||
+                    customerPhone.length < 10
+                ) {
                     console.error(
                         'Invalid customer WhatsApp number.'
                     );
+
                     return false;
                 }
 
-                const orderNumber =
-                    String(order.order_number || order.id || '');
+                const orderNumber = String(
+                    order.order_number || order.id || ''
+                );
 
-                const customerName =
-                    String(order.customer_name || 'عميلنا العزيز');
+                const customerName = String(
+                    order.customer_name ||
+                    order.name ||
+                    'عميلنا العزيز'
+                );
 
                 const items = Array.isArray(order.items)
                     ? order.items.map(item => {
@@ -279,8 +342,7 @@ if (!response.ok) {
                     String(servicePhone).trim();
 
                 /*
-                 * يجب أن يكون القالب المعتمد في Meta مطابقًا
-                 * لعدد المتغيرات وترتيبها ولغة القالب هنا:
+                 * يجب أن يطابق القالب المعتمد في Meta:
                  *
                  * {{1}} اسم العميل
                  * {{2}} رقم الطلب
@@ -367,7 +429,8 @@ if (!response.ok) {
                     'Customer WhatsApp confirmation accepted by Meta.',
                     {
                         orderNumber,
-                        messageId: result?.messages?.[0]?.id
+                        messageId:
+                            result?.messages?.[0]?.id || null
                     }
                 );
 
@@ -375,7 +438,7 @@ if (!response.ok) {
             } catch (error) {
                 console.error(
                     'CUSTOMER WHATSAPP FAILED:',
-                    error
+                    error?.message || error
                 );
 
                 return false;
@@ -391,7 +454,9 @@ if (!response.ok) {
                 const settings =
                     await getWhatsAppNotificationSettings();
 
-                if (!settings) return false;
+                if (!settings) {
+                    return false;
+                }
 
                 if (
                     event === 'new_order' &&
@@ -415,13 +480,19 @@ if (!response.ok) {
                 }
 
                 const orderNumber =
-                    order.order_number || order.id || 'غير متاح';
+                    order.order_number ||
+                    order.id ||
+                    'غير متاح';
 
                 const customerName =
-                    order.customer_name || order.name || 'غير متاح';
+                    order.customer_name ||
+                    order.name ||
+                    'غير متاح';
 
                 const customerPhone =
-                    order.phone || order.customer_phone || 'غير متاح';
+                    order.phone ||
+                    order.customer_phone ||
+                    'غير متاح';
 
                 const status = order.status || 'New';
 
@@ -487,7 +558,7 @@ if (!response.ok) {
             } catch (error) {
                 console.error(
                     'WHATSAPP NOTIFICATION FAILED:',
-                    error
+                    error?.message || error
                 );
 
                 return false;
@@ -523,7 +594,9 @@ if (!response.ok) {
         }
 
         function getUpholsteryName(item) {
-            return String(item?.upholsteryName || '').trim();
+            return String(
+                item?.upholsteryName || ''
+            ).trim();
         }
 
         function isJaguarItem(item) {
@@ -533,7 +606,9 @@ if (!response.ok) {
         }
 
         function isSunBadgeItem(item) {
-            if (isJaguarItem(item)) return false;
+            if (isJaguarItem(item)) {
+                return false;
+            }
 
             const type = String(
                 item?.upholsteryExtraType || ''
@@ -549,11 +624,13 @@ if (!response.ok) {
 
         // =====================================================
         // PUBLIC ORDER TRACKING
-        // GET /api/orders?track=ORDER_ID
+        // GET /api/orders?track=ORDER_NUMBER
         // =====================================================
 
         if (req.method === 'GET' && req.query?.track) {
-            const trackId = String(req.query.track).trim();
+            const trackId = String(
+                req.query.track
+            ).trim();
 
             if (!trackId) {
                 return res.status(400).json({
@@ -562,7 +639,8 @@ if (!response.ok) {
                 });
             }
 
-            const encodedTrackId = encodeURIComponent(trackId);
+            const encodedTrackId =
+                encodeURIComponent(trackId);
 
             let {
                 response,
@@ -575,6 +653,7 @@ if (!response.ok) {
                 `&limit=1`
             );
 
+            // المحاولة الثانية: البحث باستخدام رقم المعرف.
             if (
                 response.ok &&
                 Array.isArray(orders) &&
@@ -592,6 +671,7 @@ if (!response.ok) {
                 text = fallback.text;
             }
 
+            // المحاولة الثالثة: بحث غير حساس لحالة الأحرف.
             if (
                 response.ok &&
                 Array.isArray(orders) &&
@@ -622,7 +702,10 @@ if (!response.ok) {
                 });
             }
 
-            if (!Array.isArray(orders) || orders.length === 0) {
+            if (
+                !Array.isArray(orders) ||
+                orders.length === 0
+            ) {
                 return res.status(404).json({
                     success: false,
                     error: 'لم يتم العثور على طلب بهذا الرقم.'
@@ -633,29 +716,70 @@ if (!response.ok) {
 
             const publicOrder = {
                 id: order.id,
-                order_number: order.order_number || order.id,
+
+                order_number:
+                    order.order_number || order.id,
+
                 status: order.status || 'New',
+
                 created_at: order.created_at || null,
+
                 updated_at: order.updated_at || null,
+
                 customer_name:
-                    order.customer_name || order.name || '',
+                    order.customer_name ||
+                    order.name ||
+                    '',
+
                 shipping_method:
                     order.shipping_method ||
                     order.delivery_method ||
                     '',
-                shipping_cost: Number(order.shipping_cost || 0),
-                payment_method: order.payment_method || '',
-                payment_status: order.payment_status || 'Pending',
-                deposit_percent: Number(order.deposit_percent || 0),
-                deposit_amount: Number(
-                    order.deposit_amount ?? order.deposit ?? 0
+
+                shipping_cost: Number(
+                    order.shipping_cost || 0
                 ),
-                remaining_amount: Number(order.remaining_amount || 0),
-                subtotal: Number(order.subtotal || 0),
-                sunBadgeFee: Number(order.sunbadge_fee || 0),
-                sunbadge_fee: Number(order.sunbadge_fee || 0),
-                discount: Number(order.discount || 0),
-                total: Number(order.total || 0),
+
+                payment_method:
+                    order.payment_method || '',
+
+                payment_status:
+                    order.payment_status || 'Pending',
+
+                deposit_percent: Number(
+                    order.deposit_percent || 0
+                ),
+
+                deposit_amount: Number(
+                    order.deposit_amount ??
+                    order.deposit ??
+                    0
+                ),
+
+                remaining_amount: Number(
+                    order.remaining_amount || 0
+                ),
+
+                subtotal: Number(
+                    order.subtotal || 0
+                ),
+
+                sunBadgeFee: Number(
+                    order.sunbadge_fee || 0
+                ),
+
+                sunbadge_fee: Number(
+                    order.sunbadge_fee || 0
+                ),
+
+                discount: Number(
+                    order.discount || 0
+                ),
+
+                total: Number(
+                    order.total || 0
+                ),
+
                 items: Array.isArray(order.items)
                     ? order.items
                     : (
@@ -663,7 +787,11 @@ if (!response.ok) {
                             ? order.products
                             : []
                     ),
-                notes: order.notes || order.customer_notes || ''
+
+                notes:
+                    order.notes ||
+                    order.customer_notes ||
+                    ''
             };
 
             return res.status(200).json({
@@ -680,10 +808,21 @@ if (!response.ok) {
         if (req.method === 'POST') {
             const order = req.body || {};
 
-            if (!order.id) {
+            if (!order.id && !order.order_number) {
                 return res.status(400).json({
                     success: false,
                     error: 'رقم الطلب غير موجود'
+                });
+            }
+
+            const requestedOrderNumber = String(
+                order.order_number || order.id
+            ).trim();
+
+            if (!requestedOrderNumber) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'رقم الطلب غير صالح.'
                 });
             }
 
@@ -744,7 +883,10 @@ if (!response.ok) {
                 const product = productData[0];
                 const price = Number(product.price);
 
-                if (!Number.isFinite(price) || price < 0) {
+                if (
+                    !Number.isFinite(price) ||
+                    price < 0
+                ) {
                     return res.status(400).json({
                         success: false,
                         error:
@@ -752,9 +894,14 @@ if (!response.ok) {
                     });
                 }
 
-                const fee = Number(product.sunbadge_fee ?? 0);
+                const fee = Number(
+                    product.sunbadge_fee ?? 0
+                );
 
-                if (!Number.isFinite(fee) || fee < 0) {
+                if (
+                    !Number.isFinite(fee) ||
+                    fee < 0
+                ) {
                     return res.status(400).json({
                         success: false,
                         error:
@@ -771,6 +918,7 @@ if (!response.ok) {
 
             let subtotal = 0;
             let totalSunBadgeFee = 0;
+
             const savedItems = [];
 
             for (const item of items) {
@@ -780,7 +928,8 @@ if (!response.ok) {
                 if (!product) {
                     return res.status(400).json({
                         success: false,
-                        error: 'تعذر العثور على بيانات أحد المنتجات.'
+                        error:
+                            'تعذر العثور على بيانات أحد المنتجات.'
                     });
                 }
 
@@ -789,7 +938,8 @@ if (!response.ok) {
                 if (qty === null) {
                     return res.status(400).json({
                         success: false,
-                        error: 'كمية أحد المنتجات غير صحيحة.'
+                        error:
+                            'كمية أحد المنتجات غير صحيحة.'
                     });
                 }
 
@@ -802,7 +952,8 @@ if (!response.ok) {
                 ) {
                     return res.status(400).json({
                         success: false,
-                        error: 'تعذر حساب قيمة أحد المنتجات.'
+                        error:
+                            'تعذر حساب قيمة أحد المنتجات.'
                     });
                 }
 
@@ -811,7 +962,8 @@ if (!response.ok) {
                         ? product.sunbadgeFee
                         : 0;
 
-                const sunbadgeLineFee = sunbadgeUnitFee * qty;
+                const sunbadgeLineFee =
+                    sunbadgeUnitFee * qty;
 
                 if (
                     !Number.isFinite(sunbadgeLineFee) ||
@@ -830,31 +982,43 @@ if (!response.ok) {
 
                 savedItems.push({
                     ...item,
+
                     productId,
                     product_id: productId,
+
                     qty,
                     quantity: qty,
+
                     unitPrice,
                     price: unitPrice,
+
                     itemSubtotal,
+
                     sunbadgeUnitFee,
                     sunbadge_unit_fee: sunbadgeUnitFee,
+
                     sunbadgeFee: sunbadgeLineFee,
                     sunbadge_fee: sunbadgeLineFee,
+
                     sunbadgeLineFee,
                     sunbadge_line_fee: sunbadgeLineFee,
-                    lineTotal: itemSubtotal + sunbadgeLineFee,
+
+                    lineTotal:
+                        itemSubtotal + sunbadgeLineFee,
+
                     upholsteryExtraType:
                         isSunBadgeItem(item)
                             ? 'sunbadge'
                             : (
-                                item.upholsteryExtraType || 'none'
+                                item.upholsteryExtraType ||
+                                'none'
                             )
                 });
             }
 
             const shippingCost = toNonNegativeNumber(
-                order.shippingCost ?? order.shipping_cost,
+                order.shippingCost ??
+                order.shipping_cost,
                 0
             );
 
@@ -864,7 +1028,9 @@ if (!response.ok) {
             );
 
             const beforeDiscount =
-                subtotal + totalSunBadgeFee + shippingCost;
+                subtotal +
+                totalSunBadgeFee +
+                shippingCost;
 
             const discount = Math.min(
                 requestedDiscount,
@@ -960,39 +1126,50 @@ if (!response.ok) {
             }
 
             const insertPayload = {
-                order_number: null,
+                // نحفظ رقم الطلب الذي أنشأه الموقع بدل null.
+                order_number: requestedOrderNumber,
+
                 customer_name: customerName,
                 phone: customerPhone,
                 whatsapp: customerWhatsapp,
+
                 governorate: customerGov,
                 city: customerCity,
                 address: customerAddress,
                 location: '',
+
                 items: savedItems,
+
                 subtotal,
                 sunbadge_fee: totalSunBadgeFee,
                 shipping_cost: shippingCost,
                 discount,
                 total,
+
                 shipping_method:
                     order.shippingMethod ??
                     order.shipping_method ??
                     '',
+
                 payment_method:
                     order.paymentMethod ??
                     order.payment_method ??
                     'Visa / Mastercard',
+
                 deposit_percent: depositPercent,
                 deposit_amount: depositAmount,
                 remaining_amount: remainingAmount,
+
                 payment_status:
                     order.paymentStatus ??
                     order.payment_status ??
                     'Pending',
+
                 payment_proof_url:
                     order.paymentProofUrl ??
                     order.payment_proof_url ??
                     '',
+
                 status: order.status || 'New'
             };
 
@@ -1037,19 +1214,26 @@ if (!response.ok) {
                 });
             }
 
+            // لا نحذف ORD- من رقم الطلب الذي يرجع للواجهة.
+            // يجب أن يطابق رقم الطلب المخزن في قاعدة البيانات.
             const finalOrder = {
                 ...savedOrder,
-                order_number: savedOrder.order_number
-                    ? String(savedOrder.order_number).replace(/^ORD-/i, '')
-                    : null
+                order_number: String(
+                    savedOrder.order_number ||
+                    requestedOrderNumber
+                ).trim()
             };
 
-            // إشعار الإدارة الحالي يظل مستقلًا عن رسالة العميل.
-            await notifyWhatsAppOrder('new_order', finalOrder);
+            // إشعار الإدارة عند الطلب الجديد.
+            await notifyWhatsAppOrder(
+                'new_order',
+                finalOrder
+            );
 
-            // رسالة تأكيد للعميل بعد نجاح حفظ الطلب.
-            // فشل واتساب لا يلغي الطلب.
-            await sendCustomerOrderConfirmation(finalOrder);
+            // إرسال تأكيد للعميل؛ فشل واتساب لا يلغي الطلب.
+            await sendCustomerOrderConfirmation(
+                finalOrder
+            );
 
             return res.status(201).json({
                 success: true,
@@ -1077,7 +1261,8 @@ if (!response.ok) {
                 response,
                 data
             } = await getSupabaseJson(
-                `${SUPABASE_URL}/rest/v1/orders?select=*&order=created_at.desc`
+                `${SUPABASE_URL}/rest/v1/orders` +
+                '?select=*&order=created_at.desc'
             );
 
             if (!response.ok) {
@@ -1121,7 +1306,8 @@ if (!response.ok) {
                 response,
                 data
             } = await getSupabaseJson(
-                `${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`,
+                `${SUPABASE_URL}/rest/v1/orders` +
+                `?id=eq.${encodeURIComponent(orderId)}`,
                 {
                     method: 'DELETE',
                     headers: {
@@ -1148,7 +1334,8 @@ if (!response.ok) {
             if (!Array.isArray(data) || data.length === 0) {
                 return res.status(404).json({
                     success: false,
-                    error: 'الطلب غير موجود في قاعدة البيانات.'
+                    error:
+                        'الطلب غير موجود في قاعدة البيانات.'
                 });
             }
 
@@ -1187,7 +1374,9 @@ if (!response.ok) {
                     'Cancelled'
                 ];
 
-                if (!allowedStatuses.includes(body.status)) {
+                if (
+                    !allowedStatuses.includes(body.status)
+                ) {
                     return res.status(400).json({
                         success: false,
                         error: 'حالة الطلب غير صحيحة.'
@@ -1217,7 +1406,8 @@ if (!response.ok) {
                     });
                 }
 
-                updateData.payment_status = body.paymentStatus;
+                updateData.payment_status =
+                    body.paymentStatus;
             }
 
             if (Object.keys(updateData).length === 0) {
@@ -1228,6 +1418,7 @@ if (!response.ok) {
                 });
             }
 
+            // قراءة الطلب القديم لمعرفة هل تغيرت الحالة فعلًا.
             const oldOrderResult = await getSupabaseJson(
                 `${SUPABASE_URL}/rest/v1/orders` +
                 `?id=eq.${encodeURIComponent(orderId)}` +
@@ -1246,7 +1437,8 @@ if (!response.ok) {
 
                 return res.status(404).json({
                     success: false,
-                    error: 'الطلب غير موجود في قاعدة البيانات.'
+                    error:
+                        'الطلب غير موجود في قاعدة البيانات.'
                 });
             }
 
@@ -1256,7 +1448,8 @@ if (!response.ok) {
                 response,
                 data
             } = await getSupabaseJson(
-                `${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`,
+                `${SUPABASE_URL}/rest/v1/orders` +
+                `?id=eq.${encodeURIComponent(orderId)}`,
                 {
                     method: 'PATCH',
                     headers: {
@@ -1284,12 +1477,14 @@ if (!response.ok) {
             if (!Array.isArray(data) || data.length === 0) {
                 return res.status(404).json({
                     success: false,
-                    error: 'الطلب غير موجود في قاعدة البيانات.'
+                    error:
+                        'الطلب غير موجود في قاعدة البيانات.'
                 });
             }
 
             const updatedOrder = data[0];
 
+            // إشعار الإدارة عند تغير حالة الطلب فقط.
             if (
                 updateData.status !== undefined &&
                 updateData.status !== oldOrder.status
@@ -1300,9 +1495,11 @@ if (!response.ok) {
                 );
             }
 
+            // إشعار الإدارة عند تغير حالة الدفع فقط.
             if (
                 updateData.payment_status !== undefined &&
-                updateData.payment_status !== oldOrder.payment_status
+                updateData.payment_status !==
+                    oldOrder.payment_status
             ) {
                 await notifyWhatsAppOrder(
                     'payment_status',
@@ -1322,7 +1519,10 @@ if (!response.ok) {
         });
 
     } catch (error) {
-        console.error('ORDERS API ERROR:', error);
+        console.error(
+            'ORDERS API ERROR:',
+            error?.message || error
+        );
 
         return res.status(500).json({
             success: false,
