@@ -87,7 +87,6 @@ module.exports = async function handler(req, res) {
 
         function getCustomerField(order, ...keys) {
             const objects = getCustomerObjects(order);
-
             const values = [];
 
             for (const key of keys) {
@@ -103,6 +102,10 @@ module.exports = async function handler(req, res) {
             return firstNonEmpty(...values);
         }
 
+        // =====================================================
+        // NORMALIZE WHATSAPP PHONE NUMBERS
+        // =====================================================
+
         function normalizeWhatsAppNumber(value) {
             let number = String(value || '').replace(/\D/g, '');
 
@@ -113,15 +116,25 @@ module.exports = async function handler(req, res) {
             }
 
             if (number.startsWith('0')) {
+                // مثال: 01042056131 => 201042056131
                 number = '20' + number.substring(1);
             } else if (!number.startsWith('20')) {
+                // رقم مصري بدون الصفر الأول
                 number = '20' + number;
+            }
+
+            // تحقق أساسي من صيغة رقم الهاتف الدولي
+            if (!/^\d{10,15}$/.test(number)) {
+                return '';
             }
 
             return number;
         }
 
-        // توحيد بيانات العميل مهما اختلفت أسماء الحقول.
+        // =====================================================
+        // NORMALIZE ORDER AND CUSTOMER DATA
+        // =====================================================
+
         function normalizeOrder(order = {}) {
             const customers = getCustomerObjects(order);
 
@@ -267,6 +280,10 @@ module.exports = async function handler(req, res) {
             };
         }
 
+        // =====================================================
+        // SUPABASE REQUEST HELPERS
+        // =====================================================
+
         async function getSupabaseJson(url, options = {}) {
             const response = await fetch(url, {
                 ...options,
@@ -305,6 +322,7 @@ module.exports = async function handler(req, res) {
                     response.status,
                     data
                 );
+
                 return null;
             }
 
@@ -314,27 +332,30 @@ module.exports = async function handler(req, res) {
         }
 
         // =====================================================
-        // SEND WHATSAPP TEXT TO ADMIN
+        // SEND WHATSAPP TEXT TO CUSTOMER SERVICE
         // =====================================================
 
-        async function sendWhatsAppText(
-            message,
-            recipient = '201042056121'
-        ) {
+        async function sendWhatsAppText(message) {
             const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
             const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
-            if (!accessToken || !phoneNumberId || !recipient) {
+            // رقم خدمة العملاء، وليس رقم الإرسال من Meta
+            const configuredRecipient =
+                process.env.WHATSAPP_CUSTOMER_SERVICE_PHONE ||
+                '201042056131';
+
+            const to = normalizeWhatsAppNumber(configuredRecipient);
+
+            if (!accessToken || !phoneNumberId || !to) {
                 console.error(
-                    'WhatsApp credentials or recipient missing.'
+                    'WhatsApp configuration is incomplete:',
+                    {
+                        hasAccessToken: Boolean(accessToken),
+                        hasPhoneNumberId: Boolean(phoneNumberId),
+                        hasValidRecipient: Boolean(to)
+                    }
                 );
-                return false;
-            }
 
-            const to = normalizeWhatsAppNumber(recipient);
-
-            if (!to || to.length < 10) {
-                console.error('Invalid WhatsApp recipient number.');
                 return false;
             }
 
@@ -354,7 +375,7 @@ module.exports = async function handler(req, res) {
                             type: 'text',
                             text: {
                                 preview_url: false,
-                                body: String(message || '')
+                                body: String(message || '').slice(0, 4000)
                             }
                         })
                     }
@@ -363,14 +384,25 @@ module.exports = async function handler(req, res) {
                 const result = await response.json().catch(() => ({}));
 
                 if (!response.ok) {
+                    const metaError = result?.error || {};
+
+                    // لا تسجل التوكن أو أي بيانات اعتماد سرية
                     console.error('WHATSAPP SEND ERROR:', {
                         status: response.status,
-                        error: result.error || result
+                        code: metaError.code ?? null,
+                        errorSubcode: metaError.error_subcode ?? null,
+                        type: metaError.type ?? null,
+                        message: metaError.message ?? null,
+                        details:
+                            metaError.error_data?.details ?? null,
+                        fbtraceId: metaError.fbtrace_id ?? null
                     });
+
                     return false;
                 }
 
                 console.log('WHATSAPP TEXT ACCEPTED:', {
+                    recipient: to,
                     messageId: result?.messages?.[0]?.id || null
                 });
 
@@ -380,6 +412,7 @@ module.exports = async function handler(req, res) {
                     'WHATSAPP TEXT REQUEST FAILED:',
                     error?.message || error
                 );
+
                 return false;
             }
         }
@@ -399,27 +432,38 @@ module.exports = async function handler(req, res) {
                     console.log(
                         'Customer WhatsApp notifications are disabled.'
                     );
+
                     return false;
                 }
 
                 const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
                 const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+
                 const templateName =
                     process.env.WHATSAPP_ORDER_TEMPLATE_NAME;
+
                 const templateLanguage =
                     process.env.WHATSAPP_ORDER_TEMPLATE_LANGUAGE || 'ar';
+
+                // رقم خدمة العملاء الذي يظهر داخل رسالة القالب
                 const servicePhone =
-                    process.env.WHATSAPP_CUSTOMER_SERVICE_PHONE;
+                    process.env.WHATSAPP_CUSTOMER_SERVICE_PHONE ||
+                    '201042056131';
 
                 if (
                     !accessToken ||
                     !phoneNumberId ||
-                    !templateName ||
-                    !servicePhone
+                    !templateName
                 ) {
                     console.error(
-                        'Customer WhatsApp template configuration is incomplete.'
+                        'Customer WhatsApp template configuration is incomplete.',
+                        {
+                            hasAccessToken: Boolean(accessToken),
+                            hasPhoneNumberId: Boolean(phoneNumberId),
+                            hasTemplateName: Boolean(templateName)
+                        }
                     );
+
                     return false;
                 }
 
@@ -429,7 +473,7 @@ module.exports = async function handler(req, res) {
                     order.whatsapp || order.phone
                 );
 
-                if (!customerPhone || customerPhone.length < 10) {
+                if (!customerPhone) {
                     console.error(
                         'Invalid customer WhatsApp number.',
                         {
@@ -438,6 +482,7 @@ module.exports = async function handler(req, res) {
                             hasWhatsApp: Boolean(order.whatsapp)
                         }
                     );
+
                     return false;
                 }
 
@@ -457,12 +502,14 @@ module.exports = async function handler(req, res) {
                             item.productName ||
                             'منتج';
 
-                        const quantity = item.qty || item.quantity || 1;
+                        const quantity =
+                            item.qty || item.quantity || 1;
 
                         return `${name} × ${quantity}`;
                     }).join('، ')
                     : 'تفاصيل الطلب متاحة لدى خدمة العملاء';
 
+                // يجب أن تطابق هذه المتغيرات قالب Meta المعتمد
                 const parameters = [
                     customerName,
                     orderNumber,
@@ -506,11 +553,23 @@ module.exports = async function handler(req, res) {
                 const result = await response.json().catch(() => ({}));
 
                 if (!response.ok) {
-                    console.error(
-                        'CUSTOMER WHATSAPP ERROR:',
-                        response.status,
-                        result
-                    );
+                    const metaError = result?.error || {};
+
+                    console.error('CUSTOMER WHATSAPP ERROR:', {
+                        status: response.status,
+                        code: metaError.code ?? null,
+                        errorSubcode: metaError.error_subcode ?? null,
+                        type: metaError.type ?? null,
+                        message: metaError.message ?? null,
+                        details:
+                            metaError.error_data?.details ?? null,
+                        fbtraceId: metaError.fbtrace_id ?? null,
+                        orderNumber,
+                        templateName,
+                        templateLanguage,
+                        parameterCount: parameters.length
+                    });
+
                     return false;
                 }
 
@@ -528,6 +587,7 @@ module.exports = async function handler(req, res) {
                     'CUSTOMER WHATSAPP FAILED:',
                     error?.message || error
                 );
+
                 return false;
             }
         }
@@ -546,17 +606,23 @@ module.exports = async function handler(req, res) {
                 if (
                     event === 'new_order' &&
                     settings.whatsapp_notify_new_order !== true
-                ) return false;
+                ) {
+                    return false;
+                }
 
                 if (
                     event === 'order_status' &&
                     settings.whatsapp_notify_order_status !== true
-                ) return false;
+                ) {
+                    return false;
+                }
 
                 if (
                     event === 'payment_status' &&
                     settings.whatsapp_notify_payment_status !== true
-                ) return false;
+                ) {
+                    return false;
+                }
 
                 const order = normalizeOrder(rawOrder);
 
@@ -565,8 +631,11 @@ module.exports = async function handler(req, res) {
 
                 const customerName = order.customer_name || 'غير متاح';
                 const customerPhone = order.phone || 'غير متاح';
-                const customerWhatsapp = order.whatsapp || customerPhone;
+                const customerWhatsapp =
+                    order.whatsapp || customerPhone;
+
                 const status = order.status || 'New';
+
                 const paymentStatus =
                     order.payment_status ||
                     order.paymentStatus ||
@@ -629,6 +698,7 @@ module.exports = async function handler(req, res) {
                     'WHATSAPP NOTIFICATION FAILED:',
                     error?.message || error
                 );
+
                 return false;
             }
         }
@@ -650,7 +720,9 @@ module.exports = async function handler(req, res) {
                 !Number.isFinite(qty) ||
                 !Number.isInteger(qty) ||
                 qty < 1
-            ) return null;
+            ) {
+                return null;
+            }
 
             return qty;
         }
@@ -735,7 +807,10 @@ module.exports = async function handler(req, res) {
                 });
             }
 
-            if (!Array.isArray(result.data) || result.data.length === 0) {
+            if (
+                !Array.isArray(result.data) ||
+                result.data.length === 0
+            ) {
                 return res.status(404).json({
                     success: false,
                     error: 'لم يتم العثور على طلب بهذا الرقم.'
@@ -766,7 +841,9 @@ module.exports = async function handler(req, res) {
                 address: order.address,
 
                 shipping_method:
-                    order.shipping_method || order.delivery_method || '',
+                    order.shipping_method ||
+                    order.delivery_method ||
+                    '',
 
                 shipping_cost: Number(order.shipping_cost || 0),
                 payment_method: order.payment_method || '',
@@ -777,7 +854,10 @@ module.exports = async function handler(req, res) {
                     order.deposit_amount ?? order.deposit ?? 0
                 ),
 
-                remaining_amount: Number(order.remaining_amount || 0),
+                remaining_amount: Number(
+                    order.remaining_amount || 0
+                ),
+
                 subtotal: Number(order.subtotal || 0),
                 sunBadgeFee: Number(order.sunbadge_fee || 0),
                 sunbadge_fee: Number(order.sunbadge_fee || 0),
@@ -825,7 +905,9 @@ module.exports = async function handler(req, res) {
                 });
             }
 
-            const items = Array.isArray(order.items) ? order.items : [];
+            const items = Array.isArray(order.items)
+                ? order.items
+                : [];
 
             if (items.length === 0) {
                 return res.status(400).json({
@@ -834,7 +916,9 @@ module.exports = async function handler(req, res) {
                 });
             }
 
-            const productIds = [...new Set(items.map(getProductId))];
+            const productIds = [
+                ...new Set(items.map(getProductId))
+            ];
 
             if (productIds.some(id => !id)) {
                 return res.status(400).json({
@@ -947,7 +1031,9 @@ module.exports = async function handler(req, res) {
 
                 if (
                     !Number.isFinite(sunbadgeLineFee) ||
-                    !Number.isFinite(totalSunBadgeFee + sunbadgeLineFee)
+                    !Number.isFinite(
+                        totalSunBadgeFee + sunbadgeLineFee
+                    )
                 ) {
                     return res.status(400).json({
                         success: false,
@@ -993,11 +1079,20 @@ module.exports = async function handler(req, res) {
             const beforeDiscount =
                 subtotal + totalSunBadgeFee + shippingCost;
 
-            const discount = Math.min(requestedDiscount, beforeDiscount);
-            const total = Math.max(0, beforeDiscount - discount);
+            const discount = Math.min(
+                requestedDiscount,
+                beforeDiscount
+            );
+
+            const total = Math.max(
+                0,
+                beforeDiscount - discount
+            );
 
             const rawDepositPercent = Number(
-                order.depositPercent ?? order.deposit_percent ?? 30
+                order.depositPercent ??
+                order.deposit_percent ??
+                30
             );
 
             if (
@@ -1012,10 +1107,15 @@ module.exports = async function handler(req, res) {
             }
 
             const depositPercent = rawDepositPercent;
+
             const depositAmount = Math.round(
                 total * depositPercent / 100
             );
-            const remainingAmount = Math.max(0, total - depositAmount);
+
+            const remainingAmount = Math.max(
+                0,
+                total - depositAmount
+            );
 
             const customerName = String(getCustomerField(
                 order,
@@ -1199,12 +1299,16 @@ module.exports = async function handler(req, res) {
             const finalOrder = normalizeOrder({
                 ...savedOrder,
                 order_number: String(
-                    savedOrder.order_number || requestedOrderNumber
+                    savedOrder.order_number ||
+                    requestedOrderNumber
                 ).trim()
             });
 
             // فشل واتساب لا يلغي نجاح حفظ الطلب.
+            // إشعار الإدارة يذهب إلى WHATSAPP_CUSTOMER_SERVICE_PHONE.
             await notifyWhatsAppOrder('new_order', finalOrder);
+
+            // إرسال تأكيد العميل مشروط بإعدادات الموقع والقالب.
             await sendCustomerOrderConfirmation(finalOrder);
 
             return res.status(201).json({
@@ -1261,7 +1365,9 @@ module.exports = async function handler(req, res) {
         // =====================================================
 
         if (req.method === 'DELETE') {
-            const orderId = String(req.query?.id || '').trim();
+            const orderId = String(
+                req.query?.id || ''
+            ).trim();
 
             if (!orderId) {
                 return res.status(400).json({
@@ -1282,7 +1388,10 @@ module.exports = async function handler(req, res) {
             );
 
             if (!response.ok) {
-                console.error('SUPABASE DELETE ORDER ERROR:', data);
+                console.error(
+                    'SUPABASE DELETE ORDER ERROR:',
+                    data
+                );
 
                 return res.status(response.status).json({
                     success: false,
@@ -1312,7 +1421,9 @@ module.exports = async function handler(req, res) {
         // =====================================================
 
         if (req.method === 'PUT') {
-            const orderId = String(req.query?.id || '').trim();
+            const orderId = String(
+                req.query?.id || ''
+            ).trim();
 
             if (!orderId) {
                 return res.status(400).json({
@@ -1352,7 +1463,11 @@ module.exports = async function handler(req, res) {
                     'Refunded'
                 ];
 
-                if (!allowedPaymentStatuses.includes(body.paymentStatus)) {
+                if (
+                    !allowedPaymentStatuses.includes(
+                        body.paymentStatus
+                    )
+                ) {
                     return res.status(400).json({
                         success: false,
                         error: 'حالة الدفع غير صحيحة.'
@@ -1365,7 +1480,8 @@ module.exports = async function handler(req, res) {
             if (Object.keys(updateData).length === 0) {
                 return res.status(400).json({
                     success: false,
-                    error: 'لم يتم إرسال حالة الطلب أو حالة الدفع.'
+                    error:
+                        'لم يتم إرسال حالة الطلب أو حالة الدفع.'
                 });
             }
 
@@ -1390,7 +1506,9 @@ module.exports = async function handler(req, res) {
                 });
             }
 
-            const oldOrder = normalizeOrder(oldOrderResult.data[0]);
+            const oldOrder = normalizeOrder(
+                oldOrderResult.data[0]
+            );
 
             const { response, data } = await getSupabaseJson(
                 `${SUPABASE_URL}/rest/v1/orders` +
@@ -1405,7 +1523,10 @@ module.exports = async function handler(req, res) {
             );
 
             if (!response.ok) {
-                console.error('SUPABASE UPDATE ORDER ERROR:', data);
+                console.error(
+                    'SUPABASE UPDATE ORDER ERROR:',
+                    data
+                );
 
                 return res.status(response.status).json({
                     success: false,
