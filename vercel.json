@@ -5,5 +5,15 @@
     "api/*.js": {
       "maxDuration": 10
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/api/shipping-options",
+      "destination": "/api/options?resource=shipping-options"
+    },
+    {
+      "source": "/api/whatsapp-webhook",
+      "destination": "/api/send-whatsapp-order"
+    }
+  ]
 }
