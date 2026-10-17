@@ -5591,7 +5591,8 @@ window.updateTransferAmount = updateTransferAmount;
 
 
         
-function formatMoney(amount) {
+
+window.formatMoney = function formatMoney(amount) {
     const value = Number(amount);
 
     return new Intl.NumberFormat('ar-EG', {
@@ -5599,7 +5600,7 @@ function formatMoney(amount) {
         currency: 'EGP',
         maximumFractionDigits: 2
     }).format(Number.isFinite(value) ? value : 0);
-}
+};
 
 
 
