@@ -5590,6 +5590,18 @@ window.updateTransferAmount = updateTransferAmount;
 }
 
 
+        
+function formatMoney(amount) {
+    const value = Number(amount);
+
+    return new Intl.NumberFormat('ar-EG', {
+        style: 'currency',
+        currency: 'EGP',
+        maximumFractionDigits: 2
+    }).format(Number.isFinite(value) ? value : 0);
+}
+
+
 
 
         function updateDepositAmount() {
