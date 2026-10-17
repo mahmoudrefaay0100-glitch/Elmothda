@@ -2,8 +2,41 @@
 export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store, max-age=0');
 
+    // =====================================
+    // 1) تحقق Meta من عنوان Webhook
+    // =====================================
+    if (req.method === 'GET') {
+        const mode = req.query?.['hub.mode'];
+        const token = req.query?.['hub.verify_token'];
+        const challenge = req.query?.['hub.challenge'];
+        const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
+
+        if (
+            mode === 'subscribe' &&
+            verifyToken &&
+            token === verifyToken &&
+            challenge !== undefined
+        ) {
+            console.log('WHATSAPP WEBHOOK VERIFIED');
+
+            res.setHeader(
+                'Content-Type',
+                'text/plain; charset=utf-8'
+            );
+
+            return res.status(200).send(String(challenge));
+        }
+
+        console.warn('WHATSAPP WEBHOOK VERIFICATION FAILED');
+
+        return res.status(403).json({
+            success: false,
+            error: 'Webhook verification failed'
+        });
+    }
+
     if (req.method !== 'POST') {
-        res.setHeader('Allow', 'POST');
+        res.setHeader('Allow', 'GET, POST');
 
         return res.status(405).json({
             success: false,
@@ -11,6 +44,110 @@ export default async function handler(req, res) {
         });
     }
 
+    // =====================================
+    // 2) استقبال إشعارات Meta
+    // =====================================
+    let webhookBody = req.body || {};
+
+    if (typeof webhookBody === 'string') {
+        try {
+            webhookBody = JSON.parse(webhookBody);
+        } catch {
+            return res.status(400).json({
+                success: false,
+                error: 'بيانات الطلب ليست بصيغة JSON صحيحة.'
+            });
+        }
+    }
+
+    // لو الطلب وارد من Meta، نعالج حالات الرسائل
+    // وننهي التنفيذ قبل كود إرسال إشعار الطلب.
+    if (webhookBody?.object === 'whatsapp_business_account') {
+        try {
+            const deliveryStatuses = [];
+
+            const entries = Array.isArray(webhookBody.entry)
+                ? webhookBody.entry
+                : [];
+
+            for (const entry of entries) {
+                const changes = Array.isArray(entry?.changes)
+                    ? entry.changes
+                    : [];
+
+                for (const change of changes) {
+                    const value = change?.value || {};
+
+                    const statuses = Array.isArray(value.statuses)
+                        ? value.statuses
+                        : [];
+
+                    for (const item of statuses) {
+                        const errors = Array.isArray(item.errors)
+                            ? item.errors.map(error => ({
+                                code: error.code ?? null,
+                                title: error.title ?? null,
+                                message: error.message ?? null,
+                                details:
+                                    error.error_data?.details ?? null
+                            }))
+                            : [];
+
+                        const record = {
+                            messageId: item.id ?? null,
+                            status: item.status ?? 'unknown',
+                            recipient: item.recipient_id ?? null,
+                            timestamp: item.timestamp ?? null,
+                            errors
+                        };
+
+                        deliveryStatuses.push(record);
+
+                        console.log(
+                            'WHATSAPP DELIVERY STATUS:',
+                            JSON.stringify(record)
+                        );
+                    }
+
+                    // تسجيل معلومات أساسية عن الرسائل الواردة
+                    // دون تسجيل محتوى الرسالة.
+                    const messages = Array.isArray(value.messages)
+                        ? value.messages
+                        : [];
+
+                    for (const message of messages) {
+                        console.log(
+                            'WHATSAPP INCOMING MESSAGE:',
+                            JSON.stringify({
+                                messageId: message.id ?? null,
+                                from: message.from ?? null,
+                                type: message.type ?? null,
+                                timestamp: message.timestamp ?? null
+                            })
+                        );
+                    }
+                }
+            }
+
+            return res.status(200).json({
+                success: true,
+                statusCount: deliveryStatuses.length
+            });
+        } catch (error) {
+            console.error(
+                'WHATSAPP WEBHOOK ERROR:',
+                error?.message || 'Unknown error'
+            );
+
+            return res.status(200).json({
+                success: true
+            });
+        }
+    }
+
+    // =====================================
+    // 3) الوظيفة الأصلية: إرسال إشعار الطلب
+    // =====================================
     try {
         const {
             WHATSAPP_ACCESS_TOKEN,
@@ -18,12 +155,19 @@ export default async function handler(req, res) {
             WHATSAPP_CUSTOMER_SERVICE_PHONE
         } = process.env;
 
-        if (!WHATSAPP_ACCESS_TOKEN || !WHATSAPP_PHONE_NUMBER_ID) {
+        if (
+            !WHATSAPP_ACCESS_TOKEN ||
+            !WHATSAPP_PHONE_NUMBER_ID
+        ) {
             console.error(
                 'WhatsApp configuration error:',
                 JSON.stringify({
-                    hasAccessToken: Boolean(WHATSAPP_ACCESS_TOKEN),
-                    hasPhoneNumberId: Boolean(WHATSAPP_PHONE_NUMBER_ID)
+                    hasAccessToken: Boolean(
+                        WHATSAPP_ACCESS_TOKEN
+                    ),
+                    hasPhoneNumberId: Boolean(
+                        WHATSAPP_PHONE_NUMBER_ID
+                    )
                 })
             );
 
@@ -103,7 +247,10 @@ export default async function handler(req, res) {
                 number = number.slice(2);
             }
 
-            if (number.startsWith('01') && number.length === 11) {
+            if (
+                number.startsWith('01') &&
+                number.length === 11
+            ) {
                 number = '20' + number.slice(1);
             } else if (
                 number.startsWith('1') &&
@@ -470,7 +617,7 @@ export default async function handler(req, res) {
         // =====================================
 
         // رقم خدمة العملاء الافتراضي: 01042056131
-        // يمكن تغييره من إعدادات Vercel دون تعديل الكود.
+        // يمكن تغييره من إعدادات Vercel.
         const recipient = normalizeEgyptianWhatsAppNumber(
             WHATSAPP_CUSTOMER_SERVICE_PHONE || '01042056131'
         );
