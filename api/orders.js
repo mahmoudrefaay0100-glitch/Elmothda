@@ -103,7 +103,7 @@ module.exports = async function handler(req, res) {
         }
 
         // =====================================================
-        // NORMALIZE WHATSAPP PHONE NUMBERS
+        // توحيد أرقام واتساب المصرية
         // =====================================================
 
         function normalizeWhatsAppNumber(value) {
@@ -116,14 +116,11 @@ module.exports = async function handler(req, res) {
             }
 
             if (number.startsWith('0')) {
-                // مثال: 01042056131 => 201042056131
                 number = '20' + number.substring(1);
             } else if (!number.startsWith('20')) {
-                // رقم مصري بدون الصفر الأول
                 number = '20' + number;
             }
 
-            // تحقق أساسي من صيغة رقم الهاتف الدولي
             if (!/^\d{10,15}$/.test(number)) {
                 return '';
             }
@@ -132,7 +129,7 @@ module.exports = async function handler(req, res) {
         }
 
         // =====================================================
-        // NORMALIZE ORDER AND CUSTOMER DATA
+        // توحيد بيانات الطلب والعميل
         // =====================================================
 
         function normalizeOrder(order = {}) {
@@ -281,7 +278,7 @@ module.exports = async function handler(req, res) {
         }
 
         // =====================================================
-        // SUPABASE REQUEST HELPERS
+        // طلبات Supabase
         // =====================================================
 
         async function getSupabaseJson(url, options = {}) {
@@ -304,7 +301,7 @@ module.exports = async function handler(req, res) {
         }
 
         // =====================================================
-        // WHATSAPP SETTINGS
+        // إعدادات إشعارات واتساب
         // =====================================================
 
         async function getWhatsAppNotificationSettings() {
@@ -332,14 +329,21 @@ module.exports = async function handler(req, res) {
         }
 
         // =====================================================
-        // SEND WHATSAPP TEXT TO CUSTOMER SERVICE
+        // تنسيق المبالغ
+        // =====================================================
+
+        function formatMoney(value) {
+            return Number(value || 0).toLocaleString('ar-EG') + ' جنيه';
+        }
+
+        // =====================================================
+        // إرسال رسالة نصية للإدارة
         // =====================================================
 
         async function sendWhatsAppText(message) {
             const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
             const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
-            // رقم خدمة العملاء، وليس رقم الإرسال من Meta
             const configuredRecipient =
                 process.env.WHATSAPP_CUSTOMER_SERVICE_PHONE ||
                 '201042056131';
@@ -347,14 +351,11 @@ module.exports = async function handler(req, res) {
             const to = normalizeWhatsAppNumber(configuredRecipient);
 
             if (!accessToken || !phoneNumberId || !to) {
-                console.error(
-                    'WhatsApp configuration is incomplete:',
-                    {
-                        hasAccessToken: Boolean(accessToken),
-                        hasPhoneNumberId: Boolean(phoneNumberId),
-                        hasValidRecipient: Boolean(to)
-                    }
-                );
+                console.error('WhatsApp admin configuration incomplete:', {
+                    hasAccessToken: Boolean(accessToken),
+                    hasPhoneNumberId: Boolean(phoneNumberId),
+                    hasValidRecipient: Boolean(to)
+                });
 
                 return false;
             }
@@ -386,22 +387,18 @@ module.exports = async function handler(req, res) {
                 if (!response.ok) {
                     const metaError = result?.error || {};
 
-                    // لا تسجل التوكن أو أي بيانات اعتماد سرية
-                    console.error('WHATSAPP SEND ERROR:', {
+                    console.error('WHATSAPP ADMIN SEND ERROR:', {
                         status: response.status,
                         code: metaError.code ?? null,
                         errorSubcode: metaError.error_subcode ?? null,
-                        type: metaError.type ?? null,
                         message: metaError.message ?? null,
-                        details:
-                            metaError.error_data?.details ?? null,
-                        fbtraceId: metaError.fbtrace_id ?? null
+                        details: metaError.error_data?.details ?? null
                     });
 
                     return false;
                 }
 
-                console.log('WHATSAPP TEXT ACCEPTED:', {
+                console.log('WHATSAPP ADMIN MESSAGE ACCEPTED:', {
                     recipient: to,
                     messageId: result?.messages?.[0]?.id || null
                 });
@@ -409,7 +406,7 @@ module.exports = async function handler(req, res) {
                 return true;
             } catch (error) {
                 console.error(
-                    'WHATSAPP TEXT REQUEST FAILED:',
+                    'WHATSAPP ADMIN REQUEST FAILED:',
                     error?.message || error
                 );
 
@@ -418,51 +415,62 @@ module.exports = async function handler(req, res) {
         }
 
         // =====================================================
-        // SEND APPROVED ORDER TEMPLATE TO CUSTOMER
+        // قوالب واتساب للعميل
+        //
+        // يلزم اعتماد القوالب في Meta.
+        // يجب أن تتطابق أسماء القوالب وعدد المتغيرات وترتيبها.
         // =====================================================
 
-        async function sendCustomerOrderConfirmation(rawOrder) {
+        async function sendCustomerWhatsAppNotification(event, rawOrder) {
             try {
-                const settings =
-                    await getWhatsAppNotificationSettings();
+                const settings = await getWhatsAppNotificationSettings();
 
-                if (!settings) return false;
+                if (!settings || settings.whatsapp_notify_customer !== true) {
+                    console.log('Customer WhatsApp notifications are disabled.');
+                    return false;
+                }
 
-                if (settings.whatsapp_notify_customer !== true) {
-                    console.log(
-                        'Customer WhatsApp notifications are disabled.'
-                    );
+                if (
+                    event === 'order_status' &&
+                    settings.whatsapp_notify_order_status !== true
+                ) {
+                    return false;
+                }
 
+                if (
+                    event === 'payment_status' &&
+                    settings.whatsapp_notify_payment_status !== true
+                ) {
+                    return false;
+                }
+
+                if (
+                    event === 'new_order' &&
+                    settings.whatsapp_notify_new_order !== true
+                ) {
                     return false;
                 }
 
                 const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
                 const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
-                const templateName =
-                    process.env.WHATSAPP_ORDER_TEMPLATE_NAME;
+                const templateNames = {
+                    new_order: process.env.WHATSAPP_ORDER_TEMPLATE_NAME,
+                    order_status: process.env.WHATSAPP_STATUS_TEMPLATE_NAME,
+                    payment_status: process.env.WHATSAPP_PAYMENT_TEMPLATE_NAME
+                };
 
-                const templateLanguage =
+                const templateName = templateNames[event];
+                const language =
                     process.env.WHATSAPP_ORDER_TEMPLATE_LANGUAGE || 'ar';
 
-                // رقم خدمة العملاء الذي يظهر داخل رسالة القالب
-                const servicePhone =
-                    process.env.WHATSAPP_CUSTOMER_SERVICE_PHONE ||
-                    '201042056131';
-
-                if (
-                    !accessToken ||
-                    !phoneNumberId ||
-                    !templateName
-                ) {
-                    console.error(
-                        'Customer WhatsApp template configuration is incomplete.',
-                        {
-                            hasAccessToken: Boolean(accessToken),
-                            hasPhoneNumberId: Boolean(phoneNumberId),
-                            hasTemplateName: Boolean(templateName)
-                        }
-                    );
+                if (!accessToken || !phoneNumberId || !templateName) {
+                    console.error('CUSTOMER WHATSAPP CONFIGURATION INCOMPLETE:', {
+                        event,
+                        hasAccessToken: Boolean(accessToken),
+                        hasPhoneNumberId: Boolean(phoneNumberId),
+                        hasTemplateName: Boolean(templateName)
+                    });
 
                     return false;
                 }
@@ -474,51 +482,165 @@ module.exports = async function handler(req, res) {
                 );
 
                 if (!customerPhone) {
-                    console.error(
-                        'Invalid customer WhatsApp number.',
-                        {
-                            orderNumber: order.order_number || order.id,
-                            hasPhone: Boolean(order.phone),
-                            hasWhatsApp: Boolean(order.whatsapp)
-                        }
-                    );
+                    console.error('CUSTOMER WHATSAPP NUMBER INVALID:', {
+                        orderNumber: order.order_number || order.id
+                    });
 
                     return false;
                 }
 
-                const orderNumber = String(
-                    order.order_number || order.id || ''
-                );
+                const customerName =
+                    order.customer_name || 'عميلنا العزيز';
 
-                const customerName = String(
-                    order.customer_name || 'عميلنا العزيز'
-                );
+                const orderNumber =
+                    order.order_number || order.id || 'غير متاح';
+
+                const statusLabels = {
+                    New: 'تم استلام طلبك وهو قيد المراجعة',
+                    Confirmed: 'تم تأكيد طلبك',
+                    Shipped: 'تم شحن طلبك',
+                    Delivered: 'تم تسليم طلبك',
+                    Cancelled: 'تم إلغاء طلبك'
+                };
+
+                const paymentLabels = {
+                    Pending: 'في انتظار الدفع',
+                    Partial: 'تم دفع جزء من المبلغ',
+                    Paid: 'تم سداد المبلغ بالكامل',
+                    Failed: 'تعذر إتمام الدفع',
+                    Refunded: 'تم رد المبلغ'
+                };
 
                 const items = Array.isArray(order.items)
-                    ? order.items.map(item => {
+                    ? order.items
+                    : Array.isArray(order.products)
+                        ? order.products
+                        : [];
+
+                const itemsText = items.length
+                    ? items.map((item, index) => {
                         const name =
+                            item.productTitle ||
                             item.title ||
                             item.name ||
                             item.productName ||
                             'منتج';
 
-                        const quantity =
-                            item.qty || item.quantity || 1;
+                        const qty = item.qty || item.quantity || 1;
 
-                        return `${name} × ${quantity}`;
-                    }).join('، ')
-                    : 'تفاصيل الطلب متاحة لدى خدمة العملاء';
+                        const unitPrice = Number(
+                            item.unitPrice ??
+                            item.unit_price ??
+                            item.price ??
+                            0
+                        );
 
-                // يجب أن تطابق هذه المتغيرات قالب Meta المعتمد
-                const parameters = [
-                    customerName,
-                    orderNumber,
-                    items.substring(0, 900),
-                    String(Number(order.total || 0)),
-                    String(Number(order.deposit_amount || 0)),
-                    String(Number(order.remaining_amount || 0)),
-                    String(servicePhone).trim()
-                ];
+                        const lineTotal = Number(
+                            item.lineTotal ??
+                            item.line_total ??
+                            item.itemSubtotal ??
+                            item.item_subtotal ??
+                            unitPrice * qty
+                        );
+
+                        const upholstery =
+                            item.upholsteryName ||
+                            item.upholstery_name ||
+                            item.upholstery ||
+                            '';
+
+                        const cushionColor =
+                            item.cushionColor ||
+                            item.cushion_color ||
+                            '';
+
+                        const wickerColor =
+                            item.wickerColor ||
+                            item.wicker_color ||
+                            '';
+
+                        return [
+                            `${index + 1}- ${name}`,
+                            `الكمية: ${qty}`,
+                            `سعر الوحدة: ${formatMoney(unitPrice)}`,
+                            `إجمالي المنتج: ${formatMoney(lineTotal)}`,
+                            upholstery ? `التنجيد: ${upholstery}` : '',
+                            cushionColor ? `لون المخدة: ${cushionColor}` : '',
+                            wickerColor ? `لون الرتان: ${wickerColor}` : ''
+                        ].filter(Boolean).join('\n');
+                    }).join('\n\n')
+                    : 'تفاصيل المنتجات متاحة لدى خدمة العملاء';
+
+                const total = Number(order.total || 0);
+                const subtotal = Number(order.subtotal || 0);
+                const sunbadgeFee = Number(order.sunbadge_fee || 0);
+                const shippingCost = Number(order.shipping_cost || 0);
+                const discount = Number(order.discount || 0);
+
+                const deposit = Number(
+                    order.deposit_amount ?? order.deposit ?? 0
+                );
+
+                const remaining = Number(
+                    order.remaining_amount ?? Math.max(0, total - deposit)
+                );
+
+                const paymentStatus =
+                    order.payment_status ||
+                    order.paymentStatus ||
+                    'Pending';
+
+                const orderStatus =
+                    order.status || 'New';
+
+                const servicePhone =
+                    process.env.WHATSAPP_CUSTOMER_SERVICE_PHONE ||
+                    '201042056131';
+
+                const shippingMethod =
+                    order.shipping_method ||
+                    order.shippingMethod ||
+                    order.delivery_method ||
+                    'غير محددة';
+
+                const paymentMethod =
+                    order.payment_method ||
+                    order.paymentMethod ||
+                    'غير محددة';
+
+                // كل قالب يجب أن يطابق عدد المتغيرات وترتيبها في Meta.
+                let parameters;
+
+                if (event === 'new_order') {
+                    parameters = [
+                        customerName,
+                        String(orderNumber),
+                        itemsText,
+                        formatMoney(subtotal),
+                        formatMoney(shippingCost),
+                        formatMoney(total),
+                        `${statusLabels[orderStatus] || orderStatus} - ${paymentLabels[paymentStatus] || paymentStatus}. العربون: ${formatMoney(deposit)}، المتبقي: ${formatMoney(remaining)}. التنجيد ورسوم صن بيدج: ${formatMoney(sunbadgeFee)}. الخصم: ${formatMoney(discount)}. طريقة الشحن: ${shippingMethod}. طريقة الدفع: ${paymentMethod}. خدمة العملاء: ${servicePhone}`
+                    ];
+                } else if (event === 'order_status') {
+                    parameters = [
+                        customerName,
+                        String(orderNumber),
+                        statusLabels[orderStatus] || String(orderStatus),
+                        String(servicePhone)
+                    ];
+                } else if (event === 'payment_status') {
+                    parameters = [
+                        customerName,
+                        String(orderNumber),
+                        paymentLabels[paymentStatus] || String(paymentStatus),
+                        formatMoney(total),
+                        formatMoney(deposit),
+                        formatMoney(remaining),
+                        String(servicePhone)
+                    ];
+                } else {
+                    return false;
+                }
 
                 const response = await fetch(
                     `https://graph.facebook.com/v23.0/${phoneNumberId}/messages`,
@@ -536,13 +658,13 @@ module.exports = async function handler(req, res) {
                             template: {
                                 name: templateName,
                                 language: {
-                                    code: templateLanguage
+                                    code: language
                                 },
                                 components: [{
                                     type: 'body',
                                     parameters: parameters.map(value => ({
                                         type: 'text',
-                                        text: String(value)
+                                        text: String(value).slice(0, 1000)
                                     }))
                                 }]
                             }
@@ -556,30 +678,25 @@ module.exports = async function handler(req, res) {
                     const metaError = result?.error || {};
 
                     console.error('CUSTOMER WHATSAPP ERROR:', {
+                        event,
                         status: response.status,
                         code: metaError.code ?? null,
                         errorSubcode: metaError.error_subcode ?? null,
-                        type: metaError.type ?? null,
                         message: metaError.message ?? null,
-                        details:
-                            metaError.error_data?.details ?? null,
-                        fbtraceId: metaError.fbtrace_id ?? null,
+                        details: metaError.error_data?.details ?? null,
                         orderNumber,
                         templateName,
-                        templateLanguage,
                         parameterCount: parameters.length
                     });
 
                     return false;
                 }
 
-                console.log(
-                    'Customer WhatsApp confirmation accepted by Meta.',
-                    {
-                        orderNumber,
-                        messageId: result?.messages?.[0]?.id || null
-                    }
-                );
+                console.log('CUSTOMER WHATSAPP ACCEPTED:', {
+                    event,
+                    orderNumber,
+                    messageId: result?.messages?.[0]?.id || null
+                });
 
                 return true;
             } catch (error) {
@@ -593,13 +710,12 @@ module.exports = async function handler(req, res) {
         }
 
         // =====================================================
-        // ADMIN WHATSAPP NOTIFICATIONS
+        // إشعارات الإدارة: طلب جديد / حالة الطلب / الدفع
         // =====================================================
 
         async function notifyWhatsAppOrder(event, rawOrder) {
             try {
-                const settings =
-                    await getWhatsAppNotificationSettings();
+                const settings = await getWhatsAppNotificationSettings();
 
                 if (!settings) return false;
 
@@ -631,8 +747,7 @@ module.exports = async function handler(req, res) {
 
                 const customerName = order.customer_name || 'غير متاح';
                 const customerPhone = order.phone || 'غير متاح';
-                const customerWhatsapp =
-                    order.whatsapp || customerPhone;
+                const customerWhatsapp = order.whatsapp || customerPhone;
 
                 const status = order.status || 'New';
 
@@ -640,6 +755,22 @@ module.exports = async function handler(req, res) {
                     order.payment_status ||
                     order.paymentStatus ||
                     'Pending';
+
+                const statusLabels = {
+                    New: 'جديد',
+                    Confirmed: 'تم التأكيد',
+                    Shipped: 'تم الشحن',
+                    Delivered: 'تم التسليم',
+                    Cancelled: 'ملغي'
+                };
+
+                const paymentLabels = {
+                    Pending: 'في انتظار الدفع',
+                    Partial: 'دفع جزئي',
+                    Paid: 'مدفوع بالكامل',
+                    Failed: 'فشل الدفع',
+                    Refunded: 'تم رد المبلغ'
+                };
 
                 let message = '';
 
@@ -649,6 +780,7 @@ module.exports = async function handler(req, res) {
                             const name =
                                 item.title ||
                                 item.name ||
+                                item.productTitle ||
                                 item.productName ||
                                 'منتج';
 
@@ -666,28 +798,28 @@ module.exports = async function handler(req, res) {
                         `المدينة: ${order.city || ''}\n` +
                         `العنوان: ${order.address || ''}\n\n` +
                         `المنتجات:\n${items}\n\n` +
-                        `الإجمالي: ${Number(order.total || 0)} جنيه\n` +
-                        `العربون: ${Number(order.deposit_amount || 0)} جنيه\n` +
-                        `المتبقي: ${Number(order.remaining_amount || 0)} جنيه\n` +
-                        `حالة الطلب: ${status}\n` +
-                        `حالة الدفع: ${paymentStatus}`;
+                        `الإجمالي: ${formatMoney(order.total)}\n` +
+                        `العربون: ${formatMoney(order.deposit_amount)}\n` +
+                        `المتبقي: ${formatMoney(order.remaining_amount)}\n` +
+                        `حالة الطلب: ${statusLabels[status] || status}\n` +
+                        `حالة الدفع: ${paymentLabels[paymentStatus] || paymentStatus}`;
                 } else if (event === 'order_status') {
                     message =
                         `📦 تحديث حالة طلب - المتحدة للرتان والأثاث\n\n` +
                         `رقم الطلب: ${orderNumber}\n` +
                         `العميل: ${customerName}\n` +
                         `الهاتف: ${customerPhone}\n` +
-                        `الحالة الجديدة: ${status}`;
+                        `الحالة الجديدة: ${statusLabels[status] || status}`;
                 } else if (event === 'payment_status') {
                     message =
                         `💳 تحديث حالة الدفع - المتحدة للرتان والأثاث\n\n` +
                         `رقم الطلب: ${orderNumber}\n` +
                         `العميل: ${customerName}\n` +
                         `الهاتف: ${customerPhone}\n` +
-                        `حالة الدفع الجديدة: ${paymentStatus}\n` +
-                        `الإجمالي: ${Number(order.total || 0)} جنيه\n` +
-                        `العربون: ${Number(order.deposit_amount || 0)} جنيه\n` +
-                        `المتبقي: ${Number(order.remaining_amount || 0)} جنيه`;
+                        `حالة الدفع الجديدة: ${paymentLabels[paymentStatus] || paymentStatus}\n` +
+                        `الإجمالي: ${formatMoney(order.total)}\n` +
+                        `العربون: ${formatMoney(order.deposit_amount)}\n` +
+                        `المتبقي: ${formatMoney(order.remaining_amount)}`;
                 } else {
                     return false;
                 }
@@ -695,7 +827,7 @@ module.exports = async function handler(req, res) {
                 return await sendWhatsAppText(message);
             } catch (error) {
                 console.error(
-                    'WHATSAPP NOTIFICATION FAILED:',
+                    'WHATSAPP ADMIN NOTIFICATION FAILED:',
                     error?.message || error
                 );
 
@@ -704,7 +836,7 @@ module.exports = async function handler(req, res) {
         }
 
         // =====================================================
-        // PRODUCT HELPERS
+        // أدوات المنتجات وحساب صن بيدج
         // =====================================================
 
         function getProductId(item) {
@@ -751,7 +883,7 @@ module.exports = async function handler(req, res) {
         }
 
         // =====================================================
-        // PUBLIC ORDER TRACKING
+        // تتبع الطلبات العامة
         // GET /api/orders?track=ORDER_NUMBER
         // =====================================================
 
@@ -880,7 +1012,7 @@ module.exports = async function handler(req, res) {
         }
 
         // =====================================================
-        // CREATE NEW ORDER
+        // إنشاء طلب جديد
         // POST /api/orders
         // =====================================================
 
@@ -1304,12 +1436,13 @@ module.exports = async function handler(req, res) {
                 ).trim()
             });
 
-            // فشل واتساب لا يلغي نجاح حفظ الطلب.
-            // إشعار الإدارة يذهب إلى WHATSAPP_CUSTOMER_SERVICE_PHONE.
+            // فشل الإشعارات لا يلغي نجاح حفظ الطلب.
             await notifyWhatsAppOrder('new_order', finalOrder);
 
-            // إرسال تأكيد العميل مشروط بإعدادات الموقع والقالب.
-            await sendCustomerOrderConfirmation(finalOrder);
+            await sendCustomerWhatsAppNotification(
+                'new_order',
+                finalOrder
+            );
 
             return res.status(201).json({
                 success: true,
@@ -1318,7 +1451,7 @@ module.exports = async function handler(req, res) {
         }
 
         // =====================================================
-        // ADMIN OPERATIONS REQUIRE TOKEN
+        // العمليات الإدارية تتطلب رمز الدخول
         // =====================================================
 
         if (!token) {
@@ -1329,7 +1462,7 @@ module.exports = async function handler(req, res) {
         }
 
         // =====================================================
-        // GET ALL ORDERS
+        // جلب كل الطلبات
         // =====================================================
 
         if (req.method === 'GET') {
@@ -1361,7 +1494,7 @@ module.exports = async function handler(req, res) {
         }
 
         // =====================================================
-        // DELETE ORDER
+        // حذف طلب
         // =====================================================
 
         if (req.method === 'DELETE') {
@@ -1417,7 +1550,7 @@ module.exports = async function handler(req, res) {
         }
 
         // =====================================================
-        // UPDATE ORDER STATUS / PAYMENT STATUS
+        // تحديث حالة الطلب أو الدفع
         // =====================================================
 
         if (req.method === 'PUT') {
@@ -1546,6 +1679,7 @@ module.exports = async function handler(req, res) {
 
             const updatedOrder = normalizeOrder(data[0]);
 
+            // إخطار الإدارة والعميل فقط عند حدوث تغيير فعلي في الحالة.
             if (
                 updateData.status !== undefined &&
                 updateData.status !== oldOrder.status
@@ -1554,13 +1688,24 @@ module.exports = async function handler(req, res) {
                     'order_status',
                     updatedOrder
                 );
+
+                await sendCustomerWhatsAppNotification(
+                    'order_status',
+                    updatedOrder
+                );
             }
 
+            // إخطار الإدارة والعميل فقط عند حدوث تغيير فعلي في الدفع.
             if (
                 updateData.payment_status !== undefined &&
                 updateData.payment_status !== oldOrder.payment_status
             ) {
                 await notifyWhatsAppOrder(
+                    'payment_status',
+                    updatedOrder
+                );
+
+                await sendCustomerWhatsAppNotification(
                     'payment_status',
                     updatedOrder
                 );
