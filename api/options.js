@@ -1,8 +1,12 @@
+
 export default async function handler(req, res) {
+    res.setHeader("Cache-Control", "no-store, max-age=0");
+
     try {
         const {
             SUPABASE_URL,
-            SUPABASE_SERVICE_ROLE_KEY
+            SUPABASE_SERVICE_ROLE_KEY,
+            ADMIN_EMAIL
         } = process.env;
 
         if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -13,15 +17,19 @@ export default async function handler(req, res) {
         }
 
         if (req.method === "OPTIONS") {
-            res.setHeader("Allow", "GET, POST, DELETE, OPTIONS");
+            res.setHeader(
+                "Allow",
+                "GET, POST, DELETE, OPTIONS"
+            );
             return res.status(204).end();
         }
 
         const resource = req.query?.resource;
         const isColors = resource === "colors";
         const isUpholstery = resource === "upholstery-types";
+        const isShipping = resource === "shipping-options";
 
-        if (!isColors && !isUpholstery) {
+        if (!isColors && !isUpholstery && !isShipping) {
             return res.status(400).json({
                 success: false,
                 error: "نوع الإعدادات غير صحيح"
@@ -30,7 +38,9 @@ export default async function handler(req, res) {
 
         const table = isColors
             ? "store_colors"
-            : "upholstery_types";
+            : isUpholstery
+                ? "upholstery_types"
+                : "shipping_options";
 
         const headers = {
             apikey: SUPABASE_SERVICE_ROLE_KEY,
@@ -38,62 +48,10 @@ export default async function handler(req, res) {
             "Content-Type": "application/json"
         };
 
-        // التحقق من جلسة المستخدم قبل أي عملية كتابة أو حذف.
-        if (["POST", "DELETE", "PUT", "PATCH"].includes(req.method)) {
-            const authHeader = req.headers.authorization || "";
-            const token = authHeader.startsWith("Bearer ")
-                ? authHeader.substring(7).trim()
-                : "";
-
-            if (!token) {
-                return res.status(401).json({
-                    success: false,
-                    error: "يجب تسجيل الدخول أولًا"
-                });
-            }
-
-            const authResponse = await fetch(
-                `${SUPABASE_URL}/auth/v1/user`,
-                {
-                    method: "GET",
-                    headers: {
-                        apikey: SUPABASE_SERVICE_ROLE_KEY,
-                        Authorization: "Bearer " + token
-                    }
-                }
-            );
-
-            if (!authResponse.ok) {
-                return res.status(401).json({
-                    success: false,
-                    error: "جلسة الدخول غير صالحة"
-                });
-            }
-
-            const userText = await authResponse.text();
-            let userData;
-
-            try {
-                userData = userText ? JSON.parse(userText) : null;
-            } catch {
-                userData = null;
-            }
-
-            if (!userData?.id) {
-                return res.status(401).json({
-                    success: false,
-                    error: "تعذر التحقق من المستخدم"
-                });
-            }
-        }
-
-        // قراءة استجابة Supabase بأمان.
         async function readResponse(response) {
             const text = await response.text();
 
-            if (!text) {
-                return null;
-            }
+            if (!text) return null;
 
             try {
                 return JSON.parse(text);
@@ -103,22 +61,116 @@ export default async function handler(req, res) {
         }
 
         function getError(data, fallback) {
-            return data?.message ||
+            return (
+                data?.message ||
                 data?.error_description ||
                 data?.error ||
                 data?.details ||
                 data?.hint ||
-                fallback;
+                fallback
+            );
         }
 
-        // GET: جلب الألوان أو أنواع التنجيد المفعّلة.
-        if (req.method === "GET") {
+        function parseBody() {
+            if (req.body && typeof req.body === "object") {
+                return req.body;
+            }
+
+            if (typeof req.body === "string") {
+                try {
+                    return JSON.parse(req.body);
+                } catch {
+                    return null;
+                }
+            }
+
+            return {};
+        }
+
+        // التحقق من الجلسة وصلاحية الإدارة.
+        async function verifyAdmin() {
+            const authHeader = req.headers.authorization || "";
+            const token = authHeader.startsWith("Bearer ")
+                ? authHeader.slice(7).trim()
+                : "";
+
+            if (!token) {
+                return {
+                    ok: false,
+                    status: 401,
+                    error: "يجب تسجيل الدخول أولًا"
+                };
+            }
+
             const response = await fetch(
-                `${SUPABASE_URL}/rest/v1/${table}?select=*&enabled=eq.true&order=id.asc`,
+                `${SUPABASE_URL}/auth/v1/user`,
+                {
+                    method: "GET",
+                    headers: {
+                        apikey: SUPABASE_SERVICE_ROLE_KEY,
+                        Authorization: "Bearer " + token
+                    },
+                    signal: AbortSignal.timeout(5000)
+                }
+            );
+
+            const user = await readResponse(response);
+
+            if (!response.ok || !user?.id) {
+                return {
+                    ok: false,
+                    status: 401,
+                    error: "جلسة الدخول غير صالحة"
+                };
+            }
+
+            const expectedEmail = (
+                ADMIN_EMAIL || "admin@elmothda.com"
+            ).trim().toLowerCase();
+
+            const actualEmail = String(
+                user.email || ""
+            ).trim().toLowerCase();
+
+            if (!actualEmail || actualEmail !== expectedEmail) {
+                return {
+                    ok: false,
+                    status: 403,
+                    error: "ليس لديك صلاحية تنفيذ هذه العملية"
+                };
+            }
+
+            return { ok: true };
+        }
+
+        // خيارات الشحن كانت تتطلب تسجيل الدخول حتى عند القراءة.
+        // أما الألوان والتنجيد فتبقى قراءتهما متاحة كما كانتا.
+        if (
+            isShipping ||
+            ["POST", "DELETE", "PUT", "PATCH"].includes(req.method)
+        ) {
+            const auth = await verifyAdmin();
+
+            if (!auth.ok) {
+                return res.status(auth.status).json({
+                    success: false,
+                    error: auth.error
+                });
+            }
+        }
+
+        // GET: قراءة الألوان أو أنواع التنجيد أو خيارات الشحن.
+        if (req.method === "GET") {
+            const filters = isColors || isUpholstery
+                ? "?select=*&enabled=eq.true&order=id.asc"
+                : "?select=*&order=id.asc";
+
+            const response = await fetch(
+                `${SUPABASE_URL}/rest/v1/${table}${filters}`,
                 {
                     method: "GET",
                     headers,
-                    cache: "no-store"
+                    signal: AbortSignal.timeout(5000)
                 }
             );
 
@@ -127,27 +179,44 @@ export default async function handler(req, res) {
             if (!response.ok) {
                 return res.status(response.status).json({
                     success: false,
-                    error: getError(
-                        data,
-                        isColors
-                            ? "فشل جلب الألوان"
-                            : "فشل تحميل أنواع التنجيد"
-                    )
+                    error: getError(data, "فشل جلب الإعدادات")
                 });
             }
 
             const items = Array.isArray(data) ? data : [];
 
-            return res.status(200).json(
-                isColors
-                    ? { success: true, colors: items }
-                    : { success: true, upholsteryTypes: items }
-            );
+            if (isColors) {
+                return res.status(200).json({
+                    success: true,
+                    colors: items
+                });
+            }
+
+            if (isUpholstery) {
+                return res.status(200).json({
+                    success: true,
+                    upholsteryTypes: items
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                shippingOptions: items
+            });
         }
 
-        // POST: إضافة لون جديد.
+        const body = parseBody();
+
+        if (!body) {
+            return res.status(400).json({
+                success: false,
+                error: "بيانات الطلب ليست بصيغة JSON صحيحة"
+            });
+        }
+
+        // POST: إضافة لون.
         if (req.method === "POST" && isColors) {
-            const { type, name, hex, enabled } = req.body || {};
+            const { type, name, hex, enabled } = body;
 
             if (
                 typeof type !== "string" ||
@@ -170,38 +239,34 @@ export default async function handler(req, res) {
             const cleanName = name.trim();
             const cleanHex = hex.trim();
 
-            if (!cleanName || !/^#[0-9A-Fa-f]{6}$/.test(cleanHex)) {
+            if (
+                !cleanName ||
+                !/^#[0-9A-Fa-f]{6}$/.test(cleanHex)
+            ) {
                 return res.status(400).json({
                     success: false,
                     error: "كود اللون أو الاسم غير صحيح"
                 });
             }
 
-            const duplicateResponse = await fetch(
+            const checkResponse = await fetch(
                 `${SUPABASE_URL}/rest/v1/store_colors?select=id&type=eq.${encodeURIComponent(type)}&name=eq.${encodeURIComponent(cleanName)}&limit=1`,
                 {
-                    method: "GET",
                     headers,
-                    cache: "no-store"
+                    signal: AbortSignal.timeout(5000)
                 }
             );
 
-            const existingColors = await readResponse(duplicateResponse);
+            const existing = await readResponse(checkResponse);
 
-            if (!duplicateResponse.ok) {
-                return res.status(duplicateResponse.status).json({
+            if (!checkResponse.ok) {
+                return res.status(checkResponse.status).json({
                     success: false,
-                    error: getError(
-                        existingColors,
-                        "فشل التحقق من اللون"
-                    )
+                    error: getError(existing, "فشل التحقق من اللون")
                 });
             }
 
-            if (
-                Array.isArray(existingColors) &&
-                existingColors.length > 0
-            ) {
+            if (Array.isArray(existing) && existing.length) {
                 return res.status(409).json({
                     success: false,
                     error: "هذا اللون موجود بالفعل"
@@ -221,7 +286,8 @@ export default async function handler(req, res) {
                         name: cleanName,
                         hex: cleanHex,
                         enabled: enabled !== false
-                    })
+                    }),
+                    signal: AbortSignal.timeout(5000)
                 }
             );
 
@@ -230,21 +296,11 @@ export default async function handler(req, res) {
             if (!response.ok) {
                 return res.status(response.status).json({
                     success: false,
-                    error: getError(
-                        data,
-                        "فشل إضافة اللون إلى قاعدة البيانات"
-                    )
+                    error: getError(data, "فشل إضافة اللون")
                 });
             }
 
             const color = Array.isArray(data) ? data[0] : data;
-
-            if (!color) {
-                return res.status(500).json({
-                    success: false,
-                    error: "تم إرسال طلب الإضافة لكن لم يتم تأكيد البيانات المحفوظة"
-                });
-            }
 
             return res.status(201).json({
                 success: true,
@@ -252,28 +308,28 @@ export default async function handler(req, res) {
             });
         }
 
-        // POST: إضافة نوع تنجيد جديد.
+        // POST: إضافة نوع تنجيد.
         if (req.method === "POST" && isUpholstery) {
-            const { name, price, enabled } = req.body || {};
-            const cleanName =
-                typeof name === "string" ? name.trim() : "";
+            const name =
+                typeof body.name === "string"
+                    ? body.name.trim()
+                    : "";
 
-            if (!cleanName) {
+            const price =
+                body.price === "" ||
+                body.price === null ||
+                body.price === undefined
+                    ? 0
+                    : Number(body.price);
+
+            if (!name) {
                 return res.status(400).json({
                     success: false,
                     error: "اسم نوع التنجيد مطلوب"
                 });
             }
 
-            const upholsteryPrice =
-                price === "" || price === null || price === undefined
-                    ? 0
-                    : Number(price);
-
-            if (
-                !Number.isFinite(upholsteryPrice) ||
-                upholsteryPrice < 0
-            ) {
+            if (!Number.isFinite(price) || price < 0) {
                 return res.status(400).json({
                     success: false,
                     error: "سعر نوع التنجيد غير صحيح"
@@ -281,11 +337,10 @@ export default async function handler(req, res) {
             }
 
             const checkResponse = await fetch(
-                `${SUPABASE_URL}/rest/v1/upholstery_types?select=id,name&name=eq.${encodeURIComponent(cleanName)}&limit=1`,
+                `${SUPABASE_URL}/rest/v1/upholstery_types?select=id,name&name=eq.${encodeURIComponent(name)}&limit=1`,
                 {
-                    method: "GET",
                     headers,
-                    cache: "no-store"
+                    signal: AbortSignal.timeout(5000)
                 }
             );
 
@@ -294,17 +349,14 @@ export default async function handler(req, res) {
             if (!checkResponse.ok) {
                 return res.status(checkResponse.status).json({
                     success: false,
-                    error: getError(
-                        existing,
-                        "فشل التحقق من نوع التنجيد"
-                    )
+                    error: getError(existing, "فشل التحقق من نوع التنجيد")
                 });
             }
 
-            if (Array.isArray(existing) && existing.length > 0) {
+            if (Array.isArray(existing) && existing.length) {
                 return res.status(409).json({
                     success: false,
-                    error: "نوع التنجيد موجود بالفعل: " + cleanName
+                    error: "نوع التنجيد موجود بالفعل: " + name
                 });
             }
 
@@ -317,10 +369,11 @@ export default async function handler(req, res) {
                         Prefer: "return=representation"
                     },
                     body: JSON.stringify({
-                        name: cleanName,
-                        price: upholsteryPrice,
-                        enabled: enabled !== false
-                    })
+                        name,
+                        price,
+                        enabled: body.enabled !== false
+                    }),
+                    signal: AbortSignal.timeout(5000)
                 }
             );
 
@@ -329,22 +382,12 @@ export default async function handler(req, res) {
             if (!response.ok) {
                 return res.status(response.status).json({
                     success: false,
-                    error: getError(
-                        data,
-                        "فشل حفظ نوع التنجيد"
-                    )
+                    error: getError(data, "فشل حفظ نوع التنجيد")
                 });
             }
 
             const upholsteryType =
                 Array.isArray(data) ? data[0] : data;
-
-            if (!upholsteryType) {
-                return res.status(500).json({
-                    success: false,
-                    error: "لم يتم تأكيد حفظ نوع التنجيد"
-                });
-            }
 
             return res.status(201).json({
                 success: true,
@@ -352,7 +395,87 @@ export default async function handler(req, res) {
             });
         }
 
-        // DELETE: حذف لون أو نوع تنجيد.
+        // POST: إضافة خيار شحن.
+        if (req.method === "POST" && isShipping) {
+            const name =
+                typeof body.name === "string"
+                    ? body.name.trim()
+                    : "";
+
+            const price = Number(body.price);
+            const deliveryDays = Number(body.delivery_days);
+
+            if (
+                !name ||
+                body.price === "" ||
+                body.price === undefined ||
+                !Number.isFinite(price) ||
+                price < 0
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    error: "اسم خيار الشحن وسعر صحيح غير سالب مطلوبان"
+                });
+            }
+
+            if (
+                body.delivery_days === "" ||
+                body.delivery_days === undefined ||
+                !Number.isFinite(deliveryDays) ||
+                deliveryDays < 0
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    error: "عدد أيام التوصيل غير صحيح"
+                });
+            }
+
+            const payload = {
+                name,
+                price,
+                delivery_days: deliveryDays
+            };
+
+            if (
+                body.id !== undefined &&
+                body.id !== null &&
+                String(body.id).trim() !== ""
+            ) {
+                payload.id = body.id;
+            }
+
+            const response = await fetch(
+                `${SUPABASE_URL}/rest/v1/shipping_options`,
+                {
+                    method: "POST",
+                    headers: {
+                        ...headers,
+                        Prefer: "return=representation"
+                    },
+                    body: JSON.stringify(payload),
+                    signal: AbortSignal.timeout(5000)
+                }
+            );
+
+            const data = await readResponse(response);
+
+            if (!response.ok) {
+                return res.status(response.status).json({
+                    success: false,
+                    error: getError(data, "فشل إضافة خيار الشحن")
+                });
+            }
+
+            const shippingOption =
+                Array.isArray(data) ? data[0] : data;
+
+            return res.status(201).json({
+                success: true,
+                shippingOption
+            });
+        }
+
+        // DELETE: حذف عنصر من المورد المحدد.
         if (req.method === "DELETE") {
             const id = req.query?.id;
 
@@ -363,9 +486,7 @@ export default async function handler(req, res) {
             ) {
                 return res.status(400).json({
                     success: false,
-                    error: isColors
-                        ? "رقم اللون غير موجود"
-                        : "معرف نوع التنجيد مطلوب"
+                    error: "معرف العنصر المطلوب حذفه غير موجود"
                 });
             }
 
@@ -376,7 +497,8 @@ export default async function handler(req, res) {
                     headers: {
                         ...headers,
                         Prefer: "return=representation"
-                    }
+                    },
+                    signal: AbortSignal.timeout(5000)
                 }
             );
 
@@ -385,12 +507,7 @@ export default async function handler(req, res) {
             if (!response.ok) {
                 return res.status(response.status).json({
                     success: false,
-                    error: getError(
-                        data,
-                        isColors
-                            ? "فشل حذف اللون"
-                            : "فشل حذف نوع التنجيد"
-                    )
+                    error: getError(data, "فشل حذف العنصر")
                 });
             }
 
@@ -401,18 +518,10 @@ export default async function handler(req, res) {
                 });
             }
 
-            return res.status(200).json(
-                isColors
-                    ? {
-                        success: true,
-                        deleted: data
-                    }
-                    : {
-                        success: true,
-                        message: "تم حذف نوع التنجيد بنجاح",
-                        deleted: data
-                    }
-            );
+            return res.status(200).json({
+                success: true,
+                deleted: data
+            });
         }
 
         res.setHeader("Allow", "GET, POST, DELETE, OPTIONS");
@@ -422,12 +531,14 @@ export default async function handler(req, res) {
             error: "Method Not Allowed"
         });
     } catch (error) {
-        console.error("OPTIONS API ERROR:", error);
+        console.error(
+            "OPTIONS API ERROR:",
+            error?.message || "Unknown error"
+        );
 
         return res.status(500).json({
             success: false,
-            error: error?.message ||
-                "حدث خطأ في إعدادات الألوان والتنجيد"
+            error: "حدث خطأ أثناء معالجة إعدادات المتجر"
         });
     }
 }
