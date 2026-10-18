@@ -337,6 +337,19 @@ module.exports = async function handler(req, res) {
         }
 
         // =====================================================
+        // تنظيف نصوص قوالب واتساب
+        // يمنع الأسطر الجديدة و Tab والمسافات الزائدة
+        // =====================================================
+
+        function sanitizeTemplateParameter(value) {
+            return String(value ?? '')
+                .replace(/[\r\n\t]+/g, ' ')
+                .replace(/ {5,}/g, '    ')
+                .trim()
+                .slice(0, 1000);
+        }
+
+        // =====================================================
         // إرسال رسالة نصية للإدارة
         // =====================================================
 
@@ -415,10 +428,7 @@ module.exports = async function handler(req, res) {
         }
 
         // =====================================================
-        // قوالب واتساب للعميل
-        //
-        // يلزم اعتماد القوالب في Meta.
-        // يجب أن تتطابق أسماء القوالب وعدد المتغيرات وترتيبها.
+        // إرسال قوالب واتساب للعميل
         // =====================================================
 
         async function sendCustomerWhatsAppNotification(event, rawOrder) {
@@ -567,8 +577,8 @@ module.exports = async function handler(req, res) {
                             upholstery ? `التنجيد: ${upholstery}` : '',
                             cushionColor ? `لون المخدة: ${cushionColor}` : '',
                             wickerColor ? `لون الرتان: ${wickerColor}` : ''
-                        ].filter(Boolean).join('\n');
-                    }).join('\n\n')
+                        ].filter(Boolean).join(' - ');
+                    }).join(' | ')
                     : 'تفاصيل المنتجات متاحة لدى خدمة العملاء';
 
                 const total = Number(order.total || 0);
@@ -608,7 +618,6 @@ module.exports = async function handler(req, res) {
                     order.paymentMethod ||
                     'غير محددة';
 
-                // كل قالب يجب أن يطابق عدد المتغيرات وترتيبها في Meta.
                 let parameters;
 
                 if (event === 'new_order') {
@@ -619,7 +628,7 @@ module.exports = async function handler(req, res) {
                         formatMoney(subtotal),
                         formatMoney(shippingCost),
                         formatMoney(total),
-                        `${statusLabels[orderStatus] || orderStatus} - ${paymentLabels[paymentStatus] || paymentStatus}. العربون: ${formatMoney(deposit)}، المتبقي: ${formatMoney(remaining)}. التنجيد ورسوم صن بيدج: ${formatMoney(sunbadgeFee)}. الخصم: ${formatMoney(discount)}. طريقة الشحن: ${shippingMethod}. طريقة الدفع: ${paymentMethod}. خدمة العملاء: ${servicePhone}`
+                        `${statusLabels[orderStatus] || orderStatus} - ${paymentLabels[paymentStatus] || paymentStatus}. العربون: ${formatMoney(deposit)}، المتبقي: ${formatMoney(remaining)}. رسوم صن بيدج: ${formatMoney(sunbadgeFee)}. الخصم: ${formatMoney(discount)}. الشحن: ${shippingMethod}. الدفع: ${paymentMethod}. خدمة العملاء: ${servicePhone}`
                     ];
                 } else if (event === 'order_status') {
                     parameters = [
@@ -642,6 +651,13 @@ module.exports = async function handler(req, res) {
                     return false;
                 }
 
+                // الإصلاح الأساسي:
+                // تنظيف كل متغيرات القالب قبل إرسالها إلى Meta.
+                const templateParameters = parameters.map(value => ({
+                    type: 'text',
+                    text: sanitizeTemplateParameter(value)
+                }));
+
                 const response = await fetch(
                     `https://graph.facebook.com/v23.0/${phoneNumberId}/messages`,
                     {
@@ -662,10 +678,7 @@ module.exports = async function handler(req, res) {
                                 },
                                 components: [{
                                     type: 'body',
-                                    parameters: parameters.map(value => ({
-                                        type: 'text',
-                                        text: String(value).slice(0, 1000)
-                                    }))
+                                    parameters: templateParameters
                                 }]
                             }
                         })
@@ -1436,7 +1449,6 @@ module.exports = async function handler(req, res) {
                 ).trim()
             });
 
-            // فشل الإشعارات لا يلغي نجاح حفظ الطلب.
             await notifyWhatsAppOrder('new_order', finalOrder);
 
             await sendCustomerWhatsAppNotification(
@@ -1679,7 +1691,6 @@ module.exports = async function handler(req, res) {
 
             const updatedOrder = normalizeOrder(data[0]);
 
-            // إخطار الإدارة والعميل فقط عند حدوث تغيير فعلي في الحالة.
             if (
                 updateData.status !== undefined &&
                 updateData.status !== oldOrder.status
@@ -1695,7 +1706,6 @@ module.exports = async function handler(req, res) {
                 );
             }
 
-            // إخطار الإدارة والعميل فقط عند حدوث تغيير فعلي في الدفع.
             if (
                 updateData.payment_status !== undefined &&
                 updateData.payment_status !== oldOrder.payment_status
