@@ -49,12 +49,6 @@ module.exports = async function handler(req, res) {
         // =====================================================
         // TIMEOUTS
         // =====================================================
-        // Vercel currently terminates this function after 10s.
-        // Keep database requests below that limit.
-        //
-        // These timeouts do not increase Vercel's runtime limit.
-        // They allow the API to return a controlled JSON error
-        // before the runtime terminates the function.
 
         const GET_TIMEOUT_MS = 5000;
         const PUT_TIMEOUT_MS = 4500;
@@ -236,7 +230,10 @@ module.exports = async function handler(req, res) {
             };
 
             if (elapsed >= 2500 || !success) {
-                console.warn('SUPABASE REQUEST DIAGNOSTICS:', log);
+                console.warn(
+                    'SUPABASE REQUEST DIAGNOSTICS:',
+                    log
+                );
             } else {
                 console.info('SUPABASE REQUEST:', log);
             }
@@ -271,7 +268,11 @@ module.exports = async function handler(req, res) {
             const timeoutMs =
                 options.timeoutMs ||
                 (method === 'GET'
-                    ? (isGet ? GET_TIMEOUT_MS : PUT_TIMEOUT_MS)
+                    ? (
+                        isGet
+                            ? GET_TIMEOUT_MS
+                            : PUT_TIMEOUT_MS
+                    )
                     : PUT_TIMEOUT_MS);
 
             const url =
@@ -313,7 +314,6 @@ module.exports = async function handler(req, res) {
                     signal: AbortSignal.timeout(timeoutMs)
                 });
 
-                // Read the body while the timeout signal is active.
                 responseText = await response.text();
             } catch (error) {
                 const elapsed =
@@ -544,38 +544,45 @@ module.exports = async function handler(req, res) {
                 {
                     key: 'products',
                     table: 'products',
-                    query: 'select=*'
+                    query: 'select=*',
+                    required: true
                 },
                 {
                     key: 'offers',
                     table: 'offers',
                     query:
-                        'select=*&order=sort_order.asc,created_at.desc'
+                        'select=*&order=sort_order.asc,created_at.desc',
+                    required: false
                 },
                 {
                     key: 'categories',
                     table: 'categories',
-                    query: 'select=*'
+                    query: 'select=*',
+                    required: true
                 },
                 {
                     key: 'siteSettings',
                     table: 'site_settings',
-                    query: 'select=*'
+                    query: 'select=*',
+                    required: true
                 },
                 {
                     key: 'shippingOptions',
                     table: 'shipping_options',
-                    query: 'select=*'
+                    query: 'select=*',
+                    required: false
                 },
                 {
                     key: 'upholsteryTypes',
                     table: 'upholstery_types',
-                    query: 'select=*'
+                    query: 'select=*',
+                    required: false
                 },
                 {
                     key: 'storeColors',
                     table: 'store_colors',
-                    query: 'select=*'
+                    query: 'select=*',
+                    required: false
                 }
             ];
 
@@ -600,31 +607,24 @@ module.exports = async function handler(req, res) {
 
                             error.table = request.table;
                             error.status = 502;
+                            error.code =
+                                'INVALID_TABLE_RESPONSE';
+
                             throw error;
                         }
 
                         return {
                             key: request.key,
                             table: request.table,
+                            required: request.required,
                             success: true,
                             data
                         };
                     } catch (error) {
-                        console.error(
-                            `STORE LOAD ERROR [${request.table}]:`,
-                            {
-                                message: normalizeError(error),
-                                status: error?.status || 500,
-                                code:
-                                    error?.supabaseCode ||
-                                    error?.code ||
-                                    null
-                            }
-                        );
-
-                        return {
+                        const failure = {
                             key: request.key,
                             table: request.table,
+                            required: request.required,
                             success: false,
                             error: normalizeError(error),
                             status: error?.status || 500,
@@ -633,18 +633,67 @@ module.exports = async function handler(req, res) {
                                 error?.code ||
                                 null
                         };
+
+                        console.error(
+                            `STORE LOAD ERROR [${request.table}]:`,
+                            {
+                                message: failure.error,
+                                status: failure.status,
+                                code: failure.code,
+                                required: failure.required
+                            }
+                        );
+
+                        return failure;
                     }
                 })
             );
 
-            const failedRequests = results.filter(
-                result => !result.success
+            // =================================================
+            // REQUIRED TABLES
+            // Only failures in core tables block store loading.
+            // =================================================
+
+            const failedRequired = results.filter(
+                result =>
+                    !result.success &&
+                    result.required
             );
 
-            if (failedRequests.length > 0) {
-                const timedOut = failedRequests.some(
+            // =================================================
+            // OPTIONAL TABLES
+            // A failed optional table must not block products.
+            // No database data is changed or deleted here.
+            // =================================================
+
+            const failedOptional = results.filter(
+                result =>
+                    !result.success &&
+                    !result.required
+            );
+
+            if (failedOptional.length > 0) {
+                console.warn(
+                    'STORE OPTIONAL TABLES UNAVAILABLE:',
+                    {
+                        durationMs: Date.now() - startedAt,
+                        failedTables: failedOptional.map(
+                            result => ({
+                                table: result.table,
+                                status: result.status,
+                                code: result.code,
+                                message: result.error
+                            })
+                        )
+                    }
+                );
+            }
+
+            if (failedRequired.length > 0) {
+                const timedOut = failedRequired.some(
                     result =>
                         result.status === 504 ||
+                        result.status === 503 ||
                         result.code ===
                             'SUPABASE_REQUEST_TIMEOUT'
                 );
@@ -653,22 +702,26 @@ module.exports = async function handler(req, res) {
 
                 console.error('STORE LOAD FAILED:', {
                     durationMs: elapsed,
-                    failedTables: failedRequests.map(
+                    failedTables: failedRequired.map(
                         result => ({
                             table: result.table,
                             status: result.status,
                             code: result.code
                         })
-                    )
+                    ),
+                    optionalTablesUnavailable:
+                        failedOptional.map(
+                            result => result.table
+                        )
                 });
 
                 return res.status(timedOut ? 503 : 502).json({
                     success: false,
                     error: timedOut
                         ? 'استغرق الاتصال بقاعدة البيانات وقتًا أطول من المسموح'
-                        : 'تعذر تحميل بيانات المتجر بالكامل',
+                        : 'تعذر تحميل بيانات المتجر الأساسية',
                     durationMs: elapsed,
-                    failedTables: failedRequests.map(
+                    failedTables: failedRequired.map(
                         result => ({
                             table: result.table,
                             error: result.error,
@@ -678,10 +731,15 @@ module.exports = async function handler(req, res) {
                 });
             }
 
+            // Successful results are kept unchanged.
+            // Failed optional tables use an empty array for
+            // this response only. Supabase data is untouched.
             const storeData = {};
 
             results.forEach(function(result) {
-                storeData[result.key] = result.data;
+                storeData[result.key] = result.success
+                    ? result.data
+                    : [];
             });
 
             // =================================================
@@ -771,14 +829,22 @@ module.exports = async function handler(req, res) {
 
                 cushionColors,
                 wickerColors,
-                woodColors
+                woodColors,
+
+                // Frontend can inspect these flags if needed.
+                partialLoad: failedOptional.length > 0,
+                unavailableTables: failedOptional.map(
+                    result => result.table
+                )
             };
 
             console.info('STORE LOAD SUCCESS:', {
                 durationMs: Date.now() - startedAt,
                 products: payload.products.length,
                 offers: payload.offers.length,
-                categories: payload.categories.length
+                categories: payload.categories.length,
+                partialLoad: payload.partialLoad,
+                unavailableTables: payload.unavailableTables
             });
 
             return res.status(200).json(payload);
