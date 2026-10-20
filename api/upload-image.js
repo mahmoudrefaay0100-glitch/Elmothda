@@ -1,3 +1,4 @@
+
 export default async function handler(req, res) {
     if (req.method !== "POST") {
         res.setHeader("Allow", "POST");
@@ -7,6 +8,9 @@ export default async function handler(req, res) {
             error: "Method not allowed"
         });
     }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
 
     try {
         const SUPABASE_URL = (
@@ -60,6 +64,11 @@ export default async function handler(req, res) {
             "image/webp": "webp"
         };
 
+        const normalizedFileType =
+            fileType === "image/jpg"
+                ? "image/jpeg"
+                : fileType;
+
         if (!allowedTypes[fileType]) {
             return res.status(400).json({
                 success: false,
@@ -67,30 +76,28 @@ export default async function handler(req, res) {
             });
         }
 
-      
-const destinations = {
-    products: {
-        bucket: "product-images",
-        folder: "products",
-        prefix: "product"
-    },
-    offers: {
-        bucket: "product-images",
-        folder: "offers",
-        prefix: "offer"
-    },
-    "payment-proofs": {
-        bucket: "payment-proofs",
-        folder: "orders",
-        prefix: "payment"
-    },
-    "design-previews": {
-        bucket: "product-images",
-        folder: "design-previews",
-        prefix: "design"
-    }
-};
-
+        const destinations = {
+            products: {
+                bucket: "product-images",
+                folder: "products",
+                prefix: "product"
+            },
+            offers: {
+                bucket: "product-images",
+                folder: "offers",
+                prefix: "offer"
+            },
+            "payment-proofs": {
+                bucket: "payment-proofs",
+                folder: "orders",
+                prefix: "payment"
+            },
+            "design-previews": {
+                bucket: "product-images",
+                folder: "design-previews",
+                prefix: "design"
+            }
+        };
 
         const destination = destinations[folder];
 
@@ -101,16 +108,17 @@ const destinations = {
             });
         }
 
-        const base64Data = fileData.includes(",")
-            ? fileData.substring(fileData.indexOf(",") + 1)
+        const commaIndex = fileData.indexOf(",");
+        const base64Data = commaIndex >= 0
+            ? fileData.substring(commaIndex + 1)
             : fileData;
 
-        const normalizedBase64 =
-            base64Data.replace(/\s/g, "");
+        const normalizedBase64 = base64Data.replace(/\s/g, "");
 
         if (
             !normalizedBase64 ||
-            !/^[A-Za-z0-9+/]*={0,2}$/.test(normalizedBase64)
+            !/^[A-Za-z0-9+/]*={0,2}$/.test(normalizedBase64) ||
+            normalizedBase64.length % 4 === 1
         ) {
             return res.status(400).json({
                 success: false,
@@ -118,10 +126,7 @@ const destinations = {
             });
         }
 
-        const fileBuffer = Buffer.from(
-            normalizedBase64,
-            "base64"
-        );
+        const fileBuffer = Buffer.from(normalizedBase64, "base64");
 
         if (!fileBuffer.length) {
             return res.status(400).json({
@@ -137,7 +142,7 @@ const destinations = {
             });
         }
 
-        // التحقق من نوع الصورة الفعلي
+        // التحقق من نوع الملف الفعلي، وليس امتداده فقط.
         const isJpeg =
             fileBuffer.length >= 3 &&
             fileBuffer[0] === 0xff &&
@@ -168,11 +173,6 @@ const destinations = {
             actualType = "image/webp";
         }
 
-        const normalizedFileType =
-            fileType === "image/jpg"
-                ? "image/jpeg"
-                : fileType;
-
         if (
             !actualType ||
             actualType !== normalizedFileType
@@ -185,36 +185,31 @@ const destinations = {
 
         const extension = allowedTypes[actualType];
 
-        const newFileName =
+        const safeFileName =
             `${destination.prefix}-${Date.now()}-${Math.random()
                 .toString(36)
                 .substring(2, 10)}.${extension}`;
 
         const filePath =
-            `${destination.folder}/${newFileName}`;
+            `${destination.folder}/${safeFileName}`;
 
         const uploadUrl =
             `${SUPABASE_URL}/storage/v1/object/` +
             `${destination.bucket}/${filePath}`;
 
-        /*
-         * مهم:
-         * المفتاح الجديد sb_secret_ ليس JWT.
-         * نرسله في apikey فقط، ولا نرسله في Authorization: Bearer.
-         */
-
         const uploadResponse = await fetch(uploadUrl, {
             method: "POST",
+            signal: controller.signal,
             headers: {
                 apikey: SUPABASE_SECRET_KEY,
+                Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
                 "Content-Type": actualType,
-                "x-upsert": "true"
+                "x-upsert": "false"
             },
             body: fileBuffer
         });
 
-        const responseText =
-            await uploadResponse.text();
+        const responseText = await uploadResponse.text();
 
         if (!uploadResponse.ok) {
             console.error("SUPABASE STORAGE ERROR:", {
@@ -224,23 +219,23 @@ const destinations = {
                 path: filePath
             });
 
-            let storageError = responseText;
+            let details = responseText;
 
             try {
                 const parsed = JSON.parse(responseText);
-
-                storageError =
+                details =
                     parsed.message ||
                     parsed.error ||
+                    parsed.error_description ||
                     responseText;
             } catch {
-                // نحتفظ برسالة الخطأ الأصلية.
+                // الاحتفاظ برسالة الخطأ الأصلية.
             }
 
             return res.status(502).json({
                 success: false,
                 error: "فشل رفع الصورة إلى Supabase Storage",
-                details: storageError,
+                details,
                 status: uploadResponse.status
             });
         }
@@ -249,23 +244,33 @@ const destinations = {
             `${SUPABASE_URL}/storage/v1/object/public/` +
             `${destination.bucket}/${filePath}`;
 
+        // إرجاع الاسمين لدعم الأكواد الحالية والقديمة.
         return res.status(200).json({
             success: true,
             message: "تم رفع الصورة بنجاح",
+            url: imageUrl,
             image_url: imageUrl,
+            fileName: fileName || safeFileName,
             bucket: destination.bucket,
             path: filePath
         });
 
     } catch (error) {
+        const timedOut = error?.name === "AbortError";
+
         console.error("UPLOAD IMAGE FUNCTION ERROR:", {
-            message: error?.message || "Unknown error"
+            message: error?.message || "Unknown error",
+            timedOut
         });
 
-        return res.status(500).json({
+        return res.status(timedOut ? 504 : 500).json({
             success: false,
-            error: "حدث خطأ أثناء رفع الصورة",
+            error: timedOut
+                ? "انتهت مهلة الاتصال أثناء رفع الصورة"
+                : "حدث خطأ أثناء رفع الصورة",
             details: error?.message || "خطأ غير معروف"
         });
+    } finally {
+        clearTimeout(timeout);
     }
 }
