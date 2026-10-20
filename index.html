@@ -17613,11 +17613,20 @@ async function uploadAccountingDesignFile(file) {
     return result.url;
 }
 
+
 async function handleAccountingDesignImages(event) {
-    const files = Array.from(event.target.files || []);
+    const input = event.target;
+    const files = Array.from(input.files || []);
     const status = document.getElementById('acc-sales-design-status');
 
     if (!files.length) return;
+
+    let uploadedCount = 0;
+    const errors = [];
+
+    if (!Array.isArray(window.accountingDesignImages)) {
+        window.accountingDesignImages = [];
+    }
 
     try {
         if (status) {
@@ -17625,31 +17634,87 @@ async function handleAccountingDesignImages(event) {
         }
 
         for (const file of files) {
-            const url = await uploadAccountingDesignFile(file);
+            try {
+                const url = await uploadAccountingDesignFile(file);
 
-            window.accountingDesignImages.push({
-                name: file.name,
-                url: url
-            });
+                if (typeof url !== 'string' || !url.trim()) {
+                    throw new Error('لم يتم استلام رابط صالح للصورة.');
+                }
+
+                window.accountingDesignImages.push({
+                    name: file.name,
+                    url: url.trim()
+                });
+
+                uploadedCount++;
+
+                if (status) {
+                    status.textContent =
+                        'تم رفع ' + uploadedCount + ' من ' +
+                        files.length + ' صور...';
+                }
+            } catch (error) {
+                console.error(
+                    'ACCOUNTING DESIGN SINGLE FILE ERROR:',
+                    file.name,
+                    error
+                );
+
+                errors.push(
+                    file.name + ': ' +
+                    (error.message || 'تعذر رفع الصورة.')
+                );
+            }
         }
 
-        renderAccountingDesignGallery();
+        // تحديث المعرض منفصل عن عملية رفع الصور
+        try {
+            renderAccountingDesignGallery();
+        } catch (galleryError) {
+            console.error(
+                'ACCOUNTING DESIGN GALLERY ERROR:',
+                galleryError
+            );
 
-        if (status) {
-            status.textContent = 'تم رفع الصور بنجاح.';
+            if (status) {
+                status.textContent =
+                    'تم رفع ' + uploadedCount +
+                    ' صورة، لكن حدث خطأ أثناء عرض المعرض.';
+            }
+
+            alert(
+                'تم رفع الصور التي نجحت، لكن تعذر تحديث المعرض. ' +
+                'لا تعاود رفعها قبل مراجعة المعرض.'
+            );
+
+            return;
         }
-    } catch (error) {
-        console.error('ACCOUNTING DESIGN UPLOAD ERROR:', error);
 
-        if (status) {
-            status.textContent = error.message || 'تعذر رفع الصور.';
+        if (errors.length === 0) {
+            if (status) {
+                status.textContent =
+                    'تم رفع الصور بنجاح (' + uploadedCount + ').';
+            }
+        } else {
+            if (status) {
+                status.textContent =
+                    'تم رفع ' + uploadedCount +
+                    ' من ' + files.length +
+                    ' صور. تعذر رفع ' + errors.length + '.';
+            }
+
+            alert(
+                'نتيجة رفع الصور:\n' +
+                'نجح: ' + uploadedCount + '\n' +
+                'فشل: ' + errors.length + '\n\n' +
+                errors.join('\n')
+            );
         }
-
-        alert(error.message || 'تعذر رفع الصور.');
     } finally {
-        event.target.value = '';
+        input.value = '';
     }
 }
+
 
 function renderAccountingDesignGallery() {
     const gallery = document.getElementById(
