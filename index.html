@@ -16491,30 +16491,56 @@ async function printAccountingInvoice(invoiceId, type) {
                         page-break-inside: auto;
                     }
 
-                    .design-gallery {
-                        display: grid;
-                        grid-template-columns: repeat(3, minmax(0, 1fr));
-                        gap: 12px;
-                        margin: 12px 0 18px;
-                    }
+                  
+.design-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 8px 0 12px;
+}
 
-                    .design-image-card {
-                        margin: 0;
-                        padding: 8px;
-                        border: 1px solid #dfc5c8;
-                        border-radius: 4px;
-                        text-align: center;
-                        break-inside: avoid;
-                        page-break-inside: avoid;
-                    }
+.design-image-card {
+    width: 145px;
+    max-width: 100%;
+    margin: 0;
+    padding: 5px;
+    border: 1px solid #dfc5c8;
+    border-radius: 4px;
+    text-align: center;
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
 
-                    .design-image {
-                        display: block;
-                        width: 100%;
-                        height: 180px;
-                        object-fit: contain;
-                        background: #fff;
-                    }
+.design-image {
+    display: block;
+    width: 100%;
+    height: 100px;
+    object-fit: contain;
+    background: #fff;
+}
+
+.design-image-card figcaption {
+    margin-top: 4px;
+    color: #222;
+    font-size: 9px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+@media print {
+    .design-image-card {
+        width: 5cm;
+        padding: 3px;
+    }
+
+    .design-image {
+        width: 100%;
+        height: 3.5cm;
+        object-fit: contain;
+    }
+}
+
 
                     .design-image-card figcaption {
                         margin-top: 6px;
