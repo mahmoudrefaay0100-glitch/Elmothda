@@ -1,28 +1,205 @@
 
 export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store, max-age=0');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
 
-    // =====================================
-    // 1) تحقق Meta من عنوان Webhook
-    // =====================================
+    const {
+        WHATSAPP_ACCESS_TOKEN,
+        WHATSAPP_PHONE_NUMBER_ID,
+        WHATSAPP_CUSTOMER_SERVICE_PHONE,
+        WHATSAPP_VERIFY_TOKEN,
+        SUPABASE_URL,
+        SUPABASE_SERVICE_ROLE_KEY
+    } = process.env;
+
+    const DB_URL = (
+        SUPABASE_URL ||
+        'https://kxtiqtcxkcwdvljiadfn.supabase.co'
+    ).replace(/\/+$/, '');
+
+    const GRAPH_URL =
+        `https://graph.facebook.com/v23.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+
+    const REQUEST_TIMEOUT_MS = 6500;
+
+    // =====================================================
+    // HELPERS
+    // =====================================================
+
+    function sendError(status, error, details) {
+        const payload = { success: false, error };
+
+        if (details !== undefined) {
+            payload.details = details;
+        }
+
+        return res.status(status).json(payload);
+    }
+
+    function cleanText(value, fallback = 'غير محدد') {
+        if (
+            value === undefined ||
+            value === null ||
+            String(value).trim() === ''
+        ) {
+            return fallback;
+        }
+
+        return String(value)
+            .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+            .trim();
+    }
+
+    function firstAvailable(...values) {
+        for (const value of values) {
+            if (
+                value !== undefined &&
+                value !== null &&
+                value !== ''
+            ) {
+                return value;
+            }
+        }
+
+        return null;
+    }
+
+    function safeNumber(value, fallback = 0) {
+        if (
+            value === undefined ||
+            value === null ||
+            value === ''
+        ) {
+            return fallback;
+        }
+
+        const number = Number(value);
+
+        return Number.isFinite(number) ? number : fallback;
+    }
+
+    function formatMoney(value) {
+        return safeNumber(value).toLocaleString('ar-EG') + ' ج.م';
+    }
+
+    function parseBody(value) {
+        if (typeof value === 'string') {
+            try {
+                return JSON.parse(value);
+            } catch {
+                return null;
+            }
+        }
+
+        return value && typeof value === 'object'
+            ? value
+            : null;
+    }
+
+    function normalizeEgyptianWhatsAppNumber(value) {
+        let number = String(value || '')
+            .trim()
+            .replace(/[\s()+.-]/g, '');
+
+        if (!/^\d+$/.test(number)) {
+            throw new Error('رقم واتساب يحتوي على أحرف غير صالحة.');
+        }
+
+        if (number.startsWith('00')) {
+            number = number.slice(2);
+        }
+
+        if (number.startsWith('01') && number.length === 11) {
+            number = '20' + number.slice(1);
+        } else if (number.startsWith('1') && number.length === 10) {
+            number = '20' + number;
+        }
+
+        if (
+            number.length < 8 ||
+            number.length > 15 ||
+            number.startsWith('0')
+        ) {
+            throw new Error('رقم واتساب ليس بصيغة دولية صحيحة.');
+        }
+
+        return number;
+    }
+
+    function isEnabled(value, fallback = false) {
+        if (typeof value === 'boolean') {
+            return value;
+        }
+
+        if (value === 1 || value === '1' || value === 'true') {
+            return true;
+        }
+
+        if (value === 0 || value === '0' || value === 'false') {
+            return false;
+        }
+
+        return fallback;
+    }
+
+    function getEventType(body) {
+        const raw = String(
+            firstAvailable(
+                body.notificationType,
+                body.notification_type,
+                body.eventType,
+                body.event_type,
+                body.event,
+                body.type,
+                'new_order'
+            )
+        ).toLowerCase().trim();
+
+        if (
+            [
+                'payment_status',
+                'payment-status',
+                'payment_updated',
+                'payment_updated_status',
+                'payment'
+            ].includes(raw)
+        ) {
+            return 'payment_status';
+        }
+
+        if (
+            [
+                'order_status',
+                'order-status',
+                'status_updated',
+                'order_updated',
+                'status'
+            ].includes(raw)
+        ) {
+            return 'order_status';
+        }
+
+        return 'new_order';
+    }
+
+    // =====================================================
+    // GET: META WEBHOOK VERIFICATION
+    // =====================================================
+
     if (req.method === 'GET') {
         const mode = req.query?.['hub.mode'];
         const token = req.query?.['hub.verify_token'];
         const challenge = req.query?.['hub.challenge'];
-        const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
 
         if (
             mode === 'subscribe' &&
-            verifyToken &&
-            token === verifyToken &&
+            WHATSAPP_VERIFY_TOKEN &&
+            token === WHATSAPP_VERIFY_TOKEN &&
             challenge !== undefined
         ) {
             console.log('WHATSAPP WEBHOOK VERIFIED');
 
-            res.setHeader(
-                'Content-Type',
-                'text/plain; charset=utf-8'
-            );
+            res.setHeader('Content-Type', 'text/plain; charset=utf-8');
 
             return res.status(200).send(String(challenge));
         }
@@ -38,51 +215,36 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') {
         res.setHeader('Allow', 'GET, POST');
 
-        return res.status(405).json({
-            success: false,
-            error: 'Method not allowed'
-        });
+        return sendError(405, 'Method not allowed');
     }
 
-    // =====================================
-    // 2) استقبال إشعارات Meta
-    // =====================================
-    let webhookBody = req.body || {};
+    const parsedBody = parseBody(req.body);
 
-    if (typeof webhookBody === 'string') {
-        try {
-            webhookBody = JSON.parse(webhookBody);
-        } catch {
-            return res.status(400).json({
-                success: false,
-                error: 'بيانات الطلب ليست بصيغة JSON صحيحة.'
-            });
-        }
+    if (!parsedBody) {
+        return sendError(400, 'بيانات الطلب ليست بصيغة JSON صحيحة.');
     }
 
-    // لو الطلب وارد من Meta، نعالج حالات الرسائل
-    // وننهي التنفيذ قبل كود إرسال إشعار الطلب.
-    if (webhookBody?.object === 'whatsapp_business_account') {
+    // =====================================================
+    // POST: META WEBHOOK
+    // =====================================================
+
+    if (parsedBody.object === 'whatsapp_business_account') {
         try {
-            const deliveryStatuses = [];
+            let statusCount = 0;
 
-            const entries = Array.isArray(webhookBody.entry)
-                ? webhookBody.entry
-                : [];
-
-            for (const entry of entries) {
-                const changes = Array.isArray(entry?.changes)
-                    ? entry.changes
-                    : [];
-
-                for (const change of changes) {
+            for (const entry of (
+                Array.isArray(parsedBody.entry) ? parsedBody.entry : []
+            )) {
+                for (const change of (
+                    Array.isArray(entry?.changes) ? entry.changes : []
+                )) {
                     const value = change?.value || {};
 
-                    const statuses = Array.isArray(value.statuses)
-                        ? value.statuses
-                        : [];
+                    for (const item of (
+                        Array.isArray(value.statuses) ? value.statuses : []
+                    )) {
+                        statusCount++;
 
-                    for (const item of statuses) {
                         const errors = Array.isArray(item.errors)
                             ? item.errors.map(error => ({
                                 code: error.code ?? null,
@@ -93,45 +255,32 @@ export default async function handler(req, res) {
                             }))
                             : [];
 
-                        const record = {
+                        console.log('WHATSAPP DELIVERY STATUS:', JSON.stringify({
                             messageId: item.id ?? null,
                             status: item.status ?? 'unknown',
                             recipient: item.recipient_id ?? null,
                             timestamp: item.timestamp ?? null,
                             errors
-                        };
-
-                        deliveryStatuses.push(record);
-
-                        console.log(
-                            'WHATSAPP DELIVERY STATUS:',
-                            JSON.stringify(record)
-                        );
+                        }));
                     }
 
-                    // تسجيل معلومات أساسية عن الرسائل الواردة
-                    // دون تسجيل محتوى الرسالة.
-                    const messages = Array.isArray(value.messages)
-                        ? value.messages
-                        : [];
-
-                    for (const message of messages) {
-                        console.log(
-                            'WHATSAPP INCOMING MESSAGE:',
-                            JSON.stringify({
-                                messageId: message.id ?? null,
-                                from: message.from ?? null,
-                                type: message.type ?? null,
-                                timestamp: message.timestamp ?? null
-                            })
-                        );
+                    for (const message of (
+                        Array.isArray(value.messages) ? value.messages : []
+                    )) {
+                        console.log('WHATSAPP INCOMING MESSAGE:', JSON.stringify({
+                            messageId: message.id ?? null,
+                            from: message.from ?? null,
+                            type: message.type ?? null,
+                            timestamp: message.timestamp ?? null
+                        }));
                     }
                 }
             }
 
+            // Meta تحتاج استجابة سريعة لاستلام Webhook.
             return res.status(200).json({
                 success: true,
-                statusCount: deliveryStatuses.length
+                statusCount
             });
         } catch (error) {
             console.error(
@@ -139,160 +288,42 @@ export default async function handler(req, res) {
                 error?.message || 'Unknown error'
             );
 
-            return res.status(200).json({
-                success: true
-            });
+            // لا نكشف بيانات الرسائل أو أسرار الربط.
+            return res.status(200).json({ success: true });
         }
     }
 
-    // =====================================
-    // 3) الوظيفة الأصلية: إرسال إشعار الطلب
-    // =====================================
+    // =====================================================
+    // ORDER NOTIFICATIONS
+    // =====================================================
+
     try {
-        const {
-            WHATSAPP_ACCESS_TOKEN,
-            WHATSAPP_PHONE_NUMBER_ID,
-            WHATSAPP_CUSTOMER_SERVICE_PHONE
-        } = process.env;
-
-        if (
-            !WHATSAPP_ACCESS_TOKEN ||
-            !WHATSAPP_PHONE_NUMBER_ID
-        ) {
-            console.error(
-                'WhatsApp configuration error:',
-                JSON.stringify({
-                    hasAccessToken: Boolean(
-                        WHATSAPP_ACCESS_TOKEN
-                    ),
-                    hasPhoneNumberId: Boolean(
-                        WHATSAPP_PHONE_NUMBER_ID
-                    )
-                })
-            );
-
-            return res.status(500).json({
-                success: false,
-                error: 'إعدادات واتساب غير مكتملة في Vercel.'
+        if (!WHATSAPP_ACCESS_TOKEN || !WHATSAPP_PHONE_NUMBER_ID) {
+            console.error('WHATSAPP CONFIGURATION MISSING:', {
+                hasAccessToken: Boolean(WHATSAPP_ACCESS_TOKEN),
+                hasPhoneNumberId: Boolean(WHATSAPP_PHONE_NUMBER_ID)
             });
+
+            return sendError(
+                500,
+                'إعدادات واتساب غير مكتملة في Vercel.'
+            );
         }
 
-        // =====================================
-        // أدوات مساعدة
-        // =====================================
+        if (!SUPABASE_SERVICE_ROLE_KEY) {
+            console.error('SUPABASE SERVICE ROLE KEY IS MISSING');
 
-        function firstAvailable(...values) {
-            for (const value of values) {
-                if (
-                    value !== undefined &&
-                    value !== null &&
-                    value !== ''
-                ) {
-                    return value;
-                }
-            }
-
-            return null;
+            return sendError(
+                500,
+                'إعدادات قراءة مفاتيح إشعارات واتساب غير مكتملة.'
+            );
         }
 
-        function safeNumber(value, fallback = 0) {
-            if (
-                value === undefined ||
-                value === null ||
-                value === ''
-            ) {
-                return fallback;
-            }
-
-            const number = Number(value);
-
-            return Number.isFinite(number)
-                ? number
-                : fallback;
-        }
-
-        function formatMoney(value) {
-            return safeNumber(value, 0)
-                .toLocaleString('ar-EG') + ' ج.م';
-        }
-
-        function cleanText(value, fallback = 'غير محدد') {
-            if (
-                value === undefined ||
-                value === null ||
-                String(value).trim() === ''
-            ) {
-                return fallback;
-            }
-
-            return String(value)
-                .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
-                .trim();
-        }
-
-        // توحيد أرقام مصر إلى الصيغة الدولية.
-        // مثال: 01042056131 -> 201042056131
-        function normalizeEgyptianWhatsAppNumber(value) {
-            let number = String(value || '')
-                .trim()
-                .replace(/[\s()+.-]/g, '');
-
-            if (!/^\d+$/.test(number)) {
-                throw new Error(
-                    'رقم استقبال إشعارات واتساب يحتوي على أحرف غير صالحة.'
-                );
-            }
-
-            if (number.startsWith('00')) {
-                number = number.slice(2);
-            }
-
-            if (
-                number.startsWith('01') &&
-                number.length === 11
-            ) {
-                number = '20' + number.slice(1);
-            } else if (
-                number.startsWith('1') &&
-                number.length === 10
-            ) {
-                number = '20' + number;
-            }
-
-            if (
-                number.length < 8 ||
-                number.length > 15 ||
-                number.startsWith('0')
-            ) {
-                throw new Error(
-                    'رقم استقبال إشعارات واتساب ليس بصيغة دولية صحيحة.'
-                );
-            }
-
-            return number;
-        }
-
-        // =====================================
-        // قراءة بيانات الطلب
-        // =====================================
-
-        let body = req.body || {};
-
-        if (typeof body === 'string') {
-            try {
-                body = JSON.parse(body);
-            } catch {
-                return res.status(400).json({
-                    success: false,
-                    error: 'بيانات الطلب ليست بصيغة JSON صحيحة.'
-                });
-            }
-        }
-
+        const body = parsedBody;
         const order =
-            body?.order ||
-            body?.data?.order ||
-            body?.data ||
+            body.order ||
+            body.data?.order ||
+            body.data ||
             body;
 
         if (
@@ -300,125 +331,129 @@ export default async function handler(req, res) {
             typeof order !== 'object' ||
             Array.isArray(order)
         ) {
-            return res.status(400).json({
-                success: false,
-                error: 'بيانات الطلب غير صالحة.'
+            return sendError(400, 'بيانات الطلب غير صالحة.');
+        }
+
+        const eventType = getEventType(body);
+
+        // =================================================
+        // READ LIVE NOTIFICATION SWITCHES FROM SUPABASE
+        // =================================================
+
+        let settingsResponse;
+
+        try {
+            settingsResponse = await fetch(
+                `${DB_URL}/rest/v1/site_settings` +
+                '?select=whatsapp_notify_new_order' +
+                ',whatsapp_notify_order_status' +
+                ',whatsapp_notify_payment_status' +
+                ',whatsapp_notify_customer&limit=1',
+                {
+                    method: 'GET',
+                    headers: {
+                        apikey: SUPABASE_SERVICE_ROLE_KEY,
+                        Authorization:
+                            `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                        Accept: 'application/json'
+                    },
+                    cache: 'no-store',
+                    signal: AbortSignal.timeout(3000)
+                }
+            );
+        } catch (error) {
+            console.error('WHATSAPP SETTINGS READ FAILED:', {
+                message: error?.message || 'Unknown error'
+            });
+
+            return sendError(
+                503,
+                'تعذر قراءة إعدادات إشعارات واتساب. لم يتم إرسال الرسالة.'
+            );
+        }
+
+        if (!settingsResponse.ok) {
+            const errorText = await settingsResponse.text().catch(() => '');
+
+            console.error('WHATSAPP SETTINGS HTTP ERROR:', {
+                status: settingsResponse.status,
+                response: errorText.slice(0, 500)
+            });
+
+            return sendError(
+                502,
+                'فشل تحميل مفاتيح إشعارات واتساب من قاعدة البيانات.'
+            );
+        }
+
+        let settingsRows;
+
+        try {
+            settingsRows = await settingsResponse.json();
+        } catch {
+            return sendError(
+                502,
+                'تعذر قراءة إعدادات إشعارات واتساب.'
+            );
+        }
+
+        if (!Array.isArray(settingsRows) || settingsRows.length === 0) {
+            return sendError(
+                503,
+                'لا توجد إعدادات متجر محفوظة لتحديد إشعارات واتساب.'
+            );
+        }
+
+        const settings = settingsRows[0];
+
+        const switches = {
+            newOrder: isEnabled(
+                settings.whatsapp_notify_new_order,
+                true
+            ),
+            orderStatus: isEnabled(
+                settings.whatsapp_notify_order_status,
+                true
+            ),
+            paymentStatus: isEnabled(
+                settings.whatsapp_notify_payment_status,
+                true
+            ),
+            customer: isEnabled(
+                settings.whatsapp_notify_customer,
+                false
+            )
+        };
+
+        const adminNotificationEnabled =
+            eventType === 'new_order'
+                ? switches.newOrder
+                : eventType === 'order_status'
+                    ? switches.orderStatus
+                    : switches.paymentStatus;
+
+        if (!adminNotificationEnabled && !switches.customer) {
+            console.log('WHATSAPP NOTIFICATION SKIPPED:', {
+                eventType,
+                reason: 'Disabled in site_settings'
+            });
+
+            return res.status(200).json({
+                success: true,
+                skipped: true,
+                reason: 'notification_disabled',
+                eventType
             });
         }
 
+        // =================================================
+        // ORDER DATA
+        // =================================================
+
         const customer =
-            order.customer &&
-            typeof order.customer === 'object'
+            order.customer && typeof order.customer === 'object'
                 ? order.customer
                 : {};
-
-        const items = Array.isArray(order.items)
-            ? order.items
-            : [];
-
-        // =====================================
-        // تجهيز المنتجات
-        // =====================================
-
-        const itemsText = items.length
-            ? items.map((item, index) => {
-                item =
-                    item && typeof item === 'object'
-                        ? item
-                        : {};
-
-                const name = cleanText(
-                    firstAvailable(
-                        item.productTitle,
-                        item.name,
-                        item.title
-                    ),
-                    'منتج'
-                );
-
-                const qty = Math.max(
-                    0,
-                    safeNumber(
-                        firstAvailable(item.qty, item.quantity),
-                        1
-                    )
-                );
-
-                const unitPrice = safeNumber(
-                    firstAvailable(
-                        item.unitPrice,
-                        item.unit_price,
-                        item.price
-                    ),
-                    0
-                );
-
-                const savedLineTotal = firstAvailable(
-                    item.lineTotal,
-                    item.line_total,
-                    item.totalPrice,
-                    item.total_price,
-                    item.itemTotal,
-                    item.itemSubtotal,
-                    item.item_subtotal
-                );
-
-                const lineTotal =
-                    savedLineTotal !== null
-                        ? safeNumber(
-                            savedLineTotal,
-                            unitPrice * qty
-                        )
-                        : unitPrice * qty;
-
-                const upholstery = firstAvailable(
-                    item.upholsteryName,
-                    item.upholstery_name,
-                    item.upholstery
-                );
-
-                const cushionColor = firstAvailable(
-                    item.cushionColor,
-                    item.cushion_color
-                );
-
-                const wickerColor = firstAvailable(
-                    item.wickerColor,
-                    item.wicker_color
-                );
-
-                const details = [
-                    `${index + 1}- ${name}`,
-                    `الكمية: ${qty}`,
-                    `سعر الوحدة: ${formatMoney(unitPrice)}`,
-                    `إجمالي المنتج: ${formatMoney(lineTotal)}`
-                ];
-
-                if (upholstery) {
-                    details.push(
-                        `التنجيد: ${cleanText(upholstery)}`
-                    );
-                }
-
-                if (cushionColor) {
-                    details.push(
-                        `لون المخدة: ${cleanText(cushionColor)}`
-                    );
-                }
-
-                if (wickerColor) {
-                    details.push(
-                        `لون الرتان: ${cleanText(wickerColor)}`
-                    );
-                }
-
-                return details.join('\n');
-            }).join('\n\n')
-            : 'لا توجد منتجات مسجلة في بيانات الطلب.';
-
-        // =====================================
-        // بيانات الطلب
-        // =====================================
 
         const orderNumber = cleanText(
             firstAvailable(
@@ -437,37 +472,92 @@ export default async function handler(req, res) {
             )
         );
 
-        const customerPhone = cleanText(
-            firstAvailable(
-                customer.phone,
-                order.customer_phone,
-                order.customerPhone,
-                order.phone
-            )
+        const customerPhone = firstAvailable(
+            customer.phone,
+            order.customer_phone,
+            order.customerPhone,
+            order.phone
         );
 
-        const governorate = cleanText(
-            firstAvailable(
-                customer.gov,
-                customer.governorate,
-                order.governorate
-            )
-        );
+        const items = Array.isArray(order.items) ? order.items : [];
 
-        const city = cleanText(
-            firstAvailable(customer.city, order.city)
-        );
+        const itemsText = items.length
+            ? items.map((item, index) => {
+                item = item && typeof item === 'object' ? item : {};
 
-        const address = cleanText(
-            firstAvailable(customer.address, order.address)
-        );
+                const name = cleanText(
+                    firstAvailable(item.productTitle, item.name, item.title),
+                    'منتج'
+                );
+
+                const qty = Math.max(
+                    0,
+                    safeNumber(firstAvailable(item.qty, item.quantity), 1)
+                );
+
+                const unitPrice = safeNumber(
+                    firstAvailable(
+                        item.unitPrice,
+                        item.unit_price,
+                        item.price
+                    )
+                );
+
+                const savedTotal = firstAvailable(
+                    item.lineTotal,
+                    item.line_total,
+                    item.totalPrice,
+                    item.total_price,
+                    item.itemTotal,
+                    item.itemSubtotal,
+                    item.item_subtotal
+                );
+
+                const lineTotal = savedTotal !== null
+                    ? safeNumber(savedTotal, unitPrice * qty)
+                    : unitPrice * qty;
+
+                const details = [
+                    `${index + 1}- ${name}`,
+                    `الكمية: ${qty}`,
+                    `سعر الوحدة: ${formatMoney(unitPrice)}`,
+                    `إجمالي المنتج: ${formatMoney(lineTotal)}`
+                ];
+
+                const upholstery = firstAvailable(
+                    item.upholsteryName,
+                    item.upholstery_name,
+                    item.upholstery
+                );
+
+                const cushionColor = firstAvailable(
+                    item.cushionColor,
+                    item.cushion_color
+                );
+
+                const wickerColor = firstAvailable(
+                    item.wickerColor,
+                    item.wicker_color
+                );
+
+                if (upholstery) {
+                    details.push(`التنجيد: ${cleanText(upholstery)}`);
+                }
+
+                if (cushionColor) {
+                    details.push(`لون المخدة: ${cleanText(cushionColor)}`);
+                }
+
+                if (wickerColor) {
+                    details.push(`لون الرتان: ${cleanText(wickerColor)}`);
+                }
+
+                return details.join('\n');
+            }).join('\n\n')
+            : 'لا توجد منتجات مسجلة في بيانات الطلب.';
 
         const subtotal = safeNumber(
-            firstAvailable(
-                order.subtotal,
-                order.subTotal
-            ),
-            0
+            firstAvailable(order.subtotal, order.subTotal)
         );
 
         const sunbadgeFee = safeNumber(
@@ -475,35 +565,21 @@ export default async function handler(req, res) {
                 order.sunbadge_fee,
                 order.sunBadgeFee,
                 order.sunbadgeFee
-            ),
-            0
+            )
         );
 
         const shippingCost = safeNumber(
-            firstAvailable(
-                order.shippingCost,
-                order.shipping_cost
-            ),
-            0
+            firstAvailable(order.shippingCost, order.shipping_cost)
         );
 
-        const discount = safeNumber(order.discount, 0);
+        const discount = safeNumber(order.discount);
 
         const total = safeNumber(
-            firstAvailable(
-                order.total,
-                order.grandTotal,
-                order.grand_total
-            ),
-            0
+            firstAvailable(order.total, order.grandTotal, order.grand_total)
         );
 
         const depositPercent = safeNumber(
-            firstAvailable(
-                order.depositPercent,
-                order.deposit_percent
-            ),
-            0
+            firstAvailable(order.depositPercent, order.deposit_percent)
         );
 
         const depositAmount = safeNumber(
@@ -511,24 +587,28 @@ export default async function handler(req, res) {
                 order.depositAmount,
                 order.deposit_amount,
                 order.deposit
-            ),
-            0
+            )
         );
 
         const remainingAmount = safeNumber(
-            firstAvailable(
-                order.remainingAmount,
-                order.remaining_amount
-            ),
-            0
+            firstAvailable(order.remainingAmount, order.remaining_amount)
         );
 
-        // =====================================
-        // إنشاء الرسالة
-        // =====================================
+        const paymentStatus = cleanText(
+            firstAvailable(order.paymentStatus, order.payment_status),
+            'Pending'
+        );
 
-        const message = [
-            '🔔 طلب جديد - المتحدة للرتان والأثاث',
+        const orderStatus = cleanText(order.status, 'New');
+
+        const eventTitle = {
+            new_order: '🔔 طلب جديد',
+            order_status: '📌 تحديث حالة الطلب',
+            payment_status: '💳 تحديث حالة الدفع'
+        }[eventType];
+
+        const adminMessage = [
+            `${eventTitle} - المتحدة للرتان والأثاث`,
             '',
             '📦 رقم الطلب:',
             orderNumber,
@@ -537,25 +617,26 @@ export default async function handler(req, res) {
             customerName,
             '',
             '📞 الهاتف:',
-            customerPhone,
+            cleanText(customerPhone),
             '',
             '📍 المحافظة:',
-            governorate,
+            cleanText(firstAvailable(
+                customer.gov,
+                customer.governorate,
+                order.governorate
+            )),
             '',
             '🏙️ المدينة:',
-            city,
+            cleanText(firstAvailable(customer.city, order.city)),
             '',
             '🏠 العنوان:',
-            address,
+            cleanText(firstAvailable(customer.address, order.address)),
             '',
             '🚚 طريقة الاستلام:',
-            cleanText(
-                firstAvailable(
-                    order.shippingMethod,
-                    order.shipping_method
-                ),
-                'غير محددة'
-            ),
+            cleanText(firstAvailable(
+                order.shippingMethod,
+                order.shipping_method
+            )),
             '',
             '🛒 المنتجات:',
             itemsText,
@@ -585,50 +666,24 @@ export default async function handler(req, res) {
             formatMoney(remainingAmount),
             '',
             '💳 طريقة الدفع:',
-            cleanText(
-                firstAvailable(
-                    order.paymentMethod,
-                    order.payment_method
-                ),
-                'غير محددة'
-            ),
+            cleanText(firstAvailable(
+                order.paymentMethod,
+                order.payment_method
+            )),
             '',
             '📌 حالة الدفع:',
-            cleanText(
-                firstAvailable(
-                    order.paymentStatus,
-                    order.payment_status
-                ),
-                'Pending'
-            ),
+            paymentStatus,
             '',
             '📝 حالة الطلب:',
-            cleanText(order.status, 'New')
+            orderStatus
         ].join('\n');
 
-        const finalMessage =
-            message.length > 4000
-                ? message.slice(0, 3950) +
-                  '\n\nتم اختصار تفاصيل الرسالة لطولها.'
-                : message;
+        // =================================================
+        // META SEND HELPER
+        // =================================================
 
-        // =====================================
-        // تحديد رقم استقبال إشعارات الإدارة
-        // =====================================
-
-        // رقم خدمة العملاء الافتراضي: 01042056131
-        // يمكن تغييره من إعدادات Vercel.
-        const recipient = normalizeEgyptianWhatsAppNumber(
-            WHATSAPP_CUSTOMER_SERVICE_PHONE || '01042056131'
-        );
-
-        // =====================================
-        // إرسال الإشعار من رقم Meta المربوط
-        // =====================================
-
-        const response = await fetch(
-            `https://graph.facebook.com/v23.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
-            {
+        async function sendWhatsAppMessage(to, message) {
+            const response = await fetch(GRAPH_URL, {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
@@ -637,81 +692,209 @@ export default async function handler(req, res) {
                 body: JSON.stringify({
                     messaging_product: 'whatsapp',
                     recipient_type: 'individual',
-                    to: recipient,
+                    to,
                     type: 'text',
                     text: {
                         preview_url: false,
-                        body: finalMessage
+                        body: message.length > 4000
+                            ? message.slice(0, 3950) +
+                              '\n\nتم اختصار تفاصيل الرسالة لطولها.'
+                            : message
                     }
-                })
+                }),
+                signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+            });
+
+            let data = {};
+
+            try {
+                data = await response.json();
+            } catch {
+                data = {};
             }
-        );
 
-        let data = {};
+            if (!response.ok) {
+                const metaError = data?.error || {};
 
-        try {
-            data = await response.json();
-        } catch {
-            data = {};
-        }
-
-        if (!response.ok) {
-            const metaError = data?.error || {};
-
-            // لا تسجل التوكن أو ترويسات المصادقة.
-            console.error(
-                'WHATSAPP API ERROR:',
-                JSON.stringify({
+                console.error('WHATSAPP API ERROR:', JSON.stringify({
                     status: response.status,
                     code: metaError.code ?? null,
                     errorSubcode: metaError.error_subcode ?? null,
                     type: metaError.type ?? null,
                     message: metaError.message ?? null,
                     details: metaError.error_data?.details ?? null,
-                    fbtrace_id: metaError.fbtrace_id ?? null,
-                    orderNumber
-                })
+                    fbtrace_id: metaError.fbtrace_id ?? null
+                }));
+
+                return {
+                    success: false,
+                    status: response.status,
+                    error:
+                        metaError.error_data?.details ||
+                        metaError.message ||
+                        'فشل إرسال الرسالة إلى Meta.',
+                    metaCode: metaError.code ?? null
+                };
+            }
+
+            return {
+                success: true,
+                messageId: data?.messages?.[0]?.id || null
+            };
+        }
+
+        // =================================================
+        // SEND ADMIN NOTIFICATION
+        // =================================================
+
+        const tasks = [];
+
+        if (adminNotificationEnabled) {
+            const adminPhone = normalizeEgyptianWhatsAppNumber(
+                WHATSAPP_CUSTOMER_SERVICE_PHONE || '01042056131'
             );
 
-            return res.status(502).json({
-                success: false,
-                error:
-                    metaError.error_data?.details ||
-                    metaError.message ||
-                    'فشل إرسال إشعار واتساب. راجع سجل أخطاء Vercel.',
-                metaCode: metaError.code ?? null,
-                orderNumber
+            tasks.push({
+                target: 'admin',
+                promise: sendWhatsAppMessage(adminPhone, adminMessage)
             });
         }
 
-        const messageId = data?.messages?.[0]?.id || null;
+        // =================================================
+        // SEND CUSTOMER NOTIFICATION
+        // =================================================
 
-        console.log(
-            'WHATSAPP ORDER NOTIFICATION ACCEPTED:',
-            JSON.stringify({
-                orderNumber,
-                recipient,
-                messageId
-            })
+        if (switches.customer && customerPhone) {
+            try {
+                const customerNumber =
+                    normalizeEgyptianWhatsAppNumber(customerPhone);
+
+                const customerMessage = [
+                    `أهلًا ${customerName} 👋`,
+                    '',
+                    'شكرًا لطلبك من المتحدة للرتان والأثاث.',
+                    '',
+                    `رقم الطلب: ${orderNumber}`,
+                    `حالة الطلب: ${orderStatus}`,
+                    `حالة الدفع: ${paymentStatus}`,
+                    `إجمالي الطلب: ${formatMoney(total)}`,
+                    `المبلغ المتبقي: ${formatMoney(remainingAmount)}`,
+                    '',
+                    'للاستفسار عن طلبك، تواصل مع خدمة العملاء.'
+                ].join('\n');
+
+                tasks.push({
+                    target: 'customer',
+                    promise: sendWhatsAppMessage(
+                        customerNumber,
+                        customerMessage
+                    )
+                });
+            } catch (error) {
+                console.error('WHATSAPP CUSTOMER NUMBER ERROR:', {
+                    message: error?.message || 'Invalid customer number'
+                });
+
+                tasks.push({
+                    target: 'customer',
+                    promise: Promise.resolve({
+                        success: false,
+                        error: 'رقم واتساب العميل غير صالح.'
+                    })
+                });
+            }
+        }
+
+        if (tasks.length === 0) {
+            return res.status(200).json({
+                success: true,
+                skipped: true,
+                reason: 'no_enabled_recipients'
+            });
+        }
+
+        const results = await Promise.all(
+            tasks.map(async task => ({
+                target: task.target,
+                result: await task.promise.catch(error => {
+                    console.error('WHATSAPP SEND CONNECTION ERROR:', {
+                        target: task.target,
+                        message: error?.message || 'Connection failed'
+                    });
+
+                    return {
+                        success: false,
+                        error:
+                            error?.name === 'TimeoutError' ||
+                            error?.name === 'AbortError'
+                                ? 'انتهت مهلة الاتصال بمنصة واتساب.'
+                                : 'تعذر الاتصال بمنصة واتساب.'
+                    };
+                })
+            }))
         );
+
+        const failures = results.filter(
+            item => !item.result.success
+        );
+
+        const successes = results.filter(
+            item => item.result.success
+        );
+
+        console.log('WHATSAPP NOTIFICATION SUMMARY:', JSON.stringify({
+            orderNumber,
+            eventType,
+            attempted: results.length,
+            succeeded: successes.length,
+            failed: failures.length,
+            targets: results.map(item => ({
+                target: item.target,
+                success: item.result.success,
+                messageId: item.result.messageId || null,
+                metaCode: item.result.metaCode || null
+            }))
+        }));
+
+        if (failures.length > 0) {
+            return res.status(successes.length > 0 ? 207 : 502).json({
+                success: successes.length > 0,
+                partial: successes.length > 0,
+                orderNumber,
+                eventType,
+                results: results.map(item => ({
+                    target: item.target,
+                    success: item.result.success,
+                    messageId: item.result.messageId || null,
+                    error: item.result.success
+                        ? undefined
+                        : item.result.error,
+                    metaCode: item.result.metaCode || null
+                }))
+            });
+        }
 
         return res.status(200).json({
             success: true,
-            message: 'قبلت منصة واتساب طلب إرسال الإشعار.',
+            message: 'قبلت منصة واتساب طلب إرسال الرسائل.',
             orderNumber,
-            messageId
+            eventType,
+            results: results.map(item => ({
+                target: item.target,
+                success: true,
+                messageId: item.result.messageId
+            }))
         });
 
     } catch (error) {
-        console.error(
-            'SEND WHATSAPP ORDER ERROR:',
-            error?.message || error
-        );
+        console.error('SEND WHATSAPP ORDER ERROR:', {
+            message: error?.message || 'Unknown error',
+            name: error?.name || null
+        });
 
         return res.status(500).json({
             success: false,
-            error:
-                error?.message ||
+            error: error?.message ||
                 'حدث خطأ أثناء تجهيز إشعار واتساب.'
         });
     }
