@@ -17564,8 +17564,9 @@ function accountingDesignEscape(value) {
     });
 }
 
+
 async function uploadAccountingDesignFile(file) {
-    if (!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) {
+    if (!file || !/^image\/(jpeg|jpg|png|webp)$/.test(file.type)) {
         throw new Error('اختر صورة JPG أو PNG أو WEBP فقط.');
     }
 
@@ -17577,6 +17578,11 @@ async function uploadAccountingDesignFile(file) {
         const reader = new FileReader();
 
         reader.onload = function () {
+            if (typeof reader.result !== 'string') {
+                reject(new Error('تعذرت قراءة الصورة من الجهاز.'));
+                return;
+            }
+
             resolve(reader.result);
         };
 
@@ -17587,6 +17593,12 @@ async function uploadAccountingDesignFile(file) {
         reader.readAsDataURL(file);
     });
 
+    const base64Parts = dataUrl.split(',');
+
+    if (!base64Parts[1]) {
+        throw new Error('بيانات الصورة غير صالحة.');
+    }
+
     const response = await fetch('/api/upload-image', {
         method: 'POST',
         headers: {
@@ -17594,8 +17606,10 @@ async function uploadAccountingDesignFile(file) {
         },
         body: JSON.stringify({
             fileName: file.name,
-            fileType: file.type,
-            fileData: String(dataUrl).split(',')[1],
+            fileType: file.type === 'image/jpg'
+                ? 'image/jpeg'
+                : file.type,
+            fileData: base64Parts[1],
             folder: 'design-previews'
         })
     });
@@ -17604,14 +17618,28 @@ async function uploadAccountingDesignFile(file) {
         return {};
     });
 
-    if (!response.ok || !result.url) {
+    if (!response.ok || result.success === false) {
         throw new Error(
-            result.message || result.error || 'فشل رفع صورة المعاينة.'
+            result.message ||
+            result.error ||
+            'فشل رفع صورة المعاينة.'
         );
     }
 
-    return result.url;
+    // يدعم أسماء الرابط في الاستجابات القديمة والجديدة.
+    const imageUrl =
+        (typeof result.image_url === 'string' && result.image_url.trim()) ||
+        (typeof result.url === 'string' && result.url.trim()) ||
+        '';
+
+    if (!imageUrl) {
+        console.error('UPLOAD IMAGE RESPONSE WITHOUT URL:', result);
+        throw new Error('تم الرد على رفع الصورة بدون رابط صالح.');
+    }
+
+    return imageUrl;
 }
+
 
 
 async function handleAccountingDesignImages(event) {
