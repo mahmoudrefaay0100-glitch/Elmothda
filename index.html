@@ -15791,7 +15791,10 @@ async function printAccountingInvoice(invoiceId, type) {
             );
         }
 
-        // تحويل الأرقام العربية والفارسية إلى إنجليزية.
+        // =====================================================
+        // الأدوات المساعدة
+        // =====================================================
+
         const englishNumbers = (value) =>
             String(value ?? '')
                 .replace(/[٠-٩]/g, digit =>
@@ -15803,6 +15806,17 @@ async function printAccountingInvoice(invoiceId, type) {
 
         const escape = (value) =>
             accountingEscape(englishNumbers(value));
+
+        const formatMoney = (value) =>
+            Number(value || 0).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }) + ' ج.م';
+
+        const formatNumber = (value) =>
+            Number(value || 0).toLocaleString('en-US', {
+                maximumFractionDigits: 3
+            });
 
         const name = type === 'sales'
             ? invoice.customer_name
@@ -15833,6 +15847,10 @@ async function printAccountingInvoice(invoiceId, type) {
                 invoice.address ||
                 ''
             );
+
+        // =====================================================
+        // الحسابات الأصلية - بدون تغيير المعادلات
+        // =====================================================
 
         const paid = Number(result.paid || 0);
         const total = Number(invoice.total || 0);
@@ -15870,7 +15888,13 @@ async function printAccountingInvoice(invoiceId, type) {
             '—';
 
         const invoiceNumber =
-            invoice.invoice_number || invoice.id || '—';
+            invoice.invoice_number ||
+            invoice.id ||
+            '—';
+
+        // =====================================================
+        // شعار الفاتورة
+        // =====================================================
 
         const invoiceLogo = (() => {
             try {
@@ -15886,21 +15910,8 @@ async function printAccountingInvoice(invoiceId, type) {
             }
         })();
 
-        // تنسيق المبالغ كما هي في الفاتورة الحالية.
-        const formatMoney = (value) =>
-            Number(value || 0).toLocaleString('en-US', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            }) + ' ج.م';
-
-        const formatNumber = (value) =>
-            Number(value || 0).toLocaleString('en-US', {
-                maximumFractionDigits: 3
-            });
-
         // =====================================================
-        // معاينة تصميم الطقم - فواتير البيع فقط
-        // لا يتم تعديل بيانات الفاتورة أو الحسابات هنا.
+        // معاينة التصميم - فواتير البيع فقط
         // =====================================================
 
         const designSpecs = (() => {
@@ -15923,14 +15934,16 @@ async function printAccountingInvoice(invoiceId, type) {
                 : {};
         })();
 
-        // السماح بروابط الصور الآمنة فقط.
         const safeDesignImageUrl = (value) => {
             if (typeof value !== 'string' || !value.trim()) {
                 return '';
             }
 
             try {
-                const url = new URL(value.trim(), window.location.origin);
+                const url = new URL(
+                    value.trim(),
+                    window.location.origin
+                );
 
                 if (
                     url.protocol !== 'https:' &&
@@ -15992,12 +16005,16 @@ async function printAccountingInvoice(invoiceId, type) {
             ? String(designSpecs.notes || '')
             : '';
 
-        // تجميع الصور بدون تكرار رابط الصورة الرئيسية.
+        // تجميع الصور بدون تكرار
         const allDesignImages = [];
         const usedImageUrls = new Set();
 
         const addDesignImage = (image) => {
-            if (!image || !image.url || usedImageUrls.has(image.url)) {
+            if (
+                !image ||
+                !image.url ||
+                usedImageUrls.has(image.url)
+            ) {
                 return;
             }
 
@@ -16019,108 +16036,137 @@ async function printAccountingInvoice(invoiceId, type) {
             designComponents.length > 0 ||
             Boolean(designNotes.trim());
 
-        const designSection = type === 'sales' && hasDesignContent
-            ? `
-                <section class="design-section">
-                    <h2 class="items-title">معاينة تصميم الطقم للمصنع</h2>
+        // =====================================================
+        // قسم معاينة التصميم
+        // =====================================================
 
-                    ${
-                        allDesignImages.length
-                            ? `
-                                <div class="design-gallery">
-                                    ${allDesignImages.map((image, index) => `
-                                        <figure class="design-image-card">
-                                            <img
-                                                class="design-image"
-                                                src="${escape(image.url)}"
-                                                alt="${escape(image.name)}"
-                                            >
-                                            <figcaption>
-                                                ${escape(
-                                                    image.name ||
-                                                    'صورة ' + (index + 1)
-                                                )}
-                                            </figcaption>
-                                        </figure>
-                                    `).join('')}
-                                </div>
-                            `
-                            : ''
-                    }
+        const designSection =
+            type === 'sales' && hasDesignContent
+                ? `
+                    <section class="design-section">
 
-                    ${
-                        designComponents.length
-                            ? `
-                                <h3 class="design-subtitle">
-                                    مكونات الطقم ومواصفاته
-                                </h3>
+                        <h2 class="section-title">
+                            معاينة تصميم الطقم للمصنع
+                        </h2>
 
-                                <table class="design-table">
-                                    <thead>
-                                        <tr>
-                                            <th style="width:7%">م</th>
-                                            <th style="width:25%">القطعة</th>
-                                            <th style="width:12%">الكمية</th>
-                                            <th style="width:16%">اللون</th>
-                                            <th style="width:20%">المقاسات</th>
-                                            <th style="width:20%">ملاحظات</th>
-                                        </tr>
-                                    </thead>
+                        ${
+                            allDesignImages.length
+                                ? `
+                                    <div class="design-gallery">
 
-                                    <tbody>
-                                        ${designComponents.map((component, index) => `
-                                            <tr>
-                                                <td class="center numeric">
-                                                    ${index + 1}
-                                                </td>
+                                        ${allDesignImages.map((image, index) => `
+                                            <figure class="design-image-card">
 
-                                                <td>
-                                                    ${escape(component.name)}
-                                                </td>
+                                                <img
+                                                    class="design-image"
+                                                    src="${escape(image.url)}"
+                                                    alt="${escape(image.name)}"
+                                                >
 
-                                                <td class="center numeric">
-                                                    ${escape(component.quantity ?? '—')}
-                                                </td>
+                                                <figcaption>
+                                                    ${escape(
+                                                        image.name ||
+                                                        'صورة ' + (index + 1)
+                                                    )}
+                                                </figcaption>
 
-                                                <td>
-                                                    ${escape(component.color || '—')}
-                                                </td>
-
-                                                <td>
-                                                    ${escape(component.dimensions || '—')}
-                                                </td>
-
-                                                <td>
-                                                    ${escape(component.notes || '—')}
-                                                </td>
-                                            </tr>
+                                            </figure>
                                         `).join('')}
-                                    </tbody>
-                                </table>
-                            `
-                            : ''
-                    }
 
-                    ${
-                        designNotes.trim()
-                            ? `
-                                <div class="design-notes">
-                                    <strong>ملاحظات التصميم للمصنع:</strong>
-                                    <p>${escape(designNotes).replace(/\n/g, '<br>')}</p>
-                                </div>
-                            `
-                            : ''
-                    }
-                </section>
-            `
-            : '';
+                                    </div>
+                                `
+                                : ''
+                        }
+
+                        ${
+                            designComponents.length
+                                ? `
+
+                                    <h3 class="design-subtitle">
+                                        مكونات الطقم ومواصفاته
+                                    </h3>
+
+                                    <table class="design-table">
+
+                                        <thead>
+                                            <tr>
+                                                <th style="width:7%">م</th>
+                                                <th style="width:22%">القطعة</th>
+                                                <th style="width:10%">الكمية</th>
+                                                <th style="width:15%">اللون</th>
+                                                <th style="width:20%">المقاسات</th>
+                                                <th style="width:26%">ملاحظات</th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody>
+
+                                            ${designComponents.map((component, index) => `
+                                                <tr>
+
+                                                    <td class="center numeric">
+                                                        ${index + 1}
+                                                    </td>
+
+                                                    <td>
+                                                        ${escape(component.name)}
+                                                    </td>
+
+                                                    <td class="center numeric">
+                                                        ${escape(component.quantity ?? '—')}
+                                                    </td>
+
+                                                    <td>
+                                                        ${escape(component.color || '—')}
+                                                    </td>
+
+                                                    <td>
+                                                        ${escape(component.dimensions || '—')}
+                                                    </td>
+
+                                                    <td>
+                                                        ${escape(component.notes || '—')}
+                                                    </td>
+
+                                                </tr>
+                                            `).join('')}
+
+                                        </tbody>
+
+                                    </table>
+                                `
+                                : ''
+                        }
+
+                        ${
+                            designNotes.trim()
+                                ? `
+                                    <div class="design-notes">
+
+                                        <strong>
+                                            ملاحظات التصميم للمصنع:
+                                        </strong>
+
+                                        <p>
+                                            ${escape(designNotes).replace(/\n/g, '<br>')}
+                                        </p>
+
+                                    </div>
+                                `
+                                : ''
+                        }
+
+                    </section>
+                `
+                : '';
 
         // =====================================================
-        // تفاصيل أصناف الفاتورة الأصلية
+        // تفاصيل أصناف الفاتورة
         // =====================================================
 
         const rows = items.length
             ? items.map((item, index) => {
+
                 const quantity = Number(item.quantity || 0);
                 const unitPrice = Number(item.unit_price || 0);
 
@@ -16130,9 +16176,13 @@ async function printAccountingInvoice(invoiceId, type) {
 
                 return `
                     <tr>
-                        <td class="number-cell">${index + 1}</td>
+
+                        <td class="number-cell">
+                            ${index + 1}
+                        </td>
 
                         <td class="product-cell">
+
                             <strong>
                                 ${escape(
                                     item.product_name ||
@@ -16150,6 +16200,7 @@ async function printAccountingInvoice(invoiceId, type) {
                                     `
                                     : ''
                             }
+
                         </td>
 
                         <td class="center numeric">
@@ -16167,6 +16218,7 @@ async function printAccountingInvoice(invoiceId, type) {
                         <td class="money total-cell numeric">
                             ${formatMoney(lineTotal)}
                         </td>
+
                     </tr>
                 `;
             }).join('')
@@ -16177,6 +16229,10 @@ async function printAccountingInvoice(invoiceId, type) {
                     </td>
                 </tr>
             `;
+
+        // =====================================================
+        // حالة الفاتورة
+        // =====================================================
 
         const printTitle = type === 'sales'
             ? 'فاتورة بيع'
@@ -16193,12 +16249,18 @@ async function printAccountingInvoice(invoiceId, type) {
             overdue: 'متأخرة'
         };
 
-        const rawStatus = String(invoice.status || '').trim();
+        const rawStatus = String(
+            invoice.status || ''
+        ).trim();
 
         const status =
             statusLabels[rawStatus.toLowerCase()] ||
             rawStatus ||
             '—';
+
+        // =====================================================
+        // فتح نافذة الطباعة
+        // =====================================================
 
         printWindow = window.open('', '_blank');
 
@@ -16211,50 +16273,73 @@ async function printAccountingInvoice(invoiceId, type) {
         printWindow.document.open();
 
         printWindow.document.write(`
+
             <!DOCTYPE html>
+
             <html lang="ar" dir="rtl">
+
             <head>
+
                 <meta charset="UTF-8">
+
                 <meta
                     name="viewport"
                     content="width=device-width, initial-scale=1"
                 >
 
-                <title>${escape(printTitle)} - ${escape(invoiceNumber)}</title>
+                <title>
+                    ${escape(printTitle)} - ${escape(invoiceNumber)}
+                </title>
 
                 <style>
+
+                    /* =================================================
+                       الإعدادات العامة
+                    ================================================= */
+
                     * {
                         box-sizing: border-box;
                     }
 
                     html {
                         direction: rtl;
+                        width: 100%;
                     }
 
                     body {
                         direction: rtl;
                         margin: 0;
-                        padding: 24px;
+                        padding: 20px;
                         background: #fff;
                         color: #222;
                         font-family: Tahoma, Arial, sans-serif;
                         font-size: 12px;
-                        line-height: 1.7;
+                        line-height: 1.8;
                         font-weight: 500;
                     }
 
                     .invoice {
+                        width: 100%;
                         max-width: 1000px;
                         margin: 0 auto;
                     }
 
-                    /* رأس الفاتورة - الألوان الأصلية دون تغيير */
+                    .numeric {
+                        direction: ltr;
+                        unicode-bidi: isolate;
+                        font-variant-numeric: tabular-nums;
+                    }
+
+                    /* =================================================
+                       رأس الفاتورة
+                    ================================================= */
+
                     .top-header {
                         display: flex;
                         align-items: center;
                         justify-content: space-between;
                         gap: 20px;
-                        padding-bottom: 17px;
+                        padding-bottom: 16px;
                         border-bottom: 3px solid #8B1E2B;
                     }
 
@@ -16266,9 +16351,9 @@ async function printAccountingInvoice(invoiceId, type) {
                     }
 
                     .logo-box {
-                        width: 100px;
-                        height: 90px;
-                        flex: 0 0 100px;
+                        width: 95px;
+                        height: 85px;
+                        flex: 0 0 95px;
                         display: flex;
                         align-items: center;
                         justify-content: center;
@@ -16297,7 +16382,6 @@ async function printAccountingInvoice(invoiceId, type) {
                     }
 
                     .company-phone {
-                        display: inline-block;
                         direction: ltr;
                         unicode-bidi: isolate;
                         color: #8B1E2B;
@@ -16311,9 +16395,9 @@ async function printAccountingInvoice(invoiceId, type) {
 
                     .invoice-label {
                         display: inline-block;
-                        padding: 8px 17px;
+                        padding: 8px 18px;
                         border: 1px solid #8B1E2B;
-                        border-radius: 5px;
+                        border-radius: 4px;
                         background: #8B1E2B;
                         color: #fff;
                         font-size: 18px;
@@ -16328,7 +16412,7 @@ async function printAccountingInvoice(invoiceId, type) {
                     }
 
                     .invoice-date {
-                        margin-top: 3px;
+                        margin-top: 4px;
                         color: #333;
                         font-weight: 600;
                     }
@@ -16339,32 +16423,54 @@ async function printAccountingInvoice(invoiceId, type) {
                         background: #D4AF37;
                     }
 
-                    /* بيانات العميل أو المورد */
+                    /* =================================================
+                       العناوين
+                    ================================================= */
+
+                    .section-title,
+                    .items-title {
+                        margin: 20px 0 10px;
+                        padding: 0 0 7px;
+                        border-bottom: 1px solid #D4AF37;
+                        color: #8B1E2B;
+                        font-size: 14px;
+                        font-weight: 900;
+                    }
+
+                    .design-subtitle {
+                        margin: 16px 0 8px;
+                        color: #8B1E2B;
+                        font-size: 12px;
+                        font-weight: 900;
+                    }
+
+                    /* =================================================
+                       بيانات العميل أو المورد
+                    ================================================= */
+
                     .customer-section {
-                        margin: 19px 0;
+                        margin: 18px 0;
                         padding: 14px 16px;
                         border: 1px solid #dfc5c8;
                         border-right: 4px solid #8B1E2B;
-                        border-radius: 4px;
                         background: #fff;
                     }
 
-                    .section-title {
-                        margin: 0 0 11px;
-                        color: #8B1E2B;
-                        font-size: 13px;
-                        font-weight: 900;
+                    .customer-section .section-title {
+                        margin: 0 0 12px;
+                        padding: 0 0 7px;
                     }
 
                     .customer-grid {
                         display: grid;
                         grid-template-columns: 1fr 1fr;
-                        gap: 10px 22px;
+                        gap: 12px 22px;
                     }
 
                     .field {
                         min-width: 0;
                         overflow-wrap: anywhere;
+                        word-break: normal;
                     }
 
                     .field-label {
@@ -16386,13 +16492,9 @@ async function printAccountingInvoice(invoiceId, type) {
                         color: #8B1E2B;
                     }
 
-                    /* جدول الأصناف الأصلي */
-                    .items-title {
-                        margin: 20px 0 9px;
-                        color: #8B1E2B;
-                        font-size: 14px;
-                        font-weight: 900;
-                    }
+                    /* =================================================
+                       جداول الفاتورة
+                    ================================================= */
 
                     table {
                         width: 100%;
@@ -16402,6 +16504,10 @@ async function printAccountingInvoice(invoiceId, type) {
 
                     thead {
                         display: table-header-group;
+                    }
+
+                    tfoot {
+                        display: table-footer-group;
                     }
 
                     tr {
@@ -16420,11 +16526,12 @@ async function printAccountingInvoice(invoiceId, type) {
                     }
 
                     td {
-                        padding: 8px 7px;
+                        padding: 9px 7px;
                         border: 1px solid #cfcfcf;
                         color: #222;
                         vertical-align: top;
                         overflow-wrap: anywhere;
+                        word-break: normal;
                         font-weight: 500;
                     }
 
@@ -16446,12 +16553,6 @@ async function printAccountingInvoice(invoiceId, type) {
                         text-align: center;
                     }
 
-                    .numeric {
-                        direction: ltr;
-                        unicode-bidi: isolate;
-                        font-variant-numeric: tabular-nums;
-                    }
-
                     .money {
                         text-align: center;
                         white-space: nowrap;
@@ -16465,10 +16566,12 @@ async function printAccountingInvoice(invoiceId, type) {
                     }
 
                     .item-description {
-                        margin-top: 3px;
+                        margin-top: 5px;
                         color: #444;
                         font-size: 10px;
-                        font-weight: 500;
+                        line-height: 1.8;
+                        white-space: normal;
+                        overflow-wrap: anywhere;
                     }
 
                     .empty-items {
@@ -16477,7 +16580,10 @@ async function printAccountingInvoice(invoiceId, type) {
                         text-align: center;
                     }
 
-                    /* إضافات معاينة التصميم فقط */
+                    /* =================================================
+                       معاينة التصميم والصور
+                    ================================================= */
+
                     .design-section {
                         margin-top: 22px;
                         break-inside: auto;
@@ -16488,17 +16594,17 @@ async function printAccountingInvoice(invoiceId, type) {
                         display: flex;
                         flex-wrap: wrap;
                         align-items: flex-start;
-                        gap: 10px;
-                        margin: 10px 0 16px;
+                        gap: 12px;
+                        margin: 12px 0 18px;
                     }
 
                     .design-image-card {
-                        width: 150px;
+                        width: 190px;
                         max-width: 100%;
                         margin: 0;
-                        padding: 6px;
+                        padding: 7px;
                         border: 1px solid #dfc5c8;
-                        border-radius: 5px;
+                        background: #fff;
                         text-align: center;
                         break-inside: avoid;
                         page-break-inside: avoid;
@@ -16507,45 +16613,17 @@ async function printAccountingInvoice(invoiceId, type) {
                     .design-image {
                         display: block;
                         width: 100%;
-                        height: 105px;
+                        height: 145px;
                         object-fit: contain;
                         background: #fff;
                     }
 
                     .design-image-card figcaption {
-                        margin-top: 4px;
-                        color: #222;
-                        font-size: 9px;
-                        font-weight: 700;
-                        overflow-wrap: anywhere;
-                    }
-
-                    @media print {
-                        .design-image-card {
-                            width: 5cm;
-                            padding: 3px;
-                        }
-
-                        .design-image {
-                            width: 100%;
-                            height: 3.5cm;
-                            object-fit: contain;
-                        }
-                    }
-
-                    .design-image-card figcaption {
-                        margin-top: 6px;
+                        margin-top: 7px;
                         color: #222;
                         font-size: 10px;
                         font-weight: 700;
                         overflow-wrap: anywhere;
-                    }
-
-                    .design-subtitle {
-                        margin: 15px 0 8px;
-                        color: #8B1E2B;
-                        font-size: 12px;
-                        font-weight: 900;
                     }
 
                     .design-table {
@@ -16553,36 +16631,48 @@ async function printAccountingInvoice(invoiceId, type) {
                     }
 
                     .design-table th {
-                        padding: 7px 4px;
+                        padding: 8px 5px;
                     }
 
                     .design-table td {
-                        padding: 7px 5px;
+                        padding: 8px 6px;
                         font-size: 10px;
+                        line-height: 1.8;
                     }
 
                     .design-notes {
-                        margin-top: 12px;
-                        padding: 10px 12px;
+                        margin-top: 14px;
+                        padding: 12px 14px;
                         border: 1px solid #dfc5c8;
-                        border-right: 3px solid #8B1E2B;
-                        border-radius: 4px;
+                        border-right: 4px solid #8B1E2B;
+                        background: #fff;
                         overflow-wrap: anywhere;
+                        word-break: normal;
+                        break-inside: auto;
+                        page-break-inside: auto;
                     }
 
                     .design-notes strong {
+                        display: block;
+                        margin-bottom: 7px;
                         color: #8B1E2B;
                         font-weight: 900;
                     }
 
                     .design-notes p {
-                        margin: 5px 0 0;
+                        margin: 0;
+                        line-height: 2;
+                        white-space: pre-wrap;
+                        overflow-wrap: anywhere;
                     }
 
-                    /* الإجماليات والملاحظات الأصلية */
+                    /* =================================================
+                       الملاحظات والإجماليات
+                    ================================================= */
+
                     .summary-layout {
                         display: grid;
-                        grid-template-columns: minmax(0, 1fr) 310px;
+                        grid-template-columns: minmax(0, 1fr) 300px;
                         align-items: start;
                         gap: 18px;
                         margin-top: 22px;
@@ -16590,26 +16680,30 @@ async function printAccountingInvoice(invoiceId, type) {
 
                     .notes {
                         min-width: 0;
-                        padding: 12px 14px;
+                        padding: 13px 15px;
                         border: 1px solid #dfc5c8;
                         border-right: 4px solid #8B1E2B;
-                        border-radius: 5px;
                         color: #333;
                         font-size: 12px;
-                        line-height: 1.9;
+                        line-height: 2;
                         overflow-wrap: anywhere;
+                        word-break: normal;
+                        break-inside: auto;
+                        page-break-inside: auto;
                     }
 
                     .notes strong {
+                        display: block;
+                        margin-bottom: 7px;
                         color: #8B1E2B;
                         font-weight: 900;
                     }
 
                     .notes p {
-                        margin: 6px 0 0;
-                        white-space: normal;
+                        margin: 0;
+                        white-space: pre-wrap;
                         overflow-wrap: anywhere;
-                        word-break: normal;
+                        line-height: 2;
                     }
 
                     .totals {
@@ -16617,8 +16711,9 @@ async function printAccountingInvoice(invoiceId, type) {
                         min-width: 0;
                         padding: 12px 14px;
                         border: 1px solid #d5b7ba;
-                        border-radius: 5px;
                         background: #fff;
+                        break-inside: avoid;
+                        page-break-inside: avoid;
                     }
 
                     .total-row {
@@ -16626,7 +16721,7 @@ async function printAccountingInvoice(invoiceId, type) {
                         align-items: center;
                         justify-content: space-between;
                         gap: 12px;
-                        padding: 5px 0;
+                        padding: 6px 0;
                         color: #222;
                         font-weight: 600;
                     }
@@ -16639,8 +16734,8 @@ async function printAccountingInvoice(invoiceId, type) {
                     }
 
                     .grand-total {
-                        margin: 6px -14px;
-                        padding: 10px 14px;
+                        margin: 7px -14px;
+                        padding: 11px 14px;
                         border-top: 1px solid #8B1E2B;
                         border-bottom: 1px solid #8B1E2B;
                         background: #f7eeee;
@@ -16664,7 +16759,10 @@ async function printAccountingInvoice(invoiceId, type) {
                         font-weight: 900 !important;
                     }
 
-                    /* التوقيعات والتذييل الأصلي */
+                    /* =================================================
+                       التوقيعات والتذييل
+                    ================================================= */
+
                     .signature-area {
                         display: grid;
                         grid-template-columns: 1fr 1fr;
@@ -16678,7 +16776,8 @@ async function printAccountingInvoice(invoiceId, type) {
                     }
 
                     .signature {
-                        padding-top: 10px;
+                        min-height: 45px;
+                        padding-top: 12px;
                         border-top: 1px solid #777;
                     }
 
@@ -16697,12 +16796,17 @@ async function printAccountingInvoice(invoiceId, type) {
                         font-weight: 900;
                     }
 
+                    /* =================================================
+                       إعدادات صفحات A4
+                    ================================================= */
+
                     @page {
                         size: A4;
                         margin: 12mm;
                     }
 
-                    h2, h3 {
+                    h2,
+                    h3 {
                         break-after: avoid;
                         page-break-after: avoid;
                     }
@@ -16710,31 +16814,38 @@ async function printAccountingInvoice(invoiceId, type) {
                     .customer-section,
                     .totals,
                     .design-image-card,
-                    .design-notes,
                     .signature-area {
                         break-inside: avoid;
                         page-break-inside: avoid;
                     }
 
-                    .notes {
+                    .notes,
+                    .design-notes {
                         orphans: 3;
                         widows: 3;
                     }
 
-                    /* إعدادات الطباعة الأصلية */
+                    /* =================================================
+                       الطباعة
+                    ================================================= */
+
                     @media print {
+
+                        html,
                         body {
+                            width: 100%;
                             margin: 0;
                             padding: 0;
                             background: #fff;
                             color: #111;
-                            font-weight: 600;
                             print-color-adjust: exact;
                             -webkit-print-color-adjust: exact;
                         }
 
                         .invoice {
+                            width: 100%;
                             max-width: none;
+                            margin: 0;
                         }
 
                         .top-header {
@@ -16766,32 +16877,43 @@ async function printAccountingInvoice(invoiceId, type) {
 
                         .design-image-card {
                             width: 5cm;
-                            padding: 3px;
+                            padding: 4px;
                         }
 
                         .design-image {
                             width: 100%;
-                            height: 3.5cm;
-                            max-height: 3.5cm;
+                            height: 4cm;
+                            max-height: 4cm;
                             object-fit: contain;
                         }
 
                         .summary-layout {
-                            grid-template-columns: minmax(0, 1fr) 290px;
+                            grid-template-columns: minmax(0, 1fr) 275px;
                             gap: 12px;
                         }
 
                         .notes {
-                            font-size: 11.5px;
-                            line-height: 1.85;
+                            font-size: 11px;
+                            line-height: 1.9;
                         }
 
-                        th, td {
+                        th,
+                        td {
                             overflow-wrap: anywhere;
+                        }
+
+                        .footer {
+                            break-inside: avoid;
+                            page-break-inside: avoid;
                         }
                     }
 
+                    /* =================================================
+                       عرض الشاشة
+                    ================================================= */
+
                     @media screen and (max-width: 600px) {
+
                         body {
                             padding: 10px;
                         }
@@ -16803,6 +16925,10 @@ async function printAccountingInvoice(invoiceId, type) {
 
                         .invoice-heading {
                             text-align: right;
+                        }
+
+                        .customer-grid {
+                            grid-template-columns: 1fr;
                         }
 
                         .summary-layout {
@@ -16818,33 +16944,47 @@ async function printAccountingInvoice(invoiceId, type) {
                             flex-wrap: wrap;
                         }
 
+                        .design-image-card {
+                            width: 46%;
+                        }
+
                         .design-image {
-                            height: 100px;
+                            height: 120px;
                         }
                     }
+
                 </style>
+
             </head>
 
             <body>
+
                 <main class="invoice">
 
+                    <!-- رأس الفاتورة -->
+
                     <header class="top-header">
+
                         <div class="company">
+
                             ${
                                 invoiceLogo
                                     ? `
                                         <div class="logo-box">
+
                                             <img
                                                 class="logo"
                                                 src="${invoiceLogo}"
                                                 alt="شعار المتحدة"
                                             >
+
                                         </div>
                                     `
                                     : ''
                             }
 
                             <div>
+
                                 <h1 class="company-name">
                                     المتحدة للرتان والأثاث
                                 </h1>
@@ -16863,10 +17003,13 @@ async function printAccountingInvoice(invoiceId, type) {
                                         01042056121
                                     </span>
                                 </p>
+
                             </div>
+
                         </div>
 
                         <div class="invoice-heading">
+
                             <div class="invoice-label">
                                 ${escape(printTitle)}
                             </div>
@@ -16884,53 +17027,85 @@ async function printAccountingInvoice(invoiceId, type) {
                                     ${escape(invoiceDate)}
                                 </span>
                             </div>
+
                         </div>
+
                     </header>
 
                     <div class="gold-line"></div>
 
+                    <!-- بيانات العميل أو المورد -->
+
                     <section class="customer-section">
+
                         <h2 class="section-title">
                             بيانات ${type === 'sales' ? 'العميل' : 'المورد'}
                         </h2>
 
                         <div class="customer-grid">
+
                             <div class="field">
+
                                 <span class="field-label">
                                     ${type === 'sales' ? 'اسم العميل:' : 'اسم المورد:'}
                                 </span>
+
                                 <span class="field-value">
                                     ${escape(name || '—')}
                                 </span>
+
                             </div>
 
                             <div class="field">
-                                <span class="field-label">رقم الهاتف:</span>
+
+                                <span class="field-label">
+                                    رقم الهاتف:
+                                </span>
+
                                 <span class="field-value numeric">
                                     ${escape(phone || '—')}
                                 </span>
+
                             </div>
 
                             <div class="field">
-                                <span class="field-label">العنوان:</span>
+
+                                <span class="field-label">
+                                    العنوان:
+                                </span>
+
                                 <span class="field-value">
                                     ${escape(address || '—')}
                                 </span>
+
                             </div>
 
                             <div class="field">
-                                <span class="field-label">حالة الفاتورة:</span>
+
+                                <span class="field-label">
+                                    حالة الفاتورة:
+                                </span>
+
                                 <span class="field-value status-pill">
                                     ${escape(status)}
                                 </span>
+
                             </div>
+
                         </div>
+
                     </section>
 
-                    <h2 class="items-title">تفاصيل الأصناف</h2>
+                    <!-- تفاصيل الأصناف -->
+
+                    <h2 class="items-title">
+                        تفاصيل الأصناف
+                    </h2>
 
                     <table>
+
                         <thead>
+
                             <tr>
                                 <th style="width:6%">م</th>
                                 <th style="width:32%">اسم الصنف والتفاصيل</th>
@@ -16939,78 +17114,150 @@ async function printAccountingInvoice(invoiceId, type) {
                                 <th style="width:21%">سعر الوحدة</th>
                                 <th style="width:21%">الإجمالي</th>
                             </tr>
+
                         </thead>
 
                         <tbody>
                             ${rows}
                         </tbody>
+
                     </table>
+
+                    <!-- معاينة التصميم -->
 
                     ${designSection}
 
+                    <!-- الملاحظات والإجماليات -->
+
                     <div class="summary-layout">
+
                         <div class="notes">
-                            <strong>ملاحظات:</strong>
-                            <p>
-                                ${escape(
-                                    invoice.notes ||
-                                    invoice.note ||
-                                    'شكرًا لتعاملكم مع المتحدة للرتان والأثاث.'
-                                )}
-                            </p>
+
+                            <strong>
+                                ملاحظات:
+                            </strong>
+
+                            <p>${escape(
+                                invoice.notes ||
+                                invoice.note ||
+                                'شكرًا لتعاملكم مع المتحدة للرتان والأثاث.'
+                            )}</p>
+
                         </div>
 
                         <section class="totals">
+
                             ${
                                 discount > 0
                                     ? `
                                         <div class="total-row">
-                                            <span>إجمالي الأصناف:</span>
-                                            <span>${formatMoney(subtotal)}</span>
+
+                                            <span>
+                                                إجمالي الأصناف:
+                                            </span>
+
+                                            <span>
+                                                ${formatMoney(subtotal)}
+                                            </span>
+
                                         </div>
 
                                         <div class="total-row">
-                                            <span>الخصم:</span>
-                                            <span>${formatMoney(discount)}</span>
+
+                                            <span>
+                                                الخصم:
+                                            </span>
+
+                                            <span>
+                                                ${formatMoney(discount)}
+                                            </span>
+
                                         </div>
                                     `
                                     : ''
                             }
 
                             <div class="total-row grand-total">
-                                <span>الإجمالي النهائي:</span>
-                                <span>${formatMoney(total)}</span>
+
+                                <span>
+                                    الإجمالي النهائي:
+                                </span>
+
+                                <span>
+                                    ${formatMoney(total)}
+                                </span>
+
                             </div>
 
                             <div class="total-row">
-                                <span>المدفوع:</span>
-                                <span>${formatMoney(paid)}</span>
+
+                                <span>
+                                    المدفوع:
+                                </span>
+
+                                <span>
+                                    ${formatMoney(paid)}
+                                </span>
+
                             </div>
 
                             <div class="total-row remaining">
-                                <span>المتبقي:</span>
-                                <span>${formatMoney(remaining)}</span>
+
+                                <span>
+                                    المتبقي:
+                                </span>
+
+                                <span>
+                                    ${formatMoney(remaining)}
+                                </span>
+
                             </div>
+
                         </section>
+
                     </div>
 
+                    <!-- التوقيعات -->
+
                     <section class="signature-area">
-                        <div class="signature">توقيع المسؤول</div>
-                        <div class="signature">توقيع العميل / المستلم</div>
+
+                        <div class="signature">
+                            توقيع المسؤول
+                        </div>
+
+                        <div class="signature">
+                            توقيع العميل / المستلم
+                        </div>
+
                     </section>
 
+                    <!-- تذييل الفاتورة -->
+
                     <footer class="footer">
-                        <strong>المتحدة للرتان والأثاث</strong>
+
+                        <strong>
+                            المتحدة للرتان والأثاث
+                        </strong>
+
                         <br>
+
                         تصنيع وتشطيب وتوريد الأثاث - أشمون، المنوفية
+
                         <br>
-                        تليفون: <span class="numeric">01042056121</span>
+
+                        تليفون:
+                        <span class="numeric">
+                            01042056121
+                        </span>
+
                     </footer>
 
                 </main>
 
                 <script>
+
                     window.onload = function () {
+
                         const images = Array.from(
                             document.querySelectorAll('img')
                         );
@@ -17022,30 +17269,41 @@ async function printAccountingInvoice(invoiceId, type) {
                         let started = false;
 
                         function startPrint() {
+
                             if (started) return;
+
                             started = true;
 
                             setTimeout(function () {
+
                                 window.focus();
                                 window.print();
+
                             }, 500);
+
                         }
 
                         if (pending === 0) {
+
                             startPrint();
                             return;
+
                         }
 
                         const imageFinished = function () {
+
                             pending--;
 
                             if (pending <= 0) {
                                 startPrint();
                             }
+
                         };
 
                         images.forEach(function (image) {
+
                             if (!image.complete) {
+
                                 image.addEventListener(
                                     'load',
                                     imageFinished,
@@ -17057,20 +17315,28 @@ async function printAccountingInvoice(invoiceId, type) {
                                     imageFinished,
                                     { once: true }
                                 );
+
                             }
+
                         });
 
-                        // عدم تعطيل الطباعة لو صورة لم تُحمّل.
-                        setTimeout(startPrint, 5000);
+                        // لا ننتظر صورة متعطلة إلى ما لا نهاية.
+                        setTimeout(startPrint, 7000);
+
                     };
-                <\/script>
+
+                <\\/script>
+
             </body>
+
             </html>
+
         `);
 
         printWindow.document.close();
 
     } catch (error) {
+
         if (printWindow && !printWindow.closed) {
             printWindow.close();
         }
@@ -17084,11 +17350,11 @@ async function printAccountingInvoice(invoiceId, type) {
             error.message || 'حدث خطأ أثناء طباعة الفاتورة.',
             true
         );
+
     }
 }
 
-// نهاية نظام الحسابات
-
+// نهاية دالة طباعة الفاتورة
 /* =========================================
    UNITED ACCOUNTING - INVOICE FORMS
 ========================================= */
