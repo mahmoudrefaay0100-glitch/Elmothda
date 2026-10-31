@@ -15772,653 +15772,1323 @@ function accountingEnglishNumbers(value) {
 }
 
 
-// =====================================================
-// طباعة تفاصيل الفاتورة
-// =====================================================
 
-
-
-
-
-
-<style>
-    * {
-        box-sizing: border-box;
-    }
-
-    html {
-        direction: rtl;
-        width: 100%;
-    }
-
-    body {
-        direction: rtl;
-        margin: 0;
-        padding: 18px;
-        background: #fff;
-        color: #222;
-        font-family: Tahoma, Arial, sans-serif;
-        font-size: 12px;
-        line-height: 1.8;
-        font-weight: 500;
-    }
-
-    .invoice {
-        width: 100%;
-        max-width: 1100px;
-        margin: 0 auto;
-    }
-
-    /* رأس الفاتورة */
-    .top-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 18px;
-        padding-bottom: 13px;
-        border-bottom: 3px solid #8B1E2B;
-    }
-
-    .company {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        min-width: 0;
-        flex: 1;
-    }
-
-    .logo-box {
-        width: 90px;
-        height: 82px;
-        flex: 0 0 90px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .logo {
-        display: block;
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-    }
-
-    .company-name {
-        margin: 0 0 4px;
-        color: #8B1E2B;
-        font-size: 22px;
-        line-height: 1.5;
-        font-weight: 900;
-    }
-
-    .company-line {
-        margin: 2px 0;
-        color: #222;
-        font-size: 11px;
-        font-weight: 600;
-    }
-
-    .company-phone {
-        direction: ltr;
-        unicode-bidi: isolate;
-        color: #8B1E2B;
-        font-weight: 900;
-    }
-
-    .invoice-heading {
-        flex: 0 0 auto;
-        text-align: left;
-    }
-
-    .invoice-label {
-        display: inline-block;
-        padding: 7px 16px;
-        border: 1px solid #8B1E2B;
-        border-radius: 5px;
-        background: #8B1E2B;
-        color: #fff;
-        font-size: 17px;
-        font-weight: 900;
-    }
-
-    .invoice-number,
-    .invoice-date {
-        margin-top: 6px;
-        color: #222;
-        font-size: 11px;
-        font-weight: 800;
-        overflow-wrap: anywhere;
-    }
-
-    .gold-line {
-        height: 3px;
-        margin-top: 3px;
-        background: #D4AF37;
-    }
-
-    /* بيانات العميل */
-    .customer-section {
-        margin: 15px 0;
-        padding: 12px 15px;
-        border: 1px solid #dfc5c8;
-        border-right: 4px solid #8B1E2B;
-        border-radius: 4px;
-        background: #fff;
-    }
-
-    .section-title {
-        margin: 0 0 9px;
-        color: #8B1E2B;
-        font-size: 13px;
-        font-weight: 900;
-    }
-
-    .customer-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px 18px;
-    }
-
-    .field {
-        min-width: 0;
-        overflow-wrap: anywhere;
-    }
-
-    .field-label {
-        margin-left: 5px;
-        color: #444;
-        font-weight: 600;
-    }
-
-    .field-value {
-        color: #111;
-        font-weight: 800;
-    }
-
-    .status-pill {
-        display: inline-block;
-        padding: 1px 9px;
-        border: 1px solid #c8a4a8;
-        border-radius: 4px;
-        color: #8B1E2B;
-    }
-
-    /* عناوين الأقسام */
-    .items-title {
-        margin: 17px 0 8px;
-        color: #8B1E2B;
-        font-size: 14px;
-        font-weight: 900;
-        break-after: avoid;
-        page-break-after: avoid;
-    }
-
-    /* جداول الفاتورة */
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        table-layout: fixed;
-    }
-
-    thead {
-        display: table-header-group;
-    }
-
-    tfoot {
-        display: table-footer-group;
-    }
-
-    tr {
-        break-inside: avoid;
-        page-break-inside: avoid;
-    }
-
-    th {
-        padding: 8px 5px;
-        border: 1px solid #8B1E2B;
-        background: #8B1E2B;
-        color: #fff;
-        font-size: 10.5px;
-        font-weight: 900;
-        text-align: center;
-        overflow-wrap: anywhere;
-    }
-
-    td {
-        padding: 7px 6px;
-        border: 1px solid #cfcfcf;
-        color: #222;
-        vertical-align: middle;
-        overflow-wrap: anywhere;
-        word-break: normal;
-        font-size: 11px;
-        font-weight: 500;
-    }
-
-    tbody tr:nth-child(even) {
-        background: #fcf8f8;
-    }
-
-    .number-cell {
-        text-align: center;
-        font-weight: 800;
-    }
-
-    .product-cell strong {
-        color: #111;
-        font-weight: 900;
-    }
-
-    .center {
-        text-align: center;
-    }
-
-    .numeric {
-        direction: ltr;
-        unicode-bidi: isolate;
-        font-variant-numeric: tabular-nums;
-    }
-
-    .money {
-        text-align: center;
-        font-size: 10.5px;
-        font-weight: 700;
-        overflow-wrap: anywhere;
-    }
-
-    .total-cell {
-        color: #111;
-        font-weight: 900;
-    }
-
-    .item-description {
-        margin-top: 3px;
-        color: #444;
-        font-size: 10px;
-        line-height: 1.7;
-    }
-
-    .empty-items {
-        padding: 20px;
-        text-align: center;
-    }
-
-    /* معاينة التصميم */
-    .design-section {
-        margin-top: 17px;
-        width: 100%;
-        break-inside: auto;
-        page-break-inside: auto;
-    }
-
-    .design-gallery {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: flex-start;
-        gap: 9px;
-        margin: 9px 0 13px;
-    }
-
-    .design-image-card {
-        width: 145px;
-        max-width: 100%;
-        margin: 0;
-        padding: 5px;
-        border: 1px solid #dfc5c8;
-        border-radius: 5px;
-        text-align: center;
-        break-inside: avoid;
-        page-break-inside: avoid;
-    }
-
-    .design-image {
-        display: block;
-        width: 100%;
-        height: 105px;
-        object-fit: contain;
-        background: #fff;
-    }
-
-    .design-image-card figcaption {
-        margin-top: 5px;
-        color: #222;
-        font-size: 9.5px;
-        font-weight: 700;
-        overflow-wrap: anywhere;
-    }
-
-    .design-subtitle {
-        margin: 12px 0 7px;
-        color: #8B1E2B;
-        font-size: 12px;
-        font-weight: 900;
-    }
-
-    .design-table {
-        margin-top: 7px;
-    }
-
-    .design-table th {
-        padding: 7px 4px;
-        font-size: 10px;
-    }
-
-    .design-table td {
-        padding: 6px 5px;
-        font-size: 10px;
-        line-height: 1.7;
-    }
-
-    .design-notes {
-        margin-top: 10px;
-        padding: 10px 12px;
-        border: 1px solid #dfc5c8;
-        border-right: 3px solid #8B1E2B;
-        border-radius: 4px;
-        overflow-wrap: anywhere;
-        break-inside: auto;
-        page-break-inside: auto;
-    }
-
-    .design-notes strong {
-        color: #8B1E2B;
-        font-weight: 900;
-    }
-
-    .design-notes p {
-        margin: 5px 0 0;
-        white-space: pre-wrap;
-        overflow-wrap: anywhere;
-        line-height: 1.9;
-    }
-
-    /* الملاحظات والإجماليات */
-    .summary-layout {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 285px;
-        align-items: start;
-        gap: 13px;
-        margin-top: 17px;
-    }
-
-    .notes {
-        min-width: 0;
-        padding: 11px 13px;
-        border: 1px solid #dfc5c8;
-        border-right: 4px solid #8B1E2B;
-        border-radius: 5px;
-        color: #333;
-        font-size: 11.5px;
-        line-height: 1.9;
-        overflow-wrap: anywhere;
-        word-break: normal;
-        break-inside: auto;
-        page-break-inside: auto;
-    }
-
-    .notes strong {
-        color: #8B1E2B;
-        font-weight: 900;
-    }
-
-    .notes p {
-        margin: 5px 0 0;
-        white-space: pre-wrap;
-        overflow-wrap: anywhere;
-        line-height: 1.9;
-    }
-
-    .totals {
-        width: 100%;
-        min-width: 0;
-        padding: 10px 12px;
-        border: 1px solid #d5b7ba;
-        border-radius: 5px;
-        background: #fff;
-        break-inside: avoid;
-        page-break-inside: avoid;
-    }
-
-    .total-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 9px;
-        padding: 5px 0;
-        color: #222;
-        font-size: 11px;
-        font-weight: 600;
-    }
-
-    .total-row span:last-child {
-        text-align: left;
-        white-space: nowrap;
-        color: #111;
-        font-weight: 800;
-    }
-
-    .grand-total {
-        margin: 5px -12px;
-        padding: 9px 12px;
-        border-top: 1px solid #8B1E2B;
-        border-bottom: 1px solid #8B1E2B;
-        background: #f7eeee;
-        color: #8B1E2B;
-        font-size: 14px;
-        font-weight: 900;
-    }
-
-    .grand-total span {
-        color: #8B1E2B;
-        font-weight: 900;
-    }
-
-    .remaining {
-        color: #8B1E2B;
-        font-weight: 900;
-    }
-
-    .remaining span {
-        color: #8B1E2B !important;
-        font-weight: 900 !important;
-    }
-
-    /* التوقيعات */
-    .signature-area {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 45px;
-        margin-top: 27px;
-        text-align: center;
-        color: #222;
-        font-weight: 700;
-        break-inside: avoid;
-        page-break-inside: avoid;
-    }
-
-    .signature {
-        padding-top: 9px;
-        border-top: 1px solid #777;
-    }
-
-    /* تذييل الفاتورة */
-    .footer {
-        margin-top: 19px;
-        padding-top: 9px;
-        border-top: 1px solid #d7c1c3;
-        color: #333;
-        font-size: 10px;
-        font-weight: 600;
-        text-align: center;
-    }
-
-    .footer strong {
-        color: #8B1E2B;
-        font-weight: 900;
-    }
-
-    /* إعدادات الورق */
-    @page {
-        size: A4;
-        margin: 10mm;
-    }
-
-    h2,
-    h3 {
-        break-after: avoid;
-        page-break-after: avoid;
-    }
-
-    @media print {
-        html,
-        body {
-            width: 100%;
-            margin: 0;
-            padding: 0;
-            background: #fff;
-            color: #111;
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
+async function printAccountingInvoice(invoiceId, type) {
+    let printWindow = null;
+
+    try {
+        const result = await accountingRequest(
+            'action=get&type=' + encodeURIComponent(type) +
+            '&id=' + encodeURIComponent(invoiceId)
+        );
+
+        const invoice = result.invoice || {};
+        const items = Array.isArray(result.items) ? result.items : [];
+
+        if (!invoice.id && !invoice.invoice_number) {
+            throw new Error(
+                'لم يتم تحميل بيانات الفاتورة. حدّث الصفحة وحاول مرة أخرى.'
+            );
         }
 
-        .invoice {
-            width: 100%;
-            max-width: none;
-            margin: 0;
+        // تحويل الأرقام العربية والفارسية إلى إنجليزية.
+        const englishNumbers = (value) =>
+            String(value ?? '')
+                .replace(/[٠-٩]/g, digit =>
+                    '٠١٢٣٤٥٦٧٨٩'.indexOf(digit)
+                )
+                .replace(/[۰-۹]/g, digit =>
+                    '۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)
+                );
+
+        const escape = (value) =>
+            accountingEscape(englishNumbers(value));
+
+        const name = type === 'sales'
+            ? invoice.customer_name
+            : invoice.supplier_name;
+
+        const phone = type === 'sales'
+            ? (
+                invoice.customer_phone ||
+                invoice.customer_phone_number ||
+                invoice.phone ||
+                ''
+            )
+            : (
+                invoice.supplier_phone ||
+                invoice.supplier_phone_number ||
+                invoice.phone ||
+                ''
+            );
+
+        const address = type === 'sales'
+            ? (
+                invoice.customer_address ||
+                invoice.address ||
+                ''
+            )
+            : (
+                invoice.supplier_address ||
+                invoice.address ||
+                ''
+            );
+
+        const paid = Number(result.paid || 0);
+        const total = Number(invoice.total || 0);
+
+        const remaining = Number(
+            result.remaining ?? Math.max(0, total - paid)
+        );
+
+        const discount = Number(
+            invoice.discount ?? result.discount ?? 0
+        );
+
+        const subtotal = Number(
+            invoice.subtotal ??
+            result.subtotal ??
+            (
+                discount > 0
+                    ? total + discount
+                    : items.reduce((sum, item) => {
+                        const quantity = Number(item.quantity || 0);
+                        const price = Number(item.unit_price || 0);
+
+                        return sum + (
+                            item.line_total != null
+                                ? Number(item.line_total)
+                                : quantity * price
+                        );
+                    }, 0)
+            )
+        );
+
+        const invoiceDate =
+            invoice.invoice_date ||
+            invoice.created_at?.slice(0, 10) ||
+            '—';
+
+        const invoiceNumber =
+            invoice.invoice_number || invoice.id || '—';
+
+        const invoiceLogo = (() => {
+            try {
+                const logo = localStorage.getItem(
+                    'accounting_invoice_logo'
+                ) || '';
+
+                return /^data:image\/(?:png|jpeg|webp);base64,/i.test(logo)
+                    ? logo
+                    : '';
+            } catch {
+                return '';
+            }
+        })();
+
+        // تنسيق المبالغ كما هي في الفاتورة الحالية.
+        const formatMoney = (value) =>
+            Number(value || 0).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }) + ' ج.م';
+
+        const formatNumber = (value) =>
+            Number(value || 0).toLocaleString('en-US', {
+                maximumFractionDigits: 3
+            });
+
+        // =====================================================
+        // معاينة تصميم الطقم - فواتير البيع فقط
+        // لا يتم تعديل بيانات الفاتورة أو الحسابات هنا.
+        // =====================================================
+
+        const designSpecs = (() => {
+            if (type !== 'sales') return {};
+
+            let specs = invoice.design_specs;
+
+            if (typeof specs === 'string') {
+                try {
+                    specs = JSON.parse(specs);
+                } catch {
+                    specs = {};
+                }
+            }
+
+            return specs &&
+                typeof specs === 'object' &&
+                !Array.isArray(specs)
+                ? specs
+                : {};
+        })();
+
+        // السماح بروابط الصور الآمنة فقط.
+        const safeDesignImageUrl = (value) => {
+            if (typeof value !== 'string' || !value.trim()) {
+                return '';
+            }
+
+            try {
+                const url = new URL(value.trim(), window.location.origin);
+
+                if (
+                    url.protocol !== 'https:' &&
+                    url.origin !== window.location.origin
+                ) {
+                    return '';
+                }
+
+                if (
+                    url.protocol !== 'https:' &&
+                    url.protocol !== 'http:'
+                ) {
+                    return '';
+                }
+
+                return url.href;
+            } catch {
+                return '';
+            }
+        };
+
+        const designPreviewUrl = type === 'sales'
+            ? safeDesignImageUrl(invoice.design_preview_url)
+            : '';
+
+        const designImages = type === 'sales' &&
+            Array.isArray(designSpecs.images)
+            ? designSpecs.images
+                .filter(image =>
+                    image &&
+                    typeof image === 'object' &&
+                    !Array.isArray(image)
+                )
+                .map(image => ({
+                    name: String(image.name || 'صورة معاينة'),
+                    url: safeDesignImageUrl(image.url)
+                }))
+                .filter(image => image.url)
+            : [];
+
+        const designComponents = type === 'sales' &&
+            Array.isArray(designSpecs.components)
+            ? designSpecs.components
+                .filter(component =>
+                    component &&
+                    typeof component === 'object' &&
+                    !Array.isArray(component)
+                )
+                .map(component => ({
+                    name: String(component.name || 'قطعة'),
+                    quantity: component.quantity,
+                    color: String(component.color || ''),
+                    dimensions: String(component.dimensions || ''),
+                    notes: String(component.notes || '')
+                }))
+            : [];
+
+        const designNotes = type === 'sales'
+            ? String(designSpecs.notes || '')
+            : '';
+
+        // تجميع الصور بدون تكرار رابط الصورة الرئيسية.
+        const allDesignImages = [];
+        const usedImageUrls = new Set();
+
+        const addDesignImage = (image) => {
+            if (!image || !image.url || usedImageUrls.has(image.url)) {
+                return;
+            }
+
+            usedImageUrls.add(image.url);
+            allDesignImages.push(image);
+        };
+
+        if (designPreviewUrl) {
+            addDesignImage({
+                name: 'المعاينة الرئيسية للطقم',
+                url: designPreviewUrl
+            });
         }
 
-        .top-header {
-            gap: 9px;
+        designImages.forEach(addDesignImage);
+
+        const hasDesignContent =
+            allDesignImages.length > 0 ||
+            designComponents.length > 0 ||
+            Boolean(designNotes.trim());
+
+        const designSection = type === 'sales' && hasDesignContent
+            ? `
+                <section class="design-section">
+                    <h2 class="items-title">معاينة تصميم الطقم للمصنع</h2>
+
+                    ${
+                        allDesignImages.length
+                            ? `
+                                <div class="design-gallery">
+                                    ${allDesignImages.map((image, index) => `
+                                        <figure class="design-image-card">
+                                            <img
+                                                class="design-image"
+                                                src="${escape(image.url)}"
+                                                alt="${escape(image.name)}"
+                                            >
+                                            <figcaption>
+                                                ${escape(
+                                                    image.name ||
+                                                    'صورة ' + (index + 1)
+                                                )}
+                                            </figcaption>
+                                        </figure>
+                                    `).join('')}
+                                </div>
+                            `
+                            : ''
+                    }
+
+                    ${
+                        designComponents.length
+                            ? `
+                                <h3 class="design-subtitle">
+                                    مكونات الطقم ومواصفاته
+                                </h3>
+
+                                <table class="design-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:7%">م</th>
+                                            <th style="width:25%">القطعة</th>
+                                            <th style="width:12%">الكمية</th>
+                                            <th style="width:16%">اللون</th>
+                                            <th style="width:20%">المقاسات</th>
+                                            <th style="width:20%">ملاحظات</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        ${designComponents.map((component, index) => `
+                                            <tr>
+                                                <td class="center numeric">
+                                                    ${index + 1}
+                                                </td>
+
+                                                <td>
+                                                    ${escape(component.name)}
+                                                </td>
+
+                                                <td class="center numeric">
+                                                    ${escape(component.quantity ?? '—')}
+                                                </td>
+
+                                                <td>
+                                                    ${escape(component.color || '—')}
+                                                </td>
+
+                                                <td>
+                                                    ${escape(component.dimensions || '—')}
+                                                </td>
+
+                                                <td>
+                                                    ${escape(component.notes || '—')}
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            `
+                            : ''
+                    }
+
+                    ${
+                        designNotes.trim()
+                            ? `
+                                <div class="design-notes">
+                                    <strong>ملاحظات التصميم للمصنع:</strong>
+                                    <p>${escape(designNotes).replace(/\n/g, '<br>')}</p>
+                                </div>
+                            `
+                            : ''
+                    }
+                </section>
+            `
+            : '';
+
+        // =====================================================
+        // تفاصيل أصناف الفاتورة الأصلية
+        // =====================================================
+
+        const rows = items.length
+            ? items.map((item, index) => {
+                const quantity = Number(item.quantity || 0);
+                const unitPrice = Number(item.unit_price || 0);
+
+                const lineTotal = item.line_total != null
+                    ? Number(item.line_total)
+                    : quantity * unitPrice;
+
+                return `
+                    <tr>
+                        <td class="number-cell">${index + 1}</td>
+
+                        <td class="product-cell">
+                            <strong>
+                                ${escape(
+                                    item.product_name ||
+                                    item.item_name ||
+                                    'صنف'
+                                )}
+                            </strong>
+
+                            ${
+                                item.description
+                                    ? `
+                                        <div class="item-description">
+                                            ${escape(item.description)}
+                                        </div>
+                                    `
+                                    : ''
+                            }
+                        </td>
+
+                        <td class="center numeric">
+                            ${formatNumber(quantity)}
+                        </td>
+
+                        <td class="center">
+                            ${escape(item.unit || 'قطعة')}
+                        </td>
+
+                        <td class="money numeric">
+                            ${formatMoney(unitPrice)}
+                        </td>
+
+                        <td class="money total-cell numeric">
+                            ${formatMoney(lineTotal)}
+                        </td>
+                    </tr>
+                `;
+            }).join('')
+            : `
+                <tr>
+                    <td colspan="6" class="empty-items">
+                        لا توجد تفاصيل أصناف مسجلة في الفاتورة
+                    </td>
+                </tr>
+            `;
+
+        const printTitle = type === 'sales'
+            ? 'فاتورة بيع'
+            : 'فاتورة شراء';
+
+        const statusLabels = {
+            paid: 'مدفوعة',
+            unpaid: 'غير مدفوعة',
+            partial: 'مدفوعة جزئيًا',
+            pending: 'قيد الانتظار',
+            cancelled: 'ملغاة',
+            draft: 'مسودة',
+            completed: 'مكتملة',
+            overdue: 'متأخرة'
+        };
+
+        const rawStatus = String(invoice.status || '').trim();
+
+        const status =
+            statusLabels[rawStatus.toLowerCase()] ||
+            rawStatus ||
+            '—';
+
+        printWindow = window.open('', '_blank');
+
+        if (!printWindow) {
+            throw new Error(
+                'اسمح بفتح النوافذ المنبثقة لطباعة الفاتورة.'
+            );
         }
 
-        .company-name {
-            font-size: 19px;
+        printWindow.document.open();
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html lang="ar" dir="rtl">
+            <head>
+                <meta charset="UTF-8">
+                <meta
+                    name="viewport"
+                    content="width=device-width, initial-scale=1"
+                >
+
+                <title>${escape(printTitle)} - ${escape(invoiceNumber)}</title>
+
+                <style>
+                    * {
+                        box-sizing: border-box;
+                    }
+
+                    html {
+                        direction: rtl;
+                    }
+
+                    body {
+                        direction: rtl;
+                        margin: 0;
+                        padding: 24px;
+                        background: #fff;
+                        color: #222;
+                        font-family: Tahoma, Arial, sans-serif;
+                        font-size: 12px;
+                        line-height: 1.7;
+                        font-weight: 500;
+                    }
+
+                    .invoice {
+                        max-width: 1000px;
+                        margin: 0 auto;
+                    }
+
+                    /* رأس الفاتورة - الألوان الأصلية دون تغيير */
+                    .top-header {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 20px;
+                        padding-bottom: 17px;
+                        border-bottom: 3px solid #8B1E2B;
+                    }
+
+                    .company {
+                        display: flex;
+                        align-items: center;
+                        gap: 14px;
+                        min-width: 0;
+                    }
+
+                    .logo-box {
+                        width: 100px;
+                        height: 90px;
+                        flex: 0 0 100px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+
+                    .logo {
+                        display: block;
+                        max-width: 100%;
+                        max-height: 100%;
+                        object-fit: contain;
+                    }
+
+                    .company-name {
+                        margin: 0 0 5px;
+                        color: #8B1E2B;
+                        font-size: 23px;
+                        line-height: 1.5;
+                        font-weight: 900;
+                    }
+
+                    .company-line {
+                        margin: 3px 0;
+                        color: #222;
+                        font-size: 11px;
+                        font-weight: 600;
+                    }
+
+                    .company-phone {
+                        display: inline-block;
+                        direction: ltr;
+                        unicode-bidi: isolate;
+                        color: #8B1E2B;
+                        font-weight: 900;
+                    }
+
+                    .invoice-heading {
+                        flex: 0 0 auto;
+                        text-align: left;
+                    }
+
+                    .invoice-label {
+                        display: inline-block;
+                        padding: 8px 17px;
+                        border: 1px solid #8B1E2B;
+                        border-radius: 5px;
+                        background: #8B1E2B;
+                        color: #fff;
+                        font-size: 18px;
+                        font-weight: 900;
+                    }
+
+                    .invoice-number {
+                        margin-top: 9px;
+                        color: #111;
+                        font-size: 12px;
+                        font-weight: 800;
+                    }
+
+                    .invoice-date {
+                        margin-top: 3px;
+                        color: #333;
+                        font-weight: 600;
+                    }
+
+                    .gold-line {
+                        height: 3px;
+                        margin-top: 3px;
+                        background: #D4AF37;
+                    }
+
+                    /* بيانات العميل أو المورد */
+                    .customer-section {
+                        margin: 19px 0;
+                        padding: 14px 16px;
+                        border: 1px solid #dfc5c8;
+                        border-right: 4px solid #8B1E2B;
+                        border-radius: 4px;
+                        background: #fff;
+                    }
+
+                    .section-title {
+                        margin: 0 0 11px;
+                        color: #8B1E2B;
+                        font-size: 13px;
+                        font-weight: 900;
+                    }
+
+                    .customer-grid {
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 10px 22px;
+                    }
+
+                    .field {
+                        min-width: 0;
+                        overflow-wrap: anywhere;
+                    }
+
+                    .field-label {
+                        margin-left: 5px;
+                        color: #444;
+                        font-weight: 600;
+                    }
+
+                    .field-value {
+                        color: #111;
+                        font-weight: 800;
+                    }
+
+                    .status-pill {
+                        display: inline-block;
+                        padding: 1px 9px;
+                        border: 1px solid #c8a4a8;
+                        border-radius: 4px;
+                        color: #8B1E2B;
+                    }
+
+                    /* جدول الأصناف الأصلي */
+                    .items-title {
+                        margin: 20px 0 9px;
+                        color: #8B1E2B;
+                        font-size: 14px;
+                        font-weight: 900;
+                    }
+
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        table-layout: fixed;
+                    }
+
+                    thead {
+                        display: table-header-group;
+                    }
+
+                    tr {
+                        break-inside: avoid;
+                        page-break-inside: avoid;
+                    }
+
+                    th {
+                        padding: 9px 6px;
+                        border: 1px solid #8B1E2B;
+                        background: #8B1E2B;
+                        color: #fff;
+                        font-size: 11px;
+                        font-weight: 900;
+                        text-align: center;
+                    }
+
+                    td {
+                        padding: 8px 7px;
+                        border: 1px solid #cfcfcf;
+                        color: #222;
+                        vertical-align: top;
+                        overflow-wrap: anywhere;
+                        font-weight: 500;
+                    }
+
+                    tbody tr:nth-child(even) {
+                        background: #fcf8f8;
+                    }
+
+                    .number-cell {
+                        text-align: center;
+                        font-weight: 800;
+                    }
+
+                    .product-cell strong {
+                        color: #111;
+                        font-weight: 900;
+                    }
+
+                    .center {
+                        text-align: center;
+                    }
+
+                    .numeric {
+                        direction: ltr;
+                        unicode-bidi: isolate;
+                        font-variant-numeric: tabular-nums;
+                    }
+
+                    .money {
+                        text-align: center;
+                        white-space: nowrap;
+                        font-size: 11px;
+                        font-weight: 700;
+                    }
+
+                    .total-cell {
+                        color: #111;
+                        font-weight: 900;
+                    }
+
+                    .item-description {
+                        margin-top: 3px;
+                        color: #444;
+                        font-size: 10px;
+                        font-weight: 500;
+                    }
+
+                    .empty-items {
+                        padding: 24px;
+                        color: #333;
+                        text-align: center;
+                    }
+
+                    /* إضافات معاينة التصميم فقط */
+                    .design-section {
+                        margin-top: 22px;
+                        break-inside: auto;
+                        page-break-inside: auto;
+                    }
+
+                    .design-gallery {
+                        display: flex;
+                        flex-wrap: wrap;
+                        align-items: flex-start;
+                        gap: 10px;
+                        margin: 10px 0 16px;
+                    }
+
+                    .design-image-card {
+                        width: 150px;
+                        max-width: 100%;
+                        margin: 0;
+                        padding: 6px;
+                        border: 1px solid #dfc5c8;
+                        border-radius: 5px;
+                        text-align: center;
+                        break-inside: avoid;
+                        page-break-inside: avoid;
+                    }
+
+                    .design-image {
+                        display: block;
+                        width: 100%;
+                        height: 105px;
+                        object-fit: contain;
+                        background: #fff;
+                    }
+
+                    .design-image-card figcaption {
+                        margin-top: 4px;
+                        color: #222;
+                        font-size: 9px;
+                        font-weight: 700;
+                        overflow-wrap: anywhere;
+                    }
+
+                    @media print {
+                        .design-image-card {
+                            width: 5cm;
+                            padding: 3px;
+                        }
+
+                        .design-image {
+                            width: 100%;
+                            height: 3.5cm;
+                            object-fit: contain;
+                        }
+                    }
+
+                    .design-image-card figcaption {
+                        margin-top: 6px;
+                        color: #222;
+                        font-size: 10px;
+                        font-weight: 700;
+                        overflow-wrap: anywhere;
+                    }
+
+                    .design-subtitle {
+                        margin: 15px 0 8px;
+                        color: #8B1E2B;
+                        font-size: 12px;
+                        font-weight: 900;
+                    }
+
+                    .design-table {
+                        margin-top: 8px;
+                    }
+
+                    .design-table th {
+                        padding: 7px 4px;
+                    }
+
+                    .design-table td {
+                        padding: 7px 5px;
+                        font-size: 10px;
+                    }
+
+                    .design-notes {
+                        margin-top: 12px;
+                        padding: 10px 12px;
+                        border: 1px solid #dfc5c8;
+                        border-right: 3px solid #8B1E2B;
+                        border-radius: 4px;
+                        overflow-wrap: anywhere;
+                    }
+
+                    .design-notes strong {
+                        color: #8B1E2B;
+                        font-weight: 900;
+                    }
+
+                    .design-notes p {
+                        margin: 5px 0 0;
+                    }
+
+                    /* الإجماليات والملاحظات الأصلية */
+                    .summary-layout {
+                        display: grid;
+                        grid-template-columns: minmax(0, 1fr) 310px;
+                        align-items: start;
+                        gap: 18px;
+                        margin-top: 22px;
+                    }
+
+                    .notes {
+                        min-width: 0;
+                        padding: 12px 14px;
+                        border: 1px solid #dfc5c8;
+                        border-right: 4px solid #8B1E2B;
+                        border-radius: 5px;
+                        color: #333;
+                        font-size: 12px;
+                        line-height: 1.9;
+                        overflow-wrap: anywhere;
+                    }
+
+                    .notes strong {
+                        color: #8B1E2B;
+                        font-weight: 900;
+                    }
+
+                    .notes p {
+                        margin: 6px 0 0;
+                        white-space: normal;
+                        overflow-wrap: anywhere;
+                        word-break: normal;
+                    }
+
+                    .totals {
+                        width: 100%;
+                        min-width: 0;
+                        padding: 12px 14px;
+                        border: 1px solid #d5b7ba;
+                        border-radius: 5px;
+                        background: #fff;
+                    }
+
+                    .total-row {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 12px;
+                        padding: 5px 0;
+                        color: #222;
+                        font-weight: 600;
+                    }
+
+                    .total-row span:last-child {
+                        text-align: left;
+                        white-space: nowrap;
+                        color: #111;
+                        font-weight: 800;
+                    }
+
+                    .grand-total {
+                        margin: 6px -14px;
+                        padding: 10px 14px;
+                        border-top: 1px solid #8B1E2B;
+                        border-bottom: 1px solid #8B1E2B;
+                        background: #f7eeee;
+                        color: #8B1E2B;
+                        font-size: 15px;
+                        font-weight: 900;
+                    }
+
+                    .grand-total span {
+                        color: #8B1E2B;
+                        font-weight: 900;
+                    }
+
+                    .remaining {
+                        color: #8B1E2B;
+                        font-weight: 900;
+                    }
+
+                    .remaining span {
+                        color: #8B1E2B !important;
+                        font-weight: 900 !important;
+                    }
+
+                    /* التوقيعات والتذييل الأصلي */
+                    .signature-area {
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 55px;
+                        margin-top: 38px;
+                        text-align: center;
+                        color: #222;
+                        font-weight: 700;
+                        break-inside: avoid;
+                        page-break-inside: avoid;
+                    }
+
+                    .signature {
+                        padding-top: 10px;
+                        border-top: 1px solid #777;
+                    }
+
+                    .footer {
+                        margin-top: 24px;
+                        padding-top: 10px;
+                        border-top: 1px solid #d7c1c3;
+                        color: #333;
+                        font-size: 10px;
+                        font-weight: 600;
+                        text-align: center;
+                    }
+
+                    .footer strong {
+                        color: #8B1E2B;
+                        font-weight: 900;
+                    }
+
+                    @page {
+                        size: A4;
+                        margin: 12mm;
+                    }
+
+                    h2, h3 {
+                        break-after: avoid;
+                        page-break-after: avoid;
+                    }
+
+                    .customer-section,
+                    .totals,
+                    .design-image-card,
+                    .design-notes,
+                    .signature-area {
+                        break-inside: avoid;
+                        page-break-inside: avoid;
+                    }
+
+                    .notes {
+                        orphans: 3;
+                        widows: 3;
+                    }
+
+                    /* إعدادات الطباعة الأصلية */
+                    @media print {
+                        body {
+                            margin: 0;
+                            padding: 0;
+                            background: #fff;
+                            color: #111;
+                            font-weight: 600;
+                            print-color-adjust: exact;
+                            -webkit-print-color-adjust: exact;
+                        }
+
+                        .invoice {
+                            max-width: none;
+                        }
+
+                        .top-header {
+                            gap: 10px;
+                        }
+
+                        .company-name {
+                            font-size: 20px;
+                        }
+
+                        .logo-box {
+                            width: 82px;
+                            height: 76px;
+                            flex-basis: 82px;
+                        }
+
+                        th,
+                        .invoice-label,
+                        .grand-total,
+                        .gold-line {
+                            print-color-adjust: exact;
+                            -webkit-print-color-adjust: exact;
+                        }
+
+                        * {
+                            text-shadow: none !important;
+                            box-shadow: none !important;
+                        }
+
+                        .design-image-card {
+                            width: 5cm;
+                            padding: 3px;
+                        }
+
+                        .design-image {
+                            width: 100%;
+                            height: 3.5cm;
+                            max-height: 3.5cm;
+                            object-fit: contain;
+                        }
+
+                        .summary-layout {
+                            grid-template-columns: minmax(0, 1fr) 290px;
+                            gap: 12px;
+                        }
+
+                        .notes {
+                            font-size: 11.5px;
+                            line-height: 1.85;
+                        }
+
+                        th, td {
+                            overflow-wrap: anywhere;
+                        }
+                    }
+
+                    @media screen and (max-width: 600px) {
+                        body {
+                            padding: 10px;
+                        }
+
+                        .top-header {
+                            align-items: flex-start;
+                            flex-wrap: wrap;
+                        }
+
+                        .invoice-heading {
+                            text-align: right;
+                        }
+
+                        .summary-layout {
+                            grid-template-columns: 1fr;
+                        }
+
+                        .totals {
+                            width: 100%;
+                        }
+
+                        .design-gallery {
+                            display: flex;
+                            flex-wrap: wrap;
+                        }
+
+                        .design-image {
+                            height: 100px;
+                        }
+                    }
+                </style>
+            </head>
+
+            <body>
+                <main class="invoice">
+
+                    <header class="top-header">
+                        <div class="company">
+                            ${
+                                invoiceLogo
+                                    ? `
+                                        <div class="logo-box">
+                                            <img
+                                                class="logo"
+                                                src="${invoiceLogo}"
+                                                alt="شعار المتحدة"
+                                            >
+                                        </div>
+                                    `
+                                    : ''
+                            }
+
+                            <div>
+                                <h1 class="company-name">
+                                    المتحدة للرتان والأثاث
+                                </h1>
+
+                                <p class="company-line">
+                                    تصنيع وتشطيب وتوريد الأثاث
+                                </p>
+
+                                <p class="company-line">
+                                    أشمون - محافظة المنوفية - جمهورية مصر العربية
+                                </p>
+
+                                <p class="company-line">
+                                    تليفون:
+                                    <span class="company-phone">
+                                        01042056121
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="invoice-heading">
+                            <div class="invoice-label">
+                                ${escape(printTitle)}
+                            </div>
+
+                            <div class="invoice-number">
+                                رقم الفاتورة:
+                                <span class="numeric">
+                                    ${escape(invoiceNumber)}
+                                </span>
+                            </div>
+
+                            <div class="invoice-date">
+                                التاريخ:
+                                <span class="numeric">
+                                    ${escape(invoiceDate)}
+                                </span>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div class="gold-line"></div>
+
+                    <section class="customer-section">
+                        <h2 class="section-title">
+                            بيانات ${type === 'sales' ? 'العميل' : 'المورد'}
+                        </h2>
+
+                        <div class="customer-grid">
+                            <div class="field">
+                                <span class="field-label">
+                                    ${type === 'sales' ? 'اسم العميل:' : 'اسم المورد:'}
+                                </span>
+                                <span class="field-value">
+                                    ${escape(name || '—')}
+                                </span>
+                            </div>
+
+                            <div class="field">
+                                <span class="field-label">رقم الهاتف:</span>
+                                <span class="field-value numeric">
+                                    ${escape(phone || '—')}
+                                </span>
+                            </div>
+
+                            <div class="field">
+                                <span class="field-label">العنوان:</span>
+                                <span class="field-value">
+                                    ${escape(address || '—')}
+                                </span>
+                            </div>
+
+                            <div class="field">
+                                <span class="field-label">حالة الفاتورة:</span>
+                                <span class="field-value status-pill">
+                                    ${escape(status)}
+                                </span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <h2 class="items-title">تفاصيل الأصناف</h2>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:6%">م</th>
+                                <th style="width:32%">اسم الصنف والتفاصيل</th>
+                                <th style="width:10%">الكمية</th>
+                                <th style="width:10%">الوحدة</th>
+                                <th style="width:21%">سعر الوحدة</th>
+                                <th style="width:21%">الإجمالي</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            ${rows}
+                        </tbody>
+                    </table>
+
+                    ${designSection}
+
+                    <div class="summary-layout">
+                        <div class="notes">
+                            <strong>ملاحظات:</strong>
+                            <p>
+                                ${escape(
+                                    invoice.notes ||
+                                    invoice.note ||
+                                    'شكرًا لتعاملكم مع المتحدة للرتان والأثاث.'
+                                )}
+                            </p>
+                        </div>
+
+                        <section class="totals">
+                            ${
+                                discount > 0
+                                    ? `
+                                        <div class="total-row">
+                                            <span>إجمالي الأصناف:</span>
+                                            <span>${formatMoney(subtotal)}</span>
+                                        </div>
+
+                                        <div class="total-row">
+                                            <span>الخصم:</span>
+                                            <span>${formatMoney(discount)}</span>
+                                        </div>
+                                    `
+                                    : ''
+                            }
+
+                            <div class="total-row grand-total">
+                                <span>الإجمالي النهائي:</span>
+                                <span>${formatMoney(total)}</span>
+                            </div>
+
+                            <div class="total-row">
+                                <span>المدفوع:</span>
+                                <span>${formatMoney(paid)}</span>
+                            </div>
+
+                            <div class="total-row remaining">
+                                <span>المتبقي:</span>
+                                <span>${formatMoney(remaining)}</span>
+                            </div>
+                        </section>
+                    </div>
+
+                    <section class="signature-area">
+                        <div class="signature">توقيع المسؤول</div>
+                        <div class="signature">توقيع العميل / المستلم</div>
+                    </section>
+
+                    <footer class="footer">
+                        <strong>المتحدة للرتان والأثاث</strong>
+                        <br>
+                        تصنيع وتشطيب وتوريد الأثاث - أشمون، المنوفية
+                        <br>
+                        تليفون: <span class="numeric">01042056121</span>
+                    </footer>
+
+                </main>
+
+                <script>
+                    window.onload = function () {
+                        const images = Array.from(
+                            document.querySelectorAll('img')
+                        );
+
+                        let pending = images.filter(
+                            image => !image.complete
+                        ).length;
+
+                        let started = false;
+
+                        function startPrint() {
+                            if (started) return;
+                            started = true;
+
+                            setTimeout(function () {
+                                window.focus();
+                                window.print();
+                            }, 500);
+                        }
+
+                        if (pending === 0) {
+                            startPrint();
+                            return;
+                        }
+
+                        const imageFinished = function () {
+                            pending--;
+
+                            if (pending <= 0) {
+                                startPrint();
+                            }
+                        };
+
+                        images.forEach(function (image) {
+                            if (!image.complete) {
+                                image.addEventListener(
+                                    'load',
+                                    imageFinished,
+                                    { once: true }
+                                );
+
+                                image.addEventListener(
+                                    'error',
+                                    imageFinished,
+                                    { once: true }
+                                );
+                            }
+                        });
+
+                        // عدم تعطيل الطباعة لو صورة لم تُحمّل.
+                        setTimeout(startPrint, 5000);
+                    };
+                <\/script>
+            </body>
+            </html>
+        `);
+
+        printWindow.document.close();
+
+    } catch (error) {
+        if (printWindow && !printWindow.closed) {
+            printWindow.close();
         }
 
-        .logo-box {
-            width: 75px;
-            height: 70px;
-            flex-basis: 75px;
-        }
+        console.error(
+            'PRINT ACCOUNTING INVOICE ERROR:',
+            error
+        );
 
-        .customer-section {
-            margin: 11px 0;
-            padding: 9px 12px;
-        }
-
-        .items-title {
-            margin-top: 13px;
-        }
-
-        th,
-        .invoice-label,
-        .grand-total,
-        .gold-line {
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
-        }
-
-        * {
-            text-shadow: none !important;
-            box-shadow: none !important;
-        }
-
-        .design-image-card {
-            width: 4.5cm;
-            padding: 3px;
-        }
-
-        .design-image {
-            height: 3cm;
-            max-height: 3cm;
-        }
-
-        .summary-layout {
-            grid-template-columns: minmax(0, 1fr) 265px;
-            gap: 10px;
-            margin-top: 13px;
-        }
-
-        .notes {
-            font-size: 10.5px;
-            line-height: 1.8;
-        }
-
-        .notes p,
-        .design-notes p {
-            white-space: pre-wrap;
-            overflow-wrap: anywhere;
-        }
-
-        .signature-area {
-            margin-top: 23px;
-        }
-
-        th,
-        td {
-            overflow-wrap: anywhere;
-        }
-
-        /* السماح للملاحظات الطويلة بالانتقال للصفحة التالية */
-        .notes,
-        .design-notes,
-        .design-section {
-            break-inside: auto;
-            page-break-inside: auto;
-        }
-
-        .totals,
-        .signature-area,
-        .design-image-card {
-            break-inside: avoid;
-            page-break-inside: avoid;
-        }
+        accountingMessage(
+            error.message || 'حدث خطأ أثناء طباعة الفاتورة.',
+            true
+        );
     }
-
-    @media screen and (max-width: 600px) {
-        body {
-            padding: 10px;
-        }
-
-        .top-header {
-            align-items: flex-start;
-            flex-wrap: wrap;
-        }
-
-        .invoice-heading {
-            text-align: right;
-        }
-
-        .customer-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .summary-layout {
-            grid-template-columns: 1fr;
-        }
-
-        .totals {
-            width: 100%;
-        }
-
-        .design-gallery {
-            display: flex;
-            flex-wrap: wrap;
-        }
-
-        .design-image {
-            height: 100px;
-        }
-
-        th,
-        td {
-            padding: 5px 3px;
-            font-size: 10px;
-        }
-    }
-</style>
+}
 
 // نهاية نظام الحسابات
+
 /* =========================================
    UNITED ACCOUNTING - INVOICE FORMS
 ========================================= */
