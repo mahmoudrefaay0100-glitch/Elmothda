@@ -16493,32 +16493,32 @@ async function printAccountingInvoice(invoiceId, type) {
 
                   
 .design-gallery {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 8px;
-    margin: 8px 0 12px;
-}
+                        display: flex;
+                        flex-wrap: wrap;
+                        align-items: flex-start;
+                        gap: 10px;
+                        margin: 10px 0 16px;
+                    }
 
 .design-image-card {
-    width: 145px;
-    max-width: 100%;
-    margin: 0;
-    padding: 5px;
-    border: 1px solid #dfc5c8;
-    border-radius: 4px;
-    text-align: center;
-    break-inside: avoid;
-    page-break-inside: avoid;
-}
+                        width: 150px;
+                        max-width: 100%;
+                        margin: 0;
+                        padding: 6px;
+                        border: 1px solid #dfc5c8;
+                        border-radius: 5px;
+                        text-align: center;
+                        break-inside: avoid;
+                        page-break-inside: avoid;
+                    }
 
 .design-image {
-    display: block;
-    width: 100%;
-    height: 100px;
-    object-fit: contain;
-    background: #fff;
-}
+                        display: block;
+                        width: 100%;
+                        height: 105px;
+                        object-fit: contain;
+                        background: #fff;
+                    }
 
 .design-image-card figcaption {
     margin-top: 4px;
@@ -16590,18 +16590,23 @@ async function printAccountingInvoice(invoiceId, type) {
 
                     /* الإجماليات والملاحظات الأصلية */
                     .summary-layout {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: flex-start;
-                        gap: 22px;
-                        margin-top: 20px;
+                        display: grid;
+                        grid-template-columns: minmax(0, 1fr) 310px;
+                        align-items: start;
+                        gap: 18px;
+                        margin-top: 22px;
                     }
 
                     .notes {
-                        flex: 1;
                         min-width: 0;
+                        padding: 12px 14px;
+                        border: 1px solid #dfc5c8;
+                        border-right: 4px solid #8B1E2B;
+                        border-radius: 5px;
                         color: #333;
-                        font-size: 11px;
+                        font-size: 12px;
+                        line-height: 1.9;
+                        overflow-wrap: anywhere;
                     }
 
                     .notes strong {
@@ -16610,17 +16615,19 @@ async function printAccountingInvoice(invoiceId, type) {
                     }
 
                     .notes p {
-                        margin-top: 5px;
+                        margin: 6px 0 0;
+                        white-space: normal;
                         overflow-wrap: anywhere;
+                        word-break: normal;
                     }
 
                     .totals {
-                        width: 320px;
-                        max-width: 100%;
-                        flex-shrink: 0;
-                        padding: 11px 14px;
+                        width: 100%;
+                        min-width: 0;
+                        padding: 12px 14px;
                         border: 1px solid #d5b7ba;
                         border-radius: 5px;
+                        background: #fff;
                     }
 
                     .total-row {
@@ -16671,10 +16678,12 @@ async function printAccountingInvoice(invoiceId, type) {
                         display: grid;
                         grid-template-columns: 1fr 1fr;
                         gap: 55px;
-                        margin-top: 48px;
+                        margin-top: 38px;
                         text-align: center;
                         color: #222;
                         font-weight: 700;
+                        break-inside: avoid;
+                        page-break-inside: avoid;
                     }
 
                     .signature {
@@ -16699,7 +16708,26 @@ async function printAccountingInvoice(invoiceId, type) {
 
                     @page {
                         size: A4;
-                        margin: 10mm;
+                        margin: 12mm;
+                    }
+
+                    h2, h3 {
+                        break-after: avoid;
+                        page-break-after: avoid;
+                    }
+
+                    .customer-section,
+                    .totals,
+                    .design-image-card,
+                    .design-notes,
+                    .signature-area {
+                        break-inside: avoid;
+                        page-break-inside: avoid;
+                    }
+
+                    .notes {
+                        orphans: 3;
+                        widows: 3;
                     }
 
                     /* إعدادات الطباعة الأصلية */
@@ -16745,8 +16773,30 @@ async function printAccountingInvoice(invoiceId, type) {
                             box-shadow: none !important;
                         }
 
+                        .design-image-card {
+                            width: 5cm;
+                            padding: 3px;
+                        }
+
                         .design-image {
-                            max-height: 180px;
+                            width: 100%;
+                            height: 3.5cm;
+                            max-height: 3.5cm;
+                            object-fit: contain;
+                        }
+
+                        .summary-layout {
+                            grid-template-columns: minmax(0, 1fr) 290px;
+                            gap: 12px;
+                        }
+
+                        .notes {
+                            font-size: 11.5px;
+                            line-height: 1.85;
+                        }
+
+                        th, td {
+                            overflow-wrap: anywhere;
                         }
                     }
 
@@ -16765,7 +16815,7 @@ async function printAccountingInvoice(invoiceId, type) {
                         }
 
                         .summary-layout {
-                            flex-direction: column;
+                            grid-template-columns: 1fr;
                         }
 
                         .totals {
@@ -16773,11 +16823,12 @@ async function printAccountingInvoice(invoiceId, type) {
                         }
 
                         .design-gallery {
-                            grid-template-columns: repeat(2, minmax(0, 1fr));
+                            display: flex;
+                            flex-wrap: wrap;
                         }
 
                         .design-image {
-                            height: 140px;
+                            height: 100px;
                         }
                     }
                 </style>
@@ -16891,11 +16942,11 @@ async function printAccountingInvoice(invoiceId, type) {
                         <thead>
                             <tr>
                                 <th style="width:6%">م</th>
-                                <th style="width:34%">اسم الصنف والتفاصيل</th>
-                                <th style="width:12%">الكمية</th>
-                                <th style="width:12%">الوحدة</th>
-                                <th style="width:18%">سعر الوحدة</th>
-                                <th style="width:18%">الإجمالي</th>
+                                <th style="width:32%">اسم الصنف والتفاصيل</th>
+                                <th style="width:10%">الكمية</th>
+                                <th style="width:10%">الوحدة</th>
+                                <th style="width:21%">سعر الوحدة</th>
+                                <th style="width:21%">الإجمالي</th>
                             </tr>
                         </thead>
 
@@ -17046,7 +17097,6 @@ async function printAccountingInvoice(invoiceId, type) {
 }
 
 // نهاية نظام الحسابات
-
 /* =========================================
    UNITED ACCOUNTING - INVOICE FORMS
 ========================================= */
